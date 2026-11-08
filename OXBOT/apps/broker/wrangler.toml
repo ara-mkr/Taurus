@@ -1,0 +1,8 @@
+# Cloudflare Workers deploy. Secrets are set with `wrangler secret put NAME`, never written here.
+name = "oxbot-signin"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Set to the public URL once deployed, e.g. https://oxbot-signin.<you>.workers.dev
+BROKER_URL = "https://oxbot-signin.oxbot-signin.workers.dev"

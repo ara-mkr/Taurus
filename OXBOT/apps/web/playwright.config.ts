@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 3, reporter: [['list'], ['json', { outputFile: 'test-results/results.json' }]], use: { channel: process.env.PLAYWRIGHT_CHANNEL, baseURL: 'http://127.0.0.1:5173', viewport: { width: 1440, height: 1000 }, trace: 'retain-on-failure', serviceWorkers: 'block' }, webServer: { command: 'node_modules/.bin/vite --host 127.0.0.1 --port 5173', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI } });

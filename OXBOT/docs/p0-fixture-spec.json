@@ -1,0 +1,209 @@
+{
+  "status": "Proposed P0 fixture specification; not application code or owner approval",
+  "schema_version": 1,
+  "clock": {
+    "now": "2026-10-20T20:30:00Z",
+    "time_zone": "America/New_York",
+    "label": "Fixed demo day"
+  },
+  "data_mode": "synthetic_only",
+  "owner": {
+    "id": "person-avery",
+    "name": "Avery Morgan",
+    "email": "avery.morgan@example.com",
+    "fictional": true
+  },
+  "people": [
+    {
+      "id": "person-jordan-lee",
+      "name": "Jordan Lee",
+      "email": "jordan.lee@example.com",
+      "fictional": true
+    },
+    {
+      "id": "person-jordan-patel",
+      "name": "Jordan Patel",
+      "email": "jordan.patel@example.com",
+      "fictional": true
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-calendar",
+      "name": "Sample calendar invitation",
+      "mode": "simulated",
+      "status": "current",
+      "observed_at": "2026-10-20T20:10:00Z",
+      "synced_at": "2026-10-20T20:12:00Z",
+      "scope": "This fictional invitation only",
+      "excerpt": "Project review moved from 9:00 AM to 8:00 AM. Jordan Lee is an attendee."
+    },
+    {
+      "id": "source-prototype",
+      "name": "Sample prototype update note",
+      "mode": "simulated",
+      "status": "current",
+      "observed_at": "2026-10-20T19:40:00Z",
+      "synced_at": "2026-10-20T19:42:00Z",
+      "scope": "This fictional project note only",
+      "excerpt": "Version 3 is the version prepared for the review. Version 2 is superseded."
+    }
+  ],
+  "attachments": [
+    {
+      "id": "attachment-prototype-v2",
+      "name": "prototype-results-v2.pdf",
+      "version": "demo-v2",
+      "status": "superseded",
+      "real_file_available": false
+    },
+    {
+      "id": "attachment-prototype-v3",
+      "name": "prototype-results-v3.pdf",
+      "version": "demo-v3",
+      "status": "prepared_for_review",
+      "real_file_available": false
+    }
+  ],
+  "meeting": {
+    "id": "event-project-review",
+    "title": "Project review",
+    "starts_at": "2026-10-21T12:00:00Z",
+    "previous_starts_at": "2026-10-21T13:00:00Z",
+    "duration_minutes": 30,
+    "attendee_ids": [
+      "person-jordan-lee"
+    ],
+    "source_id": "source-calendar",
+    "fictional": true
+  },
+  "tomorrow_plan": {
+    "meeting_id": "event-project-review",
+    "preparation_starts_at": "2026-10-21T11:30:00Z",
+    "suggested_wake_at": "2026-10-21T10:30:00Z",
+    "alarm_scheduled": false,
+    "label": "Suggested plan only; no calendar change or alarm scheduled"
+  },
+  "email_proposal": {
+    "id": "proposal-prototype-update",
+    "revision": 1,
+    "mode": "simulated",
+    "status": "needs_approval",
+    "sender_id": "person-avery",
+    "recipient_ids": [
+      "person-jordan-lee"
+    ],
+    "subject": "Prototype review - latest results",
+    "body": "Hi Jordan,\n\nHere is the latest prototype update for tomorrow’s review. The results summary is included in this fictional attachment, with open questions at the end.\n\nBest,\nOx - Avery’s AI assistant, writing on their behalf",
+    "attachment_ids": [
+      "attachment-prototype-v3"
+    ],
+    "evidence_ids": [
+      "source-calendar",
+      "source-prototype"
+    ],
+    "expected_approval_label": "Simulation approved. No email was sent.",
+    "external_execution_available": false
+  },
+  "user_stories": [
+    {
+      "id": "story-ready-for-tomorrow",
+      "title": "Ready for tomorrow",
+      "given": "The fictional review moved one hour earlier.",
+      "when": "The person inspects Tomorrow plan.",
+      "then": "Show the new meeting, preparation time, suggested wake time and source timestamps. Explicitly state no calendar event or alarm is changed.",
+      "first_slice": "Today module only; no second action drawer required"
+    },
+    {
+      "id": "story-handle-update",
+      "title": "Handle this for me",
+      "given": "A draft to Jordan Lee uses prototype version 3.",
+      "when": "The person opens Review draft.",
+      "then": "Show exact sender, address, subject, body, version and evidence. Approval/rejection changes only deterministic demo state.",
+      "first_slice": "One evidence/action drawer"
+    },
+    {
+      "id": "story-respect-attention",
+      "title": "Tell me without disrupting me",
+      "given": "The preview contains two decisions and can be paused.",
+      "when": "The person pauses or reviews simulated activity.",
+      "then": "Pause blocks demo mutations while keeping details inspectable; activity explicitly remains simulated. No notifications or calls occur.",
+      "first_slice": "Pause control and simulated activity only"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "default",
+      "phase": "P1",
+      "expected": "Two decision rows; readable agenda, Tomorrow plan, synthetic evidence and activity."
+    },
+    {
+      "id": "empty",
+      "phase": "P1",
+      "expected": "No invented obligations; quiet empty Needs you state with zero count and truthful agenda."
+    },
+    {
+      "id": "stale",
+      "phase": "P1",
+      "expected": "Visible stale source and fixed timestamps; approval unavailable until the demo is reset to current evidence."
+    },
+    {
+      "id": "disconnected",
+      "phase": "P1",
+      "expected": "Explain sample mail source is disconnected; no approval can simulate completion."
+    },
+    {
+      "id": "pending",
+      "phase": "P1",
+      "expected": "Inspection-only pending fixture, disabled approval; no artificial typing delay."
+    },
+    {
+      "id": "failed",
+      "phase": "P1",
+      "expected": "Explicit simulated failure; no successful receipt; provide review/reset as the available local recovery."
+    },
+    {
+      "id": "result-unknown",
+      "phase": "P1",
+      "expected": "Visibly unknown simulated outcome; no retry-send button or completion claim."
+    },
+    {
+      "id": "long-content",
+      "phase": "P1",
+      "expected": "Long subject, unbroken identifier and non-ASCII display name wrap at 320px without concealing address or actions."
+    },
+    {
+      "id": "ambiguous-jordan",
+      "phase": "P2",
+      "expected": "Two candidate people; require selection before an approval proposal. No guessed recipient."
+    },
+    {
+      "id": "changed-attachment",
+      "phase": "P1",
+      "expected": "A proposal revision change invalidates prior simulated approval; version 2 never silently replaces approved version 3."
+    },
+    {
+      "id": "paused",
+      "phase": "P1",
+      "expected": "Details readable; approve/reject blocked; explicit paused label; reset restores initial fixtures."
+    }
+  ],
+  "reset_contract": {
+    "resets": [
+      "proposal state",
+      "paused state",
+      "local result messages",
+      "selected test state"
+    ],
+    "theme": "May preserve a non-sensitive appearance preference; must be documented and tested",
+    "requests": "No HTTP or provider requests"
+  },
+  "fixture_rules": [
+    "All people and events fictional.",
+    "Only example.com email addresses.",
+    "No secrets, real accounts, health or financial records.",
+    "All timestamps fixed; no relative time based on wall clock.",
+    "Attachment metadata is illustrative; no real attachment supplied.",
+    "No source content grants permissions."
+  ]
+}

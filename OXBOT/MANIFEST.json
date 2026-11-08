@@ -1,0 +1,323 @@
+{
+  "project": "OXBOT",
+  "plan_date": "2026-10-20",
+  "pdf_pages": 43,
+  "master_word_count": 15856,
+  "files": [
+    {
+      "path": ".agents/skills/oxbot-action-safety/SKILL.md",
+      "bytes": 2020,
+      "sha256": "8ef7af9ab28f8176a2cfdd8bd7c779d8aeb628e126f8440c04801edf93b0b0c0"
+    },
+    {
+      "path": ".agents/skills/oxbot-action-safety/agents/openai.yaml",
+      "bytes": 287,
+      "sha256": "6d91545851f3510c59eae02d7d47499e16ae41536fe015d8300f121e2487e49a"
+    },
+    {
+      "path": ".agents/skills/oxbot-action-safety/references/action-checklist.md",
+      "bytes": 913,
+      "sha256": "2dab7b4ced068dcfedc9830c57fb8c1ae3a60e365683a2c2ddca574cf551c24d"
+    },
+    {
+      "path": ".agents/skills/oxbot-phase-gate/SKILL.md",
+      "bytes": 1772,
+      "sha256": "888aa56b3cd119b742417c92ef9c406d560d01f1a3b6ec3800dc582a31bba663"
+    },
+    {
+      "path": ".agents/skills/oxbot-phase-gate/agents/openai.yaml",
+      "bytes": 275,
+      "sha256": "ad61ce8dc02e23445a645aeadadb01c10cdb400d5d2a451b25a5a65921514104"
+    },
+    {
+      "path": ".agents/skills/oxbot-phase-gate/references/gate-contract.md",
+      "bytes": 790,
+      "sha256": "c139b188f1c070d64169a5a105355ca5ab1a1f99ae843e61cdca32642437581f"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui/SKILL.md",
+      "bytes": 2727,
+      "sha256": "f9a3a9ac917867a22aff6a886486eb4d3e162b995a46f4611152fb572ce95103"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui/agents/openai.yaml",
+      "bytes": 267,
+      "sha256": "f718767fb337e160f3eb2eb3d9fafebc2327882eca065951beae58133dd3138b"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui/references/ui-contract.md",
+      "bytes": 1279,
+      "sha256": "878108356f70a967ee589bfda6cf32e583b9422ddf4ef116785ca75c61ad085f"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui-audit/SKILL.md",
+      "bytes": 2131,
+      "sha256": "81828e5f47d405234b5eee960fca490547cd82ceeb228b0de9e452e677aeeecd"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui-audit/agents/openai.yaml",
+      "bytes": 270,
+      "sha256": "93a6baab96deb446493844af5335b0d042745c49ada33797b50f2e08cd8bb48f"
+    },
+    {
+      "path": ".agents/skills/oxbot-ui-audit/references/audit-rubric.md",
+      "bytes": 815,
+      "sha256": "4f46f93e9e1210621df943765d0fe3ea32193df9958b8efd1413fe8c6f2da5e9"
+    },
+    {
+      "path": ".claude/skills/oxbot-action-safety/SKILL.md",
+      "bytes": 2020,
+      "sha256": "8ef7af9ab28f8176a2cfdd8bd7c779d8aeb628e126f8440c04801edf93b0b0c0"
+    },
+    {
+      "path": ".claude/skills/oxbot-action-safety/agents/openai.yaml",
+      "bytes": 287,
+      "sha256": "6d91545851f3510c59eae02d7d47499e16ae41536fe015d8300f121e2487e49a"
+    },
+    {
+      "path": ".claude/skills/oxbot-action-safety/references/action-checklist.md",
+      "bytes": 913,
+      "sha256": "2dab7b4ced068dcfedc9830c57fb8c1ae3a60e365683a2c2ddca574cf551c24d"
+    },
+    {
+      "path": ".claude/skills/oxbot-phase-gate/SKILL.md",
+      "bytes": 1772,
+      "sha256": "888aa56b3cd119b742417c92ef9c406d560d01f1a3b6ec3800dc582a31bba663"
+    },
+    {
+      "path": ".claude/skills/oxbot-phase-gate/agents/openai.yaml",
+      "bytes": 275,
+      "sha256": "ad61ce8dc02e23445a645aeadadb01c10cdb400d5d2a451b25a5a65921514104"
+    },
+    {
+      "path": ".claude/skills/oxbot-phase-gate/references/gate-contract.md",
+      "bytes": 790,
+      "sha256": "c139b188f1c070d64169a5a105355ca5ab1a1f99ae843e61cdca32642437581f"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui/SKILL.md",
+      "bytes": 2727,
+      "sha256": "f9a3a9ac917867a22aff6a886486eb4d3e162b995a46f4611152fb572ce95103"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui/agents/openai.yaml",
+      "bytes": 267,
+      "sha256": "f718767fb337e160f3eb2eb3d9fafebc2327882eca065951beae58133dd3138b"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui/references/ui-contract.md",
+      "bytes": 1279,
+      "sha256": "878108356f70a967ee589bfda6cf32e583b9422ddf4ef116785ca75c61ad085f"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui-audit/SKILL.md",
+      "bytes": 2131,
+      "sha256": "81828e5f47d405234b5eee960fca490547cd82ceeb228b0de9e452e677aeeecd"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui-audit/agents/openai.yaml",
+      "bytes": 270,
+      "sha256": "93a6baab96deb446493844af5335b0d042745c49ada33797b50f2e08cd8bb48f"
+    },
+    {
+      "path": ".claude/skills/oxbot-ui-audit/references/audit-rubric.md",
+      "bytes": 815,
+      "sha256": "4f46f93e9e1210621df943765d0fe3ea32193df9958b8efd1413fe8c6f2da5e9"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature.md",
+      "bytes": 255,
+      "sha256": "fb18b04c8f3f44f4af4c87afd8a6a9b04572d1552e779dc0d7ecb2c0436ad461"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "bytes": 655,
+      "sha256": "29a38a783cdae860701b621cae67993c30c9ff848000a260af1648dd72f64aa5"
+    },
+    {
+      "path": ".github/workflows/pack-check.yml",
+      "bytes": 373,
+      "sha256": "11f4296999066047a4aeb492e323d1790d2525bc3c796eb637baf12d80016df4"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 221,
+      "sha256": "a08613b71db10bdf3ea30e31a901abf31fac0512137cff5aa7722d9e548d2ae4"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 2675,
+      "sha256": "5a10a6d58bf02d4b3b2a90a94d0cae8d6abc2a955be86945ff44a2fb594d1f4e"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 809,
+      "sha256": "afc506b8825e6b1b5c72f9c99fdf24eb4c327b244249749c9cacf43c51cd8e9f"
+    },
+    {
+      "path": "LICENSE-DECISION.md",
+      "bytes": 1049,
+      "sha256": "012dfa97fdc550f30a53cd4036b9088e6b7adc2a6f65ac4cec1069499fbdbe1e"
+    },
+    {
+      "path": "OXBOT_Master_Plan.md",
+      "bytes": 115409,
+      "sha256": "518faf8f13cba21b9abe41ee2c67387954418a44ec7cc6e530bcc2d2440d456c"
+    },
+    {
+      "path": "OXBOT_Master_Plan.pdf",
+      "bytes": 315728,
+      "sha256": "2ef815cd4b2efe8e42f4da936556c98afe1a1859c1baba72c8bdcc7b4b39b3bc"
+    },
+    {
+      "path": "PROJECT_STATE.json",
+      "bytes": 882,
+      "sha256": "a998afccd2d0d729f7909b36c116be4cd7f24c311591b2b4860b93ac228239ac"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3301,
+      "sha256": "771dfcf3a133a7074dc27f96a9271589dda4b479cf6e6f588b022ce64c8c35ad"
+    },
+    {
+      "path": "design/preview-dark.png",
+      "bytes": 143489,
+      "sha256": "2550cc0575aa39b19158fed74dbc966de3615716d74836e57da9d5fad39d28f6"
+    },
+    {
+      "path": "design/preview-light.png",
+      "bytes": 142126,
+      "sha256": "6a3f65a2e6735bd0181a56347ad685f3bd5260fac736eacdd008b89cb4e4b1f4"
+    },
+    {
+      "path": "design/tokens.css",
+      "bytes": 1165,
+      "sha256": "e443eabebdc2049362a1dbdd1e6d982a382f478cbbcc7044513c065e95df2f84"
+    },
+    {
+      "path": "design/ui-direction.html",
+      "bytes": 30045,
+      "sha256": "eab1ba37eb7a992b305ca48880d6073f4808bb06c6ec631a40293a45aff2b696"
+    },
+    {
+      "path": "docs/00-start-here.md",
+      "bytes": 2265,
+      "sha256": "9e06f2fbc9845ac630a5dac04b0d6d6fb263cbded5fe716742fd086b71896b34"
+    },
+    {
+      "path": "docs/01-product-and-brand.md",
+      "bytes": 10534,
+      "sha256": "7aa20761f836ecf4f76b42feea05a47f470efb0e2f16e4c710934a9e96dc9927"
+    },
+    {
+      "path": "docs/02-phased-roadmap.md",
+      "bytes": 20248,
+      "sha256": "f3e203c6144aec1ab27fb47817d3f70c4489c39bb4ac6d3eb09e4a096bf34d22"
+    },
+    {
+      "path": "docs/03-ui-specification.md",
+      "bytes": 14867,
+      "sha256": "d499e8fa18bc5298bcec931576dc0cd15cc8eae74a27581cda7c152bcc88c8a1"
+    },
+    {
+      "path": "docs/04-architecture.md",
+      "bytes": 15336,
+      "sha256": "e849bc2e5581d0db1cf86d9e97fdfd2184f5d6bb15e6c9732901b7fce34e408f"
+    },
+    {
+      "path": "docs/05-integrations-and-evaluations.md",
+      "bytes": 10781,
+      "sha256": "02b6a84c6dd33b1d02e61f0fc0821fc4ef7ba18c66485214bfff5a0cbde75b85"
+    },
+    {
+      "path": "docs/06-repo-and-coding-workflow.md",
+      "bytes": 12198,
+      "sha256": "9c8c23db23e21883077efcf122f06377e3c1af0643acb0441ef8ba4c0b4f4d2a"
+    },
+    {
+      "path": "docs/07-legal-launch-and-risk.md",
+      "bytes": 11918,
+      "sha256": "bc750667a69c709eaccc178f36cde0dc275d98b9abb3fccd35eee0dc226f92c8"
+    },
+    {
+      "path": "docs/08-references.md",
+      "bytes": 10667,
+      "sha256": "0b0acae165f2f808d81af324f39455f2048b68bdd54a53c28aa2c4389383bb75"
+    },
+    {
+      "path": "docs/09-initial-backlog.md",
+      "bytes": 5498,
+      "sha256": "5fab14d3e82ccc5c6c8697b1db81ee501bbeb2aabcdb3f0af73110ada25705ee"
+    },
+    {
+      "path": "docs/decision-log.md",
+      "bytes": 1671,
+      "sha256": "2bad8d2ba658f62a9aa570ce71beebcee8212f85a6b50d99b283911ed3912c8e"
+    },
+    {
+      "path": "docs/source-catalog.json",
+      "bytes": 15570,
+      "sha256": "8d8d5ca1913c20c24178f39e9c04b0e60e5c0cb20a70edac79e46d9ba9bd98a2"
+    },
+    {
+      "path": "docs/ui-study-test-results.json",
+      "bytes": 1191,
+      "sha256": "3a59911f4478e4be86e35ceb1f974484d578cae5b3aac7ff6eb52868c4af45cc"
+    },
+    {
+      "path": "docs/validation-report.md",
+      "bytes": 3078,
+      "sha256": "b40f15055dadc3b93f82c7faab7348830376d0fe0f8ff21a098aa8bd99cf7a46"
+    },
+    {
+      "path": "prompts/01-first-build.md",
+      "bytes": 2634,
+      "sha256": "f9da5e869f9f4f35a3ea93edf32c3bf6e2fc75b7a44e61392179c0c0e63dc254"
+    },
+    {
+      "path": "prompts/02-independent-audit.md",
+      "bytes": 943,
+      "sha256": "7d07af7219c5cccc107b60d0888f425a46e485743013a112174a513cb5ad53c1"
+    },
+    {
+      "path": "scripts/build_master.py",
+      "bytes": 1435,
+      "sha256": "732cb93e9c1fae027555b8beba6b0a0bbf9b2b547691dce6d1a495c358538b90"
+    },
+    {
+      "path": "scripts/sync_skills.py",
+      "bytes": 2140,
+      "sha256": "5bd8d164eba6222bedb9c5826e5fad4bc2b4d53305175e81cb7d3bb33fc3d261"
+    },
+    {
+      "path": "scripts/test_ui_study.py",
+      "bytes": 4716,
+      "sha256": "de131ebc926a6bfb5077338d5c4c4ef59a86a9b71fe0fa4d2b6c7177f3538248"
+    },
+    {
+      "path": "scripts/validate_pack.py",
+      "bytes": 4481,
+      "sha256": "0b27a7fdddf6c9c987a71485941b991ce24ec48a2f0f9f6f36a383d5132d4656"
+    },
+    {
+      "path": "skill-packages/oxbot-action-safety/skill.zip",
+      "bytes": 2248,
+      "sha256": "2b91dab2fe56d2163ae28db7ad35cfda6789ae1c557882af4f14bf06904d2c89"
+    },
+    {
+      "path": "skill-packages/oxbot-phase-gate/skill.zip",
+      "bytes": 2074,
+      "sha256": "3f770aad28dd57fc47e6dde30db81ae6472a14d28a1c622f0aabb9cedddd95fa"
+    },
+    {
+      "path": "skill-packages/oxbot-ui/skill.zip",
+      "bytes": 2763,
+      "sha256": "f520bd6b25a49494148e0600970bcc78e81fb0f61b0ac54da28c29f2c831743d"
+    },
+    {
+      "path": "skill-packages/oxbot-ui-audit/skill.zip",
+      "bytes": 2259,
+      "sha256": "0e35e93512312aad84ef9440220ef27c8fdc2bdad49273ef34376533daffc764"
+    }
+  ]
+}

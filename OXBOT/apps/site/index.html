@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OXBOT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="OXBOT runs on your computer, reads your mail, calendar and chat, tells you who needs an answer, handles it once you approve, and rings when something can't wait.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <div class="bar-in">
+    <a href="#top" class="wordmark" aria-label="OXBOT, back to the top">
+      <svg viewBox="0 0 1006 504" aria-hidden="true"><circle cx="252" cy="252" r="200" fill="none" stroke="currentColor" stroke-width="103"/><path d="M573 61 670 158M957 61 860 158M670 346 573 443M860 346 957 443" stroke="currentColor" stroke-width="97" stroke-linecap="round"/></svg>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#act">Actions</a>
+      <a href="#apps">Apps</a>
+      <a href="#ringing">Ringing</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#builds">Builds</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Act 1. The board rises out of the headline and settles flat. -->
+  <section class="scene hero" id="top" data-scene="hero" aria-labelledby="hero-title">
+    <div class="pin">
+      <div class="hero-copy gutter">
+        <h1 id="hero-title">Know what needs&nbsp;you.</h1>
+        <p class="lead">It reads your mail, calendar and chat, tells you who needs an answer, and handles it once you say yes.</p>
+        <div class="actions">
+          <a class="btn" href="#how">See how it works</a>
+          <a class="btn quiet" href="#ringing">See it ring</a>
+        </div>
+      </div>
+      <figure class="hero-shot">
+        <div class="frame"><picture>
+          <source media="(max-width: 640px)" srcset="shots/phone-board.webp" width="1170" height="2532">
+          <img src="shots/board-dark.webp" srcset="shots/board-dark-1600.webp 1600w, shots/board-dark.webp 2880w" sizes="min(1240px, 92vw)" width="2880" height="2020" alt="The OXBOT Home board. A headline reads: Dana needs your call on the board seat before Northgate at 10:00. Recovery 64%. Below it are cards for what needs you, today's meetings, health, numbers and people." fetchpriority="high">
+        </picture></div>
+        <figcaption><span class="on-wide">OXBOT on a Mac</span><span class="on-narrow">OXBOT on a phone</span>, on a sample Tuesday at 9:48&nbsp;AM.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Act 2. The pile, lit word by word. -->
+  <section class="scene pile" id="how" data-scene="words" aria-label="What a morning looks like">
+    <div class="pin gutter">
+      <p class="words">23&nbsp;unread emails. 6&nbsp;Slack mentions. 4&nbsp;meetings. 1&nbsp;urgent bug. <em>3&nbsp;need&nbsp;you.</em></p>
+    </div>
+  </section>
+
+  <!-- Act 3. One line, and where each part of it came from. -->
+  <section class="scene line" data-scene="line" aria-labelledby="line-title">
+    <div class="pin gutter">
+      <h2 class="sr-only" id="line-title">What OXBOT tells you at 9:48</h2>
+      <p class="sentence"><span data-part="1">Dana needs your call on the board seat</span> <span data-part="2">before Northgate at 10:00.</span> <span data-part="3">Recovery 64%.</span></p>
+      <div class="notes">
+        <div class="note" data-part="1"><span class="fill" aria-hidden="true"></span><b>Gmail</b><p>VIP email always stays.</p></div>
+        <div class="note" data-part="2"><span class="fill" aria-hidden="true"></span><b>Google Calendar</b><p>Rings 10 minutes before.</p></div>
+        <div class="note" data-part="3"><span class="fill" aria-hidden="true"></span><b>WHOOP</b><p>Last night’s recovery.</p></div>
+      </div>
+      <p class="coda">Your AI writes the line from these facts. Without one, OXBOT writes it by rule.</p>
+    </div>
+  </section>
+
+  <!-- Act 4. The real app, sideways. -->
+  <section class="scene tour" data-scene="pan" aria-labelledby="tour-title">
+    <div class="pin">
+      <div class="tour-head gutter">
+        <h2 id="tour-title">One board for the whole day.</h2>
+      </div>
+      <div class="track">
+        <figure class="shot"><div class="frame"><img src="shots/board-light.webp" srcset="shots/board-light-1600.webp 1600w, shots/board-light.webp 2880w" sizes="(max-width: 640px) 88vw, 920px" width="2880" height="2020" loading="lazy" alt="The Home board in light appearance."></div><figcaption>Light or dark. Arrange it your way.</figcaption></figure>
+        <figure class="shot"><div class="frame"><img src="shots/ask.webp" srcset="shots/ask-1600.webp 1600w, shots/ask.webp 2880w" sizes="(max-width: 640px) 88vw, 920px" width="2880" height="1800" loading="lazy" alt="Ask Ox. The question: What do I need to do before the investor call? The answer names Dana's board seat clause, Priya's hiring plan and a recovery of 64%."></div><figcaption>Ask about your day, or your heart rate right now.</figcaption></figure>
+        <figure class="shot wide-only"><div class="frame"><img src="shots/tint-ember.webp" srcset="shots/tint-ember-1600.webp 1600w, shots/tint-ember.webp 2880w" sizes="920px" width="2880" height="2020" loading="lazy" alt="The Home board in the Ember tint, warm red and amber behind the glass cards."></div><figcaption>Nine tints.</figcaption></figure>
+        <figure class="shot phone"><div class="frame"><img src="shots/phone-board.webp" width="1170" height="2532" loading="lazy" alt="The board on a phone: the headline, then Right now: in 12 min, the investor call."></div><figcaption>On your phone.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Act 5. It acts, after one tap. The lunch card slides up over the email as you scroll. -->
+  <section class="scene act" id="act" data-scene="stack" aria-labelledby="act-title">
+    <div class="pin">
+      <div class="gutter act-in">
+        <div class="act-copy">
+          <h2 id="act-title">You say yes.<br>It’s handled.</h2>
+          <ul class="act-points">
+            <li><b>Replies</b><span>Email, Slack, texts.</span></li>
+            <li><b>Calls</b><span>It rings you, then connects them.</span></li>
+            <li><b>Approvals</b><span>Pull requests, Linear issues.</span></li>
+            <li><b>Lunch</b><span>One pick. You confirm in DoorDash.</span></li>
+          </ul>
+          <p class="act-note">Tested against sample replies so far.</p>
+        </div>
+        <div class="stack">
+          <figure class="card-a"><div class="frame"><img src="shots/approve-reply.webp" srcset="shots/approve-reply-1600.webp 1600w, shots/approve-reply.webp 2880w" sizes="(max-width: 900px) 92vw, 56vw" width="2880" height="1800" loading="lazy" alt="Ask Ox. You: Tell Dana Thursday at 10 works. Ox drafted a reply to dana@example.com in the same Gmail thread, with Approve and send, Edit and Decline buttons, and 14 minutes left."></div><figcaption>The exact words, before anything goes out.</figcaption></figure>
+          <figure class="card-b"><div class="frame"><img src="shots/food-card.webp" width="1700" height="1380" loading="lazy" alt="A card waiting for your OK: order a Harvest Bowl from Larkspur Kitchen, about $18.45, picked because recovery is 64%."></div><figcaption>Item, place and total. One tap.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Act 6. The apps, as a wall that drifts with the scroll, then a search. -->
+  <section class="apps" id="apps" data-scene="drift" aria-labelledby="apps-title">
+    <div class="gutter apps-head">
+      <h2 id="apps-title">From Gmail to&nbsp;Canva.<br> Up to <span data-count="catalog">1,694</span>&nbsp;apps.</h2>
+      <p class="lead">Reads <span data-count="direct">49</span> directly and <span data-count="composio">29</span> more through Composio. Acts in any of Composio’s apps once you connect them there, always with your OK. Only Gmail is tested live so&nbsp;far.</p>
+    </div>
+    <div class="wall" aria-hidden="true">
+      <div class="row" data-row="0"></div>
+      <div class="row" data-row="1"></div>
+      <div class="row" data-row="2"></div>
+    </div>
+    <div class="gutter finder-wrap">
+      <div class="finder">
+        <label for="find">Find an app</label>
+        <input id="find" type="search" placeholder="Gmail, Salesforce, WHOOP, Vercel" autocomplete="off" spellcheck="false">
+        <p class="status" id="find-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="ledger-wrap" id="ledger-wrap" hidden>
+        <table class="ledger">
+          <thead><tr><th scope="col">App</th><th scope="col">What OXBOT reads</th><th scope="col">How</th></tr></thead>
+          <tbody id="ledger-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Act 7, the peak. The page rings. -->
+  <section class="scene ringing" id="ringing" data-scene="ring" aria-labelledby="ring-title">
+    <div class="pin">
+      <p class="ring-pre gutter" aria-hidden="true">When it can’t wait,</p>
+      <div class="flood" role="group" aria-label="The OXBOT ring screen, rebuilt for this page">
+        <div class="flood-in">
+          <div class="flood-top"><span>OXBOT</span><span>9:50&nbsp;AM</span></div>
+          <div class="flood-mid" aria-live="polite">
+            <svg class="ox" viewBox="455 738 1138 857" aria-hidden="true"><g fill="currentColor"><path d="M477 760A547 547 0 0 0 1571 760L1449 760A425 425 0 0 1 599 760Z" stroke="currentColor" stroke-width="24" stroke-linejoin="round"/><path d="M543 1301H647A133 133 0 0 1 780 1434V1525A57 57 0 0 1 683 1563L507 1394A54 54 0 0 1 543 1301Z"/><path d="M1505 1301H1401A133 133 0 0 0 1268 1434V1525A57 57 0 0 0 1365 1563L1541 1394A54 54 0 0 0 1505 1301Z"/></g></svg>
+            <p class="flood-kind" id="ring-kind">Meeting</p>
+            <h2 id="ring-title">Investor call: Northgate Capital</h2>
+            <p class="flood-when" id="ring-when">Starts in 10 minutes.</p>
+          </div>
+          <div class="flood-bottom">
+            <div class="flood-buttons">
+              <button type="button" class="fb solid" data-answer="on" aria-pressed="false">I’m on it</button>
+              <button type="button" class="fb" data-answer="open" aria-pressed="false">Open</button>
+              <button type="button" class="fb" data-answer="snooze" aria-pressed="false">Snooze 5 min</button>
+            </div>
+            <p class="flood-note">The desktop ring screen, rebuilt here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ladder-sec gutter" aria-labelledby="ladder-title">
+    <div class="ladder-copy">
+      <h2 id="ladder-title">Then your phone.</h2>
+      <p class="lead">Quiet overnight. VIPs still get through.</p>
+      <ol class="ladder">
+        <li><span class="t">0:00</span><span>Every screen rings. Your phone gets a push.</span></li>
+        <li><span class="t">1:00</span><span>Still no answer, so it calls you.</span></li>
+      </ol>
+    </div>
+    <figure class="phone-shot">
+      <div class="frame"><img src="shots/phone-ring.webp" width="1170" height="2532" loading="lazy" alt="The ring screen on a phone: red, with Investor call: Northgate Capital, starts in 10 minutes, and an I'm on it button."></div>
+    </figure>
+  </section>
+
+  <!-- Act 8. Quiet, in daylight. -->
+  <section class="privacy" id="privacy" aria-labelledby="privacy-title">
+    <div class="gutter privacy-in">
+      <h2 id="privacy-title">Your yes.<br>Your computer.</h2>
+      <ul class="promises">
+        <li><b>Runs on your computer.</b><span>Your phone joins over Wi-Fi.</span></li>
+        <li><b>Nothing goes out without your yes.</b><span>You see the exact words first.</span></li>
+        <li><b>Mic and camera stay off.</b><span>Until you press Talk or Look, or turn on “Hey&nbsp;Ox”.</span></li>
+        <li><b>No tracking.</b><span>No analytics, no crash reports.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Act 9. The close. -->
+  <section class="builds" id="builds" aria-labelledby="builds-title">
+    <div class="gutter builds-in">
+      <svg class="big-mark" viewBox="0 0 1006 504" aria-hidden="true"><circle cx="252" cy="252" r="200" fill="none" stroke="currentColor" stroke-width="103"/><path d="M573 61 670 158M957 61 860 158M670 346 573 443M860 346 957 443" stroke="currentColor" stroke-width="97" stroke-linecap="round"/></svg>
+      <div class="builds-line">
+        <h2 id="builds-title">OXBOT 0.2</h2>
+        <p class="lead">Runs on Apple silicon Macs today. Windows and Linux builds exist, not yet tested. Not public.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot gutter">
+  <span>OXBOT</span>
+  <span>Runs on your computer. Nothing goes out without your yes.</span>
+</footer>
+
+<script src="data.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

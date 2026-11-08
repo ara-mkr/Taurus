@@ -1,0 +1,263 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "oxbot",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "OXBOT",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "oxbot-board",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "oxbot-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5180",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "OXBOT/apps/site"
+      ],
+      "port": 5180
+    },
+    {
+      "name": "oxbot-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8797",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/1207720d-6d07-456c-80ec-d9d5f1aa4c4b/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "pnpm",
+        "--dir",
+        "OXBOT",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "oxbot-windows-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8799",
+        "OXBOT_HTTPS_PORT=8800",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/ab4dd6ae-4552-4792-853a-b4a0a875f514/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5181",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "start"
+      ],
+      "port": 8799
+    },
+    {
+      "name": "oxbot-windows",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8799",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5181",
+        "--strictPort"
+      ],
+      "port": 5181
+    },
+    {
+      "name": "oxbot-voice-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8803",
+        "OXBOT_HTTPS_PORT=8804",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/fbb9eefd-f89b-4aff-9c0d-e3dcd5b9907e/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5183",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "start"
+      ],
+      "port": 8803
+    },
+    {
+      "name": "oxbot-voice",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8803",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5183",
+        "--strictPort"
+      ],
+      "port": 5183
+    },
+    {
+      "name": "oxbot-swarm-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8805",
+        "OXBOT_HTTPS_PORT=8806",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/aeb8564b-c509-468e-8b9c-b86afc142579/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5185",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "start"
+      ],
+      "port": 8805
+    },
+    {
+      "name": "oxbot-swarm",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8805",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5185",
+        "--strictPort"
+      ],
+      "port": 5185
+    },
+    {
+      "name": "oxbot-ui-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8811",
+        "OXBOT_HTTPS_PORT=8812",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/ddcc1d84-7f91-4eb1-8172-7b819457c0c5/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5191",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "start"
+      ],
+      "port": 8811
+    },
+    {
+      "name": "oxbot-ui",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8811",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5191",
+        "--strictPort"
+      ],
+      "port": 5191
+    },
+    {
+      "name": "oxbot-nov6-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8821",
+        "OXBOT_HTTPS_PORT=8822",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/ef187353-e8e1-4c9a-abe8-1fb841206c03/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5201",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "dev"
+      ],
+      "port": 8821
+    },
+    {
+      "name": "oxbot-nov6",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8821",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5201",
+        "--strictPort"
+      ],
+      "port": 5201
+    },
+    {
+      "name": "oxbot-notch-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8831",
+        "OXBOT_HTTPS_PORT=8832",
+        "OXBOT_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/db27e180-13a7-4bf4-9111-c4707efbc430/scratchpad/oxbot-home",
+        "OXBOT_BROKER_URL=",
+        "OXBOT_APP_URL=http://127.0.0.1:5211",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "dev"
+      ],
+      "port": 8831
+    },
+    {
+      "name": "oxbot-notch",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "OXBOT_PORT=8831",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5211",
+        "--strictPort"
+      ],
+      "port": 5211
+    }
+  ]
+}

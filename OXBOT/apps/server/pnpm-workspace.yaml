@@ -1,0 +1,7 @@
+# Kokoro's runtime ships its own prebuilt binaries, so none of these install scripts need to run.
+allowBuilds:
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false
+minimumReleaseAgeExclude:
+  - vite@8.3.5

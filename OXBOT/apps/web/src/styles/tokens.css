@@ -1,0 +1,38 @@
+/* OXBOT tokens: one ink, one signal colour, one typeface. The signal colour is
+   reserved for things that need you now: the needs count, the now line, ringing. */
+:root {
+  --bg: #F7F6F3;
+  --surface: #FFFFFF;
+  --ink: #141413;
+  --ink-2: #5A5953;
+  --rule: #DDDBD4;
+  --rule-strong: #141413;
+  --signal: #C2341A;
+  --ring: #C2341A;
+  --ring-dim: #9C2812;
+  --font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211;
+    --surface: #1A1A18;
+    --ink: #ECEBE6;
+    --ink-2: #A3A29B;
+    --rule: #2C2B28;
+    --rule-strong: #ECEBE6;
+    --signal: #FF6A4D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121211;
+  --surface: #1A1A18;
+  --ink: #ECEBE6;
+  --ink-2: #A3A29B;
+  --rule: #2C2B28;
+  --rule-strong: #ECEBE6;
+  --signal: #FF6A4D;
+  color-scheme: dark;
+}

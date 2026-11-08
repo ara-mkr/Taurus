@@ -1,0 +1,270 @@
+/* Sky (owner, November 5, 2026): "a rlly cool cloud looking jarvis dashboard ... cloud theme like those saas websites".
+   The owner asked for this look, so on this page only the sky may use soft gradients and a second colour (the sky's
+   blue). Everything on top keeps the rules: system font, nothing under 13 px, no icons, red only for what needs you. */
+
+:root {
+  /* Taurus's two columns of panels; the chat bar and Ox's windows line up with the space between them. */
+  --side-w: clamp(250px, 21vw, 340px);
+  --sky-top: #3D8BF2; --sky-mid: #8EC3FF; --sky-low: #E6F2FF; --sky-sun: rgba(255, 244, 214, .85);
+  --cloud: #FFFFFF; --cloud-shade: #DCE8F7; --cloud-alpha: .95;
+  --sky-ink: #0D1B33; --sky-ink-2: #2E4466; --sky-ring: rgba(13, 27, 51, .28); --sky-disc: rgba(255, 255, 255, .42); --sky-stars: 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sky-top: #050B1F; --sky-mid: #14224A; --sky-low: #33477A; --sky-sun: rgba(140, 170, 255, .35);
+    --cloud: #C9D6F0; --cloud-shade: #5D6E99; --cloud-alpha: .55;
+    --sky-ink: #F2F5FC; --sky-ink-2: #B4C0DA; --sky-ring: rgba(220, 230, 255, .3); --sky-disc: rgba(20, 30, 60, .45); --sky-stars: 1;
+  }
+}
+:root[data-theme="dark"] {
+  --sky-top: #050B1F; --sky-mid: #14224A; --sky-low: #33477A; --sky-sun: rgba(140, 170, 255, .35);
+  --cloud: #C9D6F0; --cloud-shade: #5D6E99; --cloud-alpha: .55;
+  --sky-ink: #F2F5FC; --sky-ink-2: #B4C0DA; --sky-ring: rgba(220, 230, 255, .3); --sky-disc: rgba(20, 30, 60, .45); --sky-stars: 1;
+}
+/* Dawn and dusk warm the horizon. */
+:root[data-daypart="dawn"], :root[data-daypart="dusk"] { --sky-low: #F6D2A8; --sky-sun: rgba(255, 214, 160, .6); }
+:root[data-theme="dark"][data-daypart="dusk"] { --sky-low: #3E4A78; --sky-sun: rgba(255, 196, 140, .22); }
+
+/* ---------- The sky ---------- */
+.sky { --px: 0; --py: 0; position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-low) 100%); }
+.sky-defs { position: absolute; }
+.sky-glow { position: absolute; left: 50%; top: 42%; width: 90vmax; height: 90vmax; translate: -50% -50%;
+  background: radial-gradient(closest-side, var(--sky-sun), transparent 70%); opacity: calc(.75 + var(--part) * .25); transition: opacity 1s ease; }
+.sky-stars { position: absolute; inset: 0 0 45% 0; opacity: calc(var(--sky-stars) * .7);
+  background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 34% 8%, #fff, transparent), radial-gradient(1.5px 1.5px at 58% 22%, #fff, transparent),
+    radial-gradient(1px 1px at 72% 12%, #fff, transparent), radial-gradient(1px 1px at 88% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 36%, #fff, transparent),
+    radial-gradient(1px 1px at 46% 30%, #fff, transparent), radial-gradient(1px 1px at 94% 6%, #fff, transparent), radial-gradient(1px 1px at 6% 6%, #fff, transparent);
+  animation: twinkle 7s ease-in-out infinite alternate; }
+@keyframes twinkle { to { opacity: calc(var(--sky-stars) * .35); } }
+
+.sky-layer { position: absolute; inset: -10%; will-change: transform; transition: transform .9s cubic-bezier(.2, .7, .2, 1); }
+.sky-layer.depth-0 { transform: translate(calc(var(--px) * -14px), calc(var(--py) * -10px)); opacity: .7; }
+.sky-layer.depth-1 { transform: translate(calc(var(--px) * -30px), calc(var(--py) * -20px)); opacity: .88; }
+.sky-layer.depth-2 { transform: translate(calc(var(--px) * -56px), calc(var(--py) * -36px)); }
+.cloud { position: absolute; aspect-ratio: 2.3; will-change: transform; animation: cloud-drift var(--drift) ease-in-out var(--delay) infinite alternate;
+  transition: translate 1.4s cubic-bezier(.2, .7, .2, 1), opacity 1.4s; }
+/* While Ox listens or talks, the clouds draw back and leave him clear sky. */
+.cloud.on-left { translate: calc(var(--part) * -16vw) calc(var(--part) * 2vh); }
+.cloud.on-right { translate: calc(var(--part) * 16vw) calc(var(--part) * 2vh); }
+.cloud span { position: absolute; inset: 18% 10%; border-radius: 50%; opacity: var(--cloud-alpha);
+  background: radial-gradient(60% 70% at 42% 38%, var(--cloud) 0%, var(--cloud) 45%, var(--cloud-shade) 82%, transparent 100%); }
+@keyframes cloud-drift { from { transform: translateX(-6vw); } to { transform: translateX(6vw); } }
+.sky-haze { position: absolute; inset: auto 0 0 0; height: 30%; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sky-low) 70%, transparent)); }
+:root[data-ambient="false"] .cloud, :root[data-ambient="false"] .sky-stars { animation: none; }
+
+/* ---------- The page ---------- */
+.cloud-dash { position: relative; z-index: 1; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--side-w); gap: var(--gap); align-items: start;
+  /* Edge to edge: the chat bar and Ox's windows are placed from the screen's edges, so the columns must reach them.
+     The general 1200px cap on main stopped the right column 50px short and the bar covered it (owner, November 6). */
+  width: 100%; max-width: none; margin: 0; padding: var(--gap); }
+.cloud-side { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.cloud-panel { --i: 0; height: auto; border-radius: var(--r-panel); animation: cloud-in .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 90ms + 150ms);
+  background: color-mix(in srgb, var(--glass) 72%, transparent);
+  -webkit-backdrop-filter: blur(34px) saturate(180%) brightness(1.04); backdrop-filter: blur(34px) saturate(180%) brightness(1.04); }
+.cloud-left .cloud-panel { animation-name: cloud-in-left; }
+.cloud-right .cloud-panel { animation-name: cloud-in-right; }
+.cloud-panel .card-body { max-height: 300px; }
+.cloud-panel[data-size="small"] .card-body { max-height: 150px; }
+.cloud-panel[data-size="large"] .card-body { max-height: 540px; }
+.cloud-panel.type-health[data-size="medium"] .card-body { max-height: none; }
+@keyframes cloud-in-left { from { opacity: 0; transform: translateX(-28px) scale(.97); filter: blur(6px); } }
+@keyframes cloud-in-right { from { opacity: 0; transform: translateX(28px) scale(.97); filter: blur(6px); } }
+@keyframes cloud-in { from { opacity: 0; transform: translateY(18px); } }
+
+.cloud-center { display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; color: var(--sky-ink); }
+.cloud-time { display: flex; gap: 14px; color: var(--sky-ink-2); font-size: 14px; font-variant-numeric: tabular-nums; }
+.cloud-hello { margin-top: 4px; font-size: clamp(30px, 3.4vw, 46px); font-weight: 650; letter-spacing: -.03em; line-height: 1.08; text-wrap: balance; animation: cloud-in .9s cubic-bezier(.2, .8, .2, 1) both; }
+
+.cloud-core { position: relative; flex: none; display: grid; place-items: center; width: min(360px, 70vw); aspect-ratio: 1; margin: 18px 0 6px; }
+.cloud-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cloud-ring circle { fill: none; stroke: var(--sky-ring); transform-origin: 200px 200px; }
+.ring-a { stroke-width: 1; stroke-dasharray: 2 10; animation: ring-turn 90s linear infinite; }
+.ring-b { stroke-width: 2; stroke-dasharray: 160 40 30 60 90 30; animation: ring-turn 46s linear infinite reverse; }
+.ring-c { stroke-width: 1; animation: ring-breathe 6s ease-in-out infinite; }
+@keyframes ring-turn { to { rotate: 360deg; } }
+@keyframes ring-breathe { 50% { scale: 1.03; opacity: .55; } }
+.cloud-dash[data-phase="listening"] .ring-b { stroke: var(--sky-ink); animation-duration: 9s; }
+.cloud-dash[data-phase="thinking"] .ring-a { animation-duration: 12s; stroke: var(--sky-ink); }
+
+.cloud-pulse { --level: 0; position: absolute; width: 62%; aspect-ratio: 1; border-radius: 50%;
+  background: var(--sky-disc); border: 1px solid color-mix(in srgb, var(--sky-ink) 14%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 30px 60px -30px rgba(10, 20, 50, .6), 0 0 calc(30px + var(--level) * 70px) calc(var(--level) * 18px) color-mix(in srgb, var(--sky-sun) 90%, transparent);
+  scale: calc(1 + var(--level) * .08); transition: scale .08s linear, box-shadow .12s linear; }
+.cloud-dash[data-phase="listening"] .cloud-pulse { animation: listen 1.6s ease-in-out infinite; }
+@keyframes listen { 50% { scale: 1.06; } }
+
+.cloud-ox { position: relative; display: grid; place-items: center; width: 62%; aspect-ratio: 1; min-height: 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--sky-ink); cursor: pointer;
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+.cloud-ox:hover:not(:disabled) { border: 0; transform: scale(1.03); }
+.cloud-ox:active { transform: scale(.97); }
+.cloud-ox:focus-visible { outline: 2px solid var(--sky-ink); outline-offset: 6px; }
+.cloud-ox .ox { color: var(--sky-ink); filter: drop-shadow(0 10px 18px rgba(5, 12, 40, .35)); }
+/* Ox sizes with his disc, so the large one never pokes out of it, and sits a little low: the wide horns weigh the top,
+   so the box's middle reads as too high (owner, November 6, 2026: "the ox in the circle is slightly uncentered"). */
+.cloud-ox { grid-template: 100% / 100%; }
+.cloud-ox .ox { width: var(--ox-w, 54%); height: auto; translate: 0 7%; }
+.cloud-dash[data-ox="small"] .cloud-ox .ox { --ox-w: 46%; }
+.cloud-dash[data-ox="large"] .cloud-ox .ox { --ox-w: 62%; }
+
+.cloud-said { max-width: 34ch; min-height: 1.5em; margin-top: 6px; font-size: 18px; line-height: 1.4; font-weight: 550; text-wrap: balance; }
+.cloud-dash[data-phase="idle"] .cloud-said { color: var(--sky-ink-2); font-size: 15px; font-weight: 500; }
+.cloud-dismiss { margin-top: 4px; color: var(--sky-ink-2); }
+.cloud-said a { color: inherit; white-space: nowrap; }
+.cloud-facts { max-width: 46ch; margin-top: 10px; font-size: 15px; font-weight: 600; line-height: 1.5; white-space: pre-wrap; text-wrap: balance; }
+
+
+
+
+
+
+
+.cloud-house-line { font-size: 17px; font-weight: 600; }
+.cloud-house-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.cloud-house-actions button { min-height: 34px; padding: 0 12px; border-radius: 12px; font-size: 14px; }
+
+/* The ring of small clouds around Ox: each sits on a circle and bobs on its own clock; they draw outward as the sky parts. */
+.core-clouds { position: absolute; inset: 0; pointer-events: none; }
+.core-cloud { --a: 0deg; --s: 1; --t: 8s; position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 2.2;
+  transform: rotate(var(--a)) translateX(calc(80% + var(--part, 0) * 60%)) rotate(calc(-1 * var(--a))) translate(-50%, -50%) scale(var(--s));
+  transform-origin: 0 0; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1), opacity 1.2s; opacity: calc(.9 - var(--part, 0) * .5); }
+.core-cloud > span { position: absolute; inset: 12%; border-radius: 50%; opacity: var(--cloud-alpha);
+  background: radial-gradient(60% 70% at 45% 38%, var(--cloud) 0%, var(--cloud) 40%, var(--cloud-shade) 80%, transparent 100%);
+  animation: core-bob var(--t) ease-in-out infinite alternate; }
+@keyframes core-bob { from { translate: -4% 3%; } to { translate: 4% -3%; } }
+/* ---------- Customizing ---------- */
+.cloud-top { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; min-height: 36px; }
+.cloud-top .profile { position: absolute; right: 0; top: 0; }
+.cloud-edit { min-height: 32px; padding: 0 12px; border-radius: 11px; font-size: 13px; font-weight: 600; }
+.cloud-dash[data-ox="small"] .cloud-core { width: min(300px, 64vw); }
+.cloud-dash[data-ox="large"] .cloud-core { width: min(420px, 80vw); }
+.is-editing .cloud-panel { cursor: grab; border-style: dashed; border-color: var(--rule-strong); animation: none; }
+.is-editing .cloud-panel.dragging { opacity: .45; }
+.is-editing .cloud-side { min-height: 120px; border-radius: var(--r-panel); outline: 1px dashed transparent; transition: outline-color .2s; }
+.is-editing .cloud-side:hover { outline-color: var(--rule); }
+.panel-tools { display: grid; gap: 8px; padding: 12px 12px 4px; border-bottom: 1px solid var(--rule); }
+.panel-tools button { min-height: 30px; padding: 0 10px; border-radius: 10px; font-size: 13px; }
+.panel-sizes { display: flex; gap: 2px; padding: 2px; border-radius: 12px; background: var(--wash); }
+.panel-sizes button { flex: 1; border: 0; background: none; }
+.panel-sizes button[aria-checked="true"] { background: var(--ink); color: var(--bg); }
+.panel-moves { display: flex; flex-wrap: wrap; gap: 6px; }
+.panel-remove { margin-left: auto; color: var(--signal); }
+.panel-settings { display: grid; gap: 8px; padding-bottom: 6px; }
+.panel-settings label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.panel-settings input, .panel-settings textarea, .panel-settings select { font-size: 14px; }
+.cloud-add-button { flex: none; min-height: 46px; border-style: dashed; border-radius: var(--r-panel); font-weight: 600; background: color-mix(in srgb, var(--glass) 60%, transparent); }
+.cloud-empty-side { color: var(--sky-ink-2); text-align: center; }
+.cloud-add { padding: 14px 14px 10px; }
+.cloud-add-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.cloud-add-head h2 { font-size: 15px; }
+.cloud-add ul { display: grid; max-height: 380px; overflow: auto; scrollbar-width: thin; }
+.cloud-add li button { display: grid; gap: 2px; width: 100%; padding: 9px 8px; border: 0; border-radius: 12px; background: none; text-align: left; }
+.cloud-add li button:hover:not(:disabled) { border: 0; background: var(--wash); }
+.cloud-add li span { color: var(--ink-2); font-size: 13px; }
+.cloud-settings { flex: none; width: min(420px, 100%); margin-top: 16px; text-align: left; color: var(--ink); }
+.cloud-settings .card-head { align-items: center; }
+.cloud-settings fieldset { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; padding: 0; border: 0; }
+.cloud-settings legend { width: 100%; margin-bottom: 4px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.cloud-settings-note { color: var(--ink-2); font-size: 13px; }
+
+/* The greeting is in the middle of the sky, so the top bar doesn't say it again. */
+.stage:has(.cloud-dash) .topbar .hello { visibility: hidden; }
+
+/* ---------- One screen (owner, November 5, 2026: "u should not be able to scroll down in taurus mode it should be one
+   nice dashboard ... make sure all the panels are formatted nicely hit the top of the window with tiny gap all the same
+   corner radius"). On a desktop window Taurus is exactly the window: the columns run from the top gap to the bottom gap,
+   panels share each column by size, and anything long scrolls inside its own panel. ---------- */
+@media (min-width: 981px) {
+  .stage:has(> .cloud-dash) { height: 100dvh; padding-bottom: 0; overflow: hidden; }
+  .stage:has(> .cloud-dash) > .topbar { display: none; }
+  .cloud-dash { flex: 1; min-height: 0; align-items: stretch; }
+  .cloud-side { min-height: 0; }
+  .cloud-side > .cloud-panel { flex: 2 1 0; min-height: 96px; }
+  .cloud-side > .cloud-panel[data-size="small"] { flex-grow: 1; }
+  .cloud-side > .cloud-panel[data-size="large"] { flex-grow: 3; }
+  .cloud-side > .cloud-panel .card-body, .cloud-panel.type-health[data-size="medium"] .card-body { max-height: none; }
+  .cloud-side > .cloud-add { flex: 3 1 0; }
+  .cloud-add ul { max-height: none; flex: 1; min-height: 0; }
+  .cloud-add { display: flex; flex-direction: column; }
+  .cloud-center { min-height: 0; overflow: hidden auto; padding-bottom: calc(var(--bar-bottom) + 70px); scrollbar-width: none; }
+  .cloud-core { width: min(390px, 100%, 44dvh); }
+  .cloud-dash[data-ox="small"] .cloud-core { width: min(300px, 100%, 34dvh); }
+  .cloud-dash[data-ox="large"] .cloud-core { width: min(420px, 100%, 46dvh); }
+  /* The chat bar sits under Ox, between the columns, so it covers no panel. The browser panel floats over the right column. */
+  .shell:has(.cloud-dash) + .chatbar, .shell.with-dock:has(.cloud-dash) + .chatbar { left: calc(var(--rail-w) + var(--side-w) + var(--gap) * 2); right: calc(var(--side-w) + var(--gap) * 2); }
+  .shell.with-dock:has(.cloud-dash) { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+  .shell:has(.cloud-dash) .dock { position: fixed; top: var(--gap); right: var(--gap); bottom: var(--gap); z-index: 45; width: var(--dock-w); height: auto; margin: 0; }
+  .shell:has(.cloud-dash) ~ .oxwins { top: var(--gap); left: calc(var(--rail-w) + var(--side-w) + var(--gap) * 2); right: calc(var(--side-w) + var(--gap) * 2); width: auto; align-items: center; }
+  .shell:has(.cloud-dash) ~ .oxwins .oxwin { width: min(372px, 100%); }
+  .shell:has(.cloud-dash) + .chatbar .chat-panel { max-height: min(42vh, 460px); }
+}
+@media (min-width: 981px) and (max-width: 1180px) { :root { --side-w: clamp(230px, 24vw, 280px); } }
+/* Narrower: Ox first across the top, the panels in two columns under him, and the page scrolls. */
+@media (max-width: 980px) {
+  .cloud-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 4px; }
+  .cloud-center { grid-column: 1 / -1; order: -1; }
+  .cloud-top .profile { display: none; }
+}
+@media (max-width: 700px) {
+  .cloud-dash { grid-template-columns: minmax(0, 1fr); padding: 4px 10px 40px; }
+  .cloud-core { width: min(300px, 78vw); }
+  .cloud-panel .card-body { max-height: 260px; }
+}
+
+/* ---------- Ox becomes the widget ---------- */
+.cw-layer { position: absolute; left: 19%; top: 19%; width: 62%; aspect-ratio: 1; pointer-events: none; }
+.cw { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 100%; height: 100%; border-radius: 50%; color: var(--sky-ink);
+  animation: cw-in .5s cubic-bezier(.2, .9, .25, 1.1) both; }
+@keyframes cw-in { from { opacity: 0; scale: .86; filter: blur(6px); } }
+.cw-ring { position: absolute; inset: -3%; width: 106%; height: 106%; rotate: -90deg; overflow: visible; }
+.cw-track { fill: none; stroke: color-mix(in srgb, var(--sky-ink) 14%, transparent); stroke-width: 2.4; }
+.cw-arc { fill: none; stroke: var(--sky-ink); stroke-width: 2.6; stroke-linecap: round; transition: stroke-dasharray .9s linear; }
+.cw-ring.signal .cw-arc { stroke: var(--signal); animation: cw-alarm 1.2s ease-in-out infinite; }
+@keyframes cw-alarm { 50% { opacity: .35; } }
+.cw-big { font-size: clamp(30px, 4.4vw, 46px); font-weight: 650; line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.cw-small { max-width: 80%; overflow: hidden; color: var(--sky-ink-2); font-size: 14px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.cw-text { max-width: 78%; font-size: 17px; font-weight: 650; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cw-timer .ox { margin-bottom: 2px; color: var(--sky-ink); }
+.cw.is-done .cw-big { color: var(--signal); }
+/* The record turns while it plays; the ring round it is the song. */
+.cw-record { display: block; width: 76%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; background: radial-gradient(circle, var(--sky-ink-2) 0 8%, var(--sky-ink) 9% 100%);
+  box-shadow: 0 16px 34px -16px rgba(5, 12, 40, .7), inset 0 0 0 1px rgba(255, 255, 255, .2); animation: spin 14s linear infinite; animation-play-state: paused; }
+.cw-music.is-playing .cw-record { animation-play-state: running; }
+@keyframes spin { to { rotate: 360deg; } }
+/* Weather: the sky itself, in the disc. */
+.cw-weather { gap: 0; overflow: hidden; background: radial-gradient(90% 70% at 50% 20%, color-mix(in srgb, var(--sky-mid) 55%, transparent), transparent 75%); }
+.cw-sky { width: 74%; margin-top: -6%; overflow: visible; }
+.cw-weather .cw-big { margin-top: -10%; }
+.cw-cloud { fill: var(--cloud); stroke: color-mix(in srgb, var(--sky-ink) 18%, transparent); stroke-width: .6; filter: drop-shadow(0 3px 4px rgba(5, 12, 40, .25)); animation: cw-float 6s ease-in-out infinite alternate; }
+@keyframes cw-float { to { translate: 0 -1.5px; } }
+.cw-sun circle { fill: #FFCF6B; }
+.cw-sun line { stroke: #FFCF6B; stroke-width: 2.2; stroke-linecap: round; }
+.cw-sun { animation: spin 40s linear infinite; }
+.cw-moon { fill: #F3EBCF; }
+.cw-drop { stroke: #4D9BFF; stroke-width: 2; stroke-linecap: round; animation: cw-rain 1s linear infinite; animation-delay: var(--d); }
+@keyframes cw-rain { from { translate: 1px -6px; opacity: 0; } 30% { opacity: 1; } to { translate: -2px 18px; opacity: 0; } }
+.cw-flake { fill: #FFFFFF; stroke: color-mix(in srgb, var(--sky-ink) 25%, transparent); stroke-width: .3; animation: cw-snow 2.4s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes cw-snow { from { translate: 0 -4px; opacity: 0; } 25% { opacity: 1; } 50% { translate: 2px 8px; } to { translate: -1px 22px; opacity: 0; } }
+.cw-bolt { fill: #FFCF6B; animation: cw-flash 3.2s steps(1) infinite; }
+@keyframes cw-flash { 0%, 8%, 14%, 100% { opacity: 0; } 6%, 12% { opacity: 1; } }
+/* The line under the disc. */
+.cloud-widget-line { display: grid; justify-items: center; gap: 10px; max-width: 46ch; margin-top: 6px; }
+.cw-line { font-size: 15px; line-height: 1.45; text-wrap: balance; }
+.cw-line strong { font-weight: 650; }
+.cw-line a { color: inherit; }
+.cw-alert { color: var(--signal); }
+.cw-problem { color: var(--signal); }
+.cw-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.cw-actions button, .cw-actions .button { min-height: 34px; padding: 0 14px; border-radius: 12px; font-size: 14px; }
+.cw-actions .button { display: inline-flex; align-items: center; text-decoration: none; }
+.cw-actions .button.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.cw-actions .cw-back { min-height: 34px; padding: 0 6px; color: var(--sky-ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cw, .cw-record, .cw-sun, .cw-cloud, .cw-drop, .cw-flake, .cw-bolt, .cw-ring.signal .cw-arc { animation: none; }
+  .cw-drop, .cw-flake { translate: 0 6px; }
+  .cloud, .sky-stars, .ring-a, .ring-b, .ring-c, .cloud-panel, .cloud-hello, .cloud-dash[data-phase="listening"] .cloud-pulse { animation: none; }
+  .sky-layer, .cloud, .core-cloud { transition: none; }
+  .core-cloud > span { animation: none; }
+}

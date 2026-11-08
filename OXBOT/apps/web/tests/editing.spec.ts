@@ -1,0 +1,90 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import { mock, prefs, shots, taurus } from './fixtures';
+
+// The owner's November 5, 2026 list beyond Taurus itself: drag widgets on the board and a background popup, the
+// navigation audit (pink background, Settings looking like the board), the status pill gone, brand marks on every
+// connection, and what Ox is doing in the rail. Fictional data and mocked /api only.
+const opensToTaurus = { ...prefs, taurus: { ...taurus, start: 'taurus' } };
+const home = { devices: [], scenes: [], sources: [], sample: true, at: new Date().toISOString() };
+
+test('the board: drag a widget without Edit, and double-click the background for a small popup', async ({ page }) => {
+  await mock(page);
+  let saved: typeof prefs & { profile?: { large?: boolean } } | undefined;
+  await page.route('**/api/prefs', r => { if (r.request().method() === 'POST') { saved = r.request().postDataJSON(); return r.fulfill({ json: saved }); } return r.fulfill({ json: prefs }); });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/#b/home');
+  await expect(page.locator('#w-w4')).toBeVisible();
+  await page.waitForTimeout(1200);
+  await page.locator('#w-w4 .card-head h2').dragTo(page.locator('#w-w2 .card-head h2'));
+  await expect.poll(() => saved?.boards[0].widgets.map(w => w.id).slice(0, 4)).toEqual(['w1', 'w4', 'w2', 'w3']);
+
+  // Empty background between the tools and the first card.
+  const grid = (await page.locator('.grid').boundingBox())!;
+  await page.mouse.dblclick(grid.x + grid.width - 20, grid.y - 8);
+  const menu = page.getByRole('dialog', { name: 'Home options' });
+  await expect(menu).toBeVisible();
+  await menu.getByRole('radiogroup', { name: 'Text size' }).getByRole('radio', { name: 'Large' }).click();
+  await expect.poll(() => saved?.profile?.large).toBe(true);
+  await page.screenshot({ path: `${shots}/board-popup-1440-dark.png` });
+  const axe = await new AxeBuilder({ page }).include('.bg-menu').analyze();
+  expect(axe.violations.map(v => v.id)).toEqual([]);
+  await menu.getByRole('button', { name: 'Add widget' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add to Home' })).toBeVisible();
+});
+
+test('navigation audit: Settings, Ask and House keep Taurus\'s sky; the board keeps its own light; the logo goes home', async ({ page }) => {
+  await mock(page);
+  await page.route('**/api/prefs', r => r.fulfill({ json: r.request().method() === 'POST' ? r.request().postDataJSON() : opensToTaurus }));
+  await page.route('**/api/home', r => r.fulfill({ json: home }));
+  await page.goto('/');
+  await expect(page.locator('.sky')).toHaveCount(1);
+  const rail = page.getByRole('navigation', { name: 'Main' });
+  await expect(rail.getByRole('link', { name: 'OXBOT' })).toHaveAttribute('href', '#taurus');
+  // From Taurus to Settings: still the sky, not the board's tinted backdrop (it looked like a jump to the board).
+  await page.goto('/#look');
+  await expect(page.locator('.sky')).toHaveCount(1);
+  await expect(page.locator('.backdrop')).toHaveCount(0);
+  await rail.getByRole('button', { name: 'Browser' }).click();
+  await expect(page.locator('.sky')).toHaveCount(1);
+  // On the board, the board's light; Settings from there keeps it.
+  await rail.getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(page.locator('.backdrop')).toHaveCount(1);
+  await expect(rail.getByRole('link', { name: 'OXBOT' })).toHaveAttribute('href', '#b/home');
+  await page.goto('/#settings');
+  await expect(page.locator('.backdrop')).toHaveCount(1);
+  // Dusk is a low warm gold now, not the salmon wash that read as pink.
+  await page.evaluate(() => { document.documentElement.dataset.daypart = 'dusk'; });
+  const light = await page.locator('.backdrop-light').evaluate(el => getComputedStyle(el).backgroundImage);
+  expect(light).not.toContain('255, 140, 96');
+});
+
+test('the status pill is gone: one plain line at the top right, and the rail shows what Ox is doing', async ({ page }) => {
+  await mock(page);
+  const now = new Date().toISOString();
+  await page.route('**/api/activity/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' },
+    body: `retry: 600000\nevent: hello\ndata: ${JSON.stringify([{ id: 7, at: now, kind: 'read', state: 'running', text: 'Reading Gmail', by: 'ox' }])}\n\n` }));
+  await page.route('**/api/browser/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' },
+    body: `retry: 600000\ndata: ${JSON.stringify({ open: true, url: 'https://www.example.com/flights', title: 'Example Flights', by: 'ox', loading: false })}\n\n` }));
+  await page.goto('/#b/home');
+  await expect(page.locator('.ox-status')).toHaveCount(0);
+  await expect(page.locator('.top-line')).toHaveText(/^(3 things need you|It’s late\. .+)$/);
+  const doing = page.getByRole('list', { name: 'What Ox is doing now' });
+  await expect(doing).toContainText('Reading Gmail');
+  await expect(doing).toContainText('Browser: Example Flights');
+  await doing.getByRole('button', { name: 'Browser: Example Flights' }).click();
+  await expect(page.getByRole('complementary', { name: 'Ox at work' })).toBeVisible();
+  await page.screenshot({ path: `${shots}/rail-now-1440-dark.png` });
+});
+
+test('every connection has a mark, Outlook, Teams and Slack included', async ({ page }) => {
+  await mock(page);
+  const row = (id: string, name: string, group: string) => ({ id, name, group, reads: 'Example.', auth: 'oauth', connected: false, ready: true, missing: [], fields: [], setup: 'Example.', setupUrl: 'https://example.com' });
+  await page.route('**/api/connectors', r => r.fulfill({ json: { connectors: [row('outlook-mail', 'Outlook Mail', 'Mail'), row('teams', 'Microsoft Teams', 'Chat'), row('slack', 'Slack', 'Chat'), row('onedrive', 'OneDrive', 'Files'), row('weather', 'Weather (Open-Meteo)', 'Feeds')], redirectUri: 'http://localhost:8787/api/oauth/callback', home: '~/.oxbot' } }));
+  await page.goto('/#connections');
+  await expect(page.locator('.app-tile .app-logo')).toHaveCount(5);
+  await expect(page.locator('.app-tile .app-logo svg')).toHaveCount(5);
+  await expect(page.locator('.app-tile .app-logo.letters')).toHaveCount(0);
+  await page.locator('.app-tile').first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${shots}/connections-marks-1440-dark.png` });
+});

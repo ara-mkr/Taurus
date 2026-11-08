@@ -1,0 +1,93 @@
+/* The standby flip clock (owner, November 6, 2026, revised the same evening: "taller numbers like just like the apple
+   one taking up the entire screen"). Two liquid-glass panels fill the screen edge to edge, side by side on a wide
+   screen and stacked on a phone held upright. Each number is as tall as its panel allows: sized in container units
+   from the panel itself, so it fits whatever the screen is. Each panel flips like a split-flap when its number
+   changes. Over a blurred Taurus sky. */
+
+.flip-clock {
+  position: fixed; inset: 0; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 2.2vmin, 28px);
+  padding: max(clamp(12px, 3vmin, 36px), env(safe-area-inset-top)) max(clamp(12px, 3vmin, 36px), env(safe-area-inset-right)) max(clamp(12px, 3vmin, 36px), env(safe-area-inset-bottom)) max(clamp(12px, 3vmin, 36px), env(safe-area-inset-left));
+  transform-origin: 50% 50%;
+  transition: transform .45s cubic-bezier(.2, .8, .2, 1), filter .45s ease;
+}
+.flip-panel { position: relative; min-width: 0; min-height: 0; container-type: size; perspective: 260cqh; color: #FFF; }
+.flip-glass {
+  position: absolute; inset: 0; border-radius: clamp(18px, 7cqmin, 64px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .17) 0%, rgba(255, 255, 255, .07) 49.6%, rgba(255, 255, 255, .04) 50.4%, rgba(255, 255, 255, .1) 100%);
+  -webkit-backdrop-filter: blur(30px) saturate(175%); backdrop-filter: blur(30px) saturate(175%);
+  border: 1px solid rgba(255, 255, 255, .26);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(255, 255, 255, .1), inset 0 0 60px rgba(255, 255, 255, .05), 0 40px 90px -40px rgba(4, 10, 40, .7);
+}
+.flip-corner { position: absolute; top: 6cqh; left: 6cqw; z-index: 4; font-size: clamp(15px, 6cqmin, 44px); font-weight: 700; letter-spacing: .01em; opacity: .85; }
+
+/* Each half shows one half of the number: the top half its upper part, the bottom half its lower part. */
+.flip-half { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; z-index: 1; }
+.flip-top { top: 0; border-radius: clamp(18px, 7cqmin, 64px) clamp(18px, 7cqmin, 64px) 0 0; }
+.flip-bottom { bottom: 0; border-radius: 0 0 clamp(18px, 7cqmin, 64px) clamp(18px, 7cqmin, 64px); }
+.flip-digits {
+  position: absolute; left: 0; right: 0; height: 200%; display: grid; place-items: center;
+  /* As tall as the panel allows, and never wider than 86% of it. --two is how wide "00" is in em, measured by
+     FlipClock in the font actually used (about .8 in SF Pro Compressed, 1.25 in a regular-width font). */
+  font-size: min(100cqh, calc(86cqw / clamp(.7, var(--two, 1.3), 1.4))); font-weight: 800; font-stretch: 50%; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 24px rgba(0, 10, 40, .22);
+}
+/* Trim the line box to the digits themselves (cap height to baseline), so they sit dead centre on the hinge. */
+.flip-digits > span { display: block; text-box: trim-both cap alphabetic; padding-right: .02em; /* the last digit's tightened spacing, given back so it centres */ }
+.flip-measure { position: absolute; top: 0; left: 0; width: max-content; visibility: hidden; pointer-events: none; font-size: 100px; font-weight: 800; font-stretch: 50%; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: .02em; }
+@supports not (text-box: trim-both cap alphabetic) {
+  .flip-digits > span { transform: translateY(.05em); }
+}
+.flip-top .flip-digits { top: 0; }
+.flip-bottom .flip-digits { bottom: 0; }
+
+/* The flap: the old top half falls toward you, then the new bottom half swings down. Frosted, so what's behind blurs. */
+.flip-fall, .flip-land { z-index: 3; background: rgba(46, 62, 110, .42); -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%); backface-visibility: hidden; }
+.flip-fall { transform-origin: 50% 100%; animation: flip-fall .34s cubic-bezier(.55, 0, .9, .45) both; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .45); }
+.flip-land { transform-origin: 50% 0; animation: flip-land .46s cubic-bezier(.15, .7, .3, 1.15) .32s both; }
+@keyframes flip-fall { from { transform: rotateX(0); } to { transform: rotateX(-90deg); filter: brightness(.7); } }
+@keyframes flip-land { from { transform: rotateX(90deg); filter: brightness(1.4); } to { transform: rotateX(0); } }
+
+.flip-hinge { position: absolute; left: 0; right: 0; top: 50%; z-index: 5; height: max(2px, .5cqh); transform: translateY(-50%); background: rgba(10, 20, 50, .38); box-shadow: 0 1px 0 rgba(255, 255, 255, .12); }
+
+/* An upright phone: one panel above the other. */
+@media (max-aspect-ratio: 4 / 5) {
+  .flip-clock { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-fall, .flip-land { animation: none; display: none; }
+  .flip-clock { transition: none; }
+}
+
+/* ---------- The standby page around it ----------
+   Only the clock shows. A click, a tap or a key brings up Ox, the next event, what Ox is doing, anything waiting for
+   your OK and the way back to the dashboard; they go again after a few seconds or on the next tap. Moving the mouse
+   does nothing, so a bedside clock stays a clock. */
+main.standby.standby-glass { position: fixed; inset: 0; overflow: hidden; padding: 0; color: #FFF; text-align: center; cursor: default; user-select: none; -webkit-user-select: none; }
+.standby-blur { position: fixed; inset: 0; z-index: 0; -webkit-backdrop-filter: blur(34px) saturate(140%); backdrop-filter: blur(34px) saturate(140%); background: rgba(14, 22, 52, .22); pointer-events: none; }
+
+/* Room for Ox above and the rest below: the clock steps back a little while they show. */
+.standby-glass[data-chrome="on"] .flip-clock { transform: translateY(-3%) scale(.72); filter: brightness(.88); }
+
+.standby-chrome {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  display: grid; grid-template-rows: auto 1fr auto; justify-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility 0s linear .3s;
+}
+.standby-glass[data-chrome="on"] .standby-chrome { opacity: 1; visibility: visible; transition: opacity .3s ease; }
+.standby-chrome > * { pointer-events: auto; }
+/* Centred on the screen (owner: "OX mascot isnt even centered on it"); glass.css's older corner placement is undone. */
+.standby-chrome .standby-ox { position: static; inset: auto; margin: 0; width: 85px; height: 64px; color: #FFF; display: block; }
+.standby-foot .standby-exit, .standby-foot .standby-waiting { margin: 0; max-width: none; }
+.standby-chrome > .standby-gap { pointer-events: none; }
+.standby-foot { display: grid; justify-items: center; gap: 10px; width: min(620px, 100%); }
+.standby-foot .standby-next { margin: 0; font-size: clamp(17px, 2.4vw, 24px); font-weight: 650; }
+.standby-foot .standby-state { margin: 0; color: rgba(255, 255, 255, .8); font-size: 15px; }
+.standby-foot .standby-exit { color: #FFF; font-size: 15px; font-weight: 600; padding: 8px 18px; border-radius: 999px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .28); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); text-decoration: none; }
+.standby-foot .standby-exit:focus-visible { outline: 2px solid #FFF; outline-offset: 3px; }
+.standby-waiting { width: 100%; max-height: 38vh; overflow: auto; text-align: left; }
+@media (prefers-reduced-motion: reduce) {
+  .standby-chrome { transition: none; }
+}

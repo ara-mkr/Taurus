@@ -1,0 +1,38 @@
+{
+  "name": "oxbot-desktop",
+  "productName": "OXBOT",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "OXBOT on the desktop: the local server and the dashboard in one window, with a menu bar or tray item that rings.",
+  "homepage": "http://localhost:8787",
+  "author": "Akhil",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "icons": "node scripts/icons.mjs",
+    "start": "node scripts/bundle.mjs && electron .",
+    "dist": "node scripts/bundle.mjs && node scripts/package.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests scripts",
+    "test": "playwright test"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@11.21.0",
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "electron": "44.8.0",
+    "electron-builder": "26.17.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0"
+  },
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

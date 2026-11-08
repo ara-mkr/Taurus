@@ -1,0 +1,5 @@
+interface:
+  display_name: "OXBOT Phase Gate"
+  short_description: "Check scope and evidence before proposing advancement."
+  brand_color: "#4C54C9"
+  default_prompt: "Use the oxbot-phase-gate skill for this OXBOT task. Read the project phase and constraints first."

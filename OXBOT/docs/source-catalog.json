@@ -1,0 +1,422 @@
+[
+  {
+    "id": "R01",
+    "title": "Slack: A more focused, productive Slack",
+    "url": "https://slack.design/articles/a-more-focused-productive-slack/",
+    "note": "Design rationale: clarity, calm, intentional platform differences.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R02",
+    "title": "Slack: How our biggest redesign yet came to be",
+    "url": "https://slack.design/articles/how-our-biggest-redesign-yet-came-to-be/",
+    "note": "Design process and navigation research; not a UI kit license.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R03",
+    "title": "Linear: A calmer interface for a product in motion",
+    "url": "https://linear.app/now/behind-the-latest-design-refresh",
+    "note": "2026 interface rationale: hierarchy, subdued chrome, consistency.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R04",
+    "title": "Raycast",
+    "url": "https://www.raycast.com/",
+    "note": "Reference for keyboard-first, compact utility; commercial product, not reusable assets.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R05",
+    "title": "Official Grok Bot announcement",
+    "url": "https://x.ai/news/introducing-grok-bot",
+    "note": "Reference for persistent assistant presence and action/approval concepts. Marketing claims are not independent benchmarks.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R06",
+    "title": "OpenMausBot repository",
+    "url": "https://github.com/milind-soni/OpenMausBot",
+    "note": "Study desktop, agent, and workspace boundaries; record a commit before reuse.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R07",
+    "title": "OpenMausBot licensing",
+    "url": "https://github.com/milind-soni/OpenMausBot/blob/main/LICENSING.md",
+    "note": "Core Apache-2.0; enterprise carve-out; names and mascot rights separate.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R08",
+    "title": "OpenMausBot root license",
+    "url": "https://github.com/milind-soni/OpenMausBot/blob/main/LICENSE",
+    "note": "Apache-2.0 root license, not blanket permission for every file or trademark.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R09",
+    "title": "OpenClaw repository",
+    "url": "https://github.com/openclaw/openclaw",
+    "note": "MIT root license observed; study runtime, channels, permission boundaries, not a production endorsement.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R10",
+    "title": "Omi repository",
+    "url": "https://github.com/BasedHardware/omi",
+    "note": "MIT root license observed; study consented audio and multi-device architecture in later phases.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R11",
+    "title": "assistant-ui repository",
+    "url": "https://github.com/assistant-ui/assistant-ui",
+    "note": "MIT root license observed; optional conversation primitives. Hosted services are separate.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R12",
+    "title": "Chief overhearing prototype",
+    "url": "https://github.com/bliu8/chief",
+    "note": "MIT root license observed; research prototype, not validated ambient-listening infrastructure.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R13",
+    "title": "Poke",
+    "url": "https://poke.com/",
+    "note": "Competitive overlap: proactive messaging, connected apps and Oura. Capabilities are vendor-described.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R14",
+    "title": "Instinct",
+    "url": "https://instinct.com/",
+    "note": "Competitive overlap: messaging, calling, and delegated errands; vendor-described.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R15",
+    "title": "Lifestack",
+    "url": "https://lifestack.ai/",
+    "note": "Competitive overlap: health-aware scheduling; vendor-described.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R16",
+    "title": "Anthropic frontend-design skill",
+    "url": "https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md",
+    "note": "Study and selectively install after inspecting current content and license. Product brief wins aesthetic conflicts.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R17",
+    "title": "Anthropic skills repository",
+    "url": "https://github.com/anthropics/skills",
+    "note": "Official source for skills including webapp-testing. Review individual licenses and scripts.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R18",
+    "title": "Claude Code skills documentation",
+    "url": "https://code.claude.com/docs/en/skills",
+    "note": "Project .claude/skills, explicit /skill-name invocation and progressive loading.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R19",
+    "title": "Codex skills documentation",
+    "url": "https://developers.openai.com/codex/skills",
+    "note": "Official entrypoint; may redirect to learn.chatgpt.com. Repository .agents/skills and explicit skill invocation.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R20",
+    "title": "Codex AGENTS.md guidance",
+    "url": "https://developers.openai.com/codex/guides/agents-md",
+    "note": "Official entrypoint for project instruction hierarchy.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R21",
+    "title": "Vercel agent-skills",
+    "url": "https://github.com/vercel-labs/agent-skills",
+    "note": "Study react-best-practices and web-design-guidelines; audit scripts before installation.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R22",
+    "title": "shadcn/ui with Vite",
+    "url": "https://ui.shadcn.com/docs/installation/vite",
+    "note": "Implementation reference, not a mandate to use default component styling.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R23",
+    "title": "Electron context isolation",
+    "url": "https://www.electronjs.org/docs/latest/tutorial/context-isolation",
+    "note": "Required desktop trust-boundary design reference.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R24",
+    "title": "Electron process sandboxing",
+    "url": "https://www.electronjs.org/docs/latest/tutorial/sandbox",
+    "note": "Required desktop hardening reference.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R25",
+    "title": "Tauri capabilities",
+    "url": "https://v2.tauri.app/security/capabilities/",
+    "note": "Alternative desktop boundary design; compare before locking Electron.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R26",
+    "title": "Fastify documentation",
+    "url": "https://fastify.dev/docs/latest/",
+    "note": "Proposed future TypeScript API layer; no server implementation authorized now.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R27",
+    "title": "Drizzle ORM documentation",
+    "url": "https://orm.drizzle.team/docs/overview",
+    "note": "Proposed future SQL schema/migration layer.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R28",
+    "title": "pg-boss repository",
+    "url": "https://github.com/timgit/pg-boss",
+    "note": "Proposed future PostgreSQL-backed jobs; MIT root license. External effects still require idempotency/reconciliation.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R29",
+    "title": "Playwright visual comparisons",
+    "url": "https://playwright.dev/docs/test-snapshots",
+    "note": "Screenshot testing; control browser, OS, fonts, data, clock and animation.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R30",
+    "title": "Playwright accessibility testing",
+    "url": "https://playwright.dev/docs/accessibility-testing",
+    "note": "Automated checks complement, not replace, manual accessibility work.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R31",
+    "title": "WCAG 2.2: Contrast Minimum",
+    "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+    "note": "Text contrast targets; do not confuse decorative borders with text requirements.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R32",
+    "title": "GitHub CLI repo create",
+    "url": "https://cli.github.com/manual/gh_repo_create",
+    "note": "User-run repo creation instructions; no remote created by this plan.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R33",
+    "title": "Gmail authorization scopes",
+    "url": "https://developers.google.com/workspace/gmail/api/auth/scopes",
+    "note": "Minimize access and stage scopes by feature.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R34",
+    "title": "Google restricted-scope verification",
+    "url": "https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification",
+    "note": "Verification and possible security-assessment obligations depend on scopes/data handling/exemptions.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R35",
+    "title": "Slack Events API",
+    "url": "https://docs.slack.dev/apis/events-api/",
+    "note": "Scope- and membership-limited event ingestion; not all Slack conversations.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R36",
+    "title": "GitHub App permissions",
+    "url": "https://docs.github.com/apps/building-github-apps/setting-permissions-for-github-apps",
+    "note": "Selected repositories and least-privilege installation permissions.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R37",
+    "title": "Notion authorization",
+    "url": "https://developers.notion.com/guides/get-started/authorization",
+    "note": "Explicit page/workspace authorization; not automatic access to every document.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R38",
+    "title": "Discord privileged intent review",
+    "url": "https://docs.discord.com/developers/gateway/getting-started-with-privileged-intent-review",
+    "note": "Bot access/privileged intents can need approval; no user-account scraping promises.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R39",
+    "title": "Instagram platform overview",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/overview.md/",
+    "note": "Supported professional-account use cases; do not promise arbitrary personal DMs or private feeds.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R40",
+    "title": "LinkedIn User Agreement",
+    "url": "https://www.linkedin.com/legal/user-agreement",
+    "note": "Review contractual limits before any automation or data collection.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R41",
+    "title": "Oura API v2",
+    "url": "https://cloud.ouraring.com/v2/docs",
+    "note": "OAuth, webhooks, sync-dependent availability; review app approval limits before pilots.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R42",
+    "title": "WHOOP webhooks",
+    "url": "https://developer.whoop.com/docs/developing/webhooks/",
+    "note": "Authorized user events, signatures and post-processing updates.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R43",
+    "title": "Garmin Health API",
+    "url": "https://developer.garmin.com/gc-developer-program/health-api/",
+    "note": "Approval, sync and commercial licensing questions; no guaranteed immediate access.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R44",
+    "title": "Apple AlarmKit scheduling",
+    "url": "https://developer.apple.com/documentation/AlarmKit/scheduling-an-alarm-with-alarmkit",
+    "note": "Native authorization and app-managed alarms; supported OS requirements apply.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R45",
+    "title": "Apple AlarmManager alarms",
+    "url": "https://developer.apple.com/documentation/alarmkit/alarmmanager/alarms",
+    "note": "Validate app-owned alarm semantics in native spike; not an Apple Clock inventory contract.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R46",
+    "title": "Apple ActivityKit live activities",
+    "url": "https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities",
+    "note": "Task-scoped live surfaces, not unlimited global overlays.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R47",
+    "title": "Apple App Intents",
+    "url": "https://developer.apple.com/documentation/appintents",
+    "note": "System-approved invocation paths such as Siri and Shortcuts.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R48",
+    "title": "Apple notification design",
+    "url": "https://developer.apple.com/design/human-interface-guidelines/managing-notifications",
+    "note": "Respect urgency levels, Focus, consent and platform constraints.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R49",
+    "title": "Apple App Store Review Guidelines",
+    "url": "https://developer.apple.com/app-store/review/guidelines/",
+    "note": "Privacy, recording disclosure, background modes and health-related requirements.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R50",
+    "title": "Twilio Voice Call resource",
+    "url": "https://www.twilio.com/docs/voice/api/call-resource",
+    "note": "Outbound call capability; optional opt-in escalation, not guaranteed user acknowledgment.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R51",
+    "title": "Plaid Transactions",
+    "url": "https://plaid.com/docs/transactions/",
+    "note": "Authorized financial-data ingestion; transaction freshness varies. No money movement in scope.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R52",
+    "title": "OWASP LLM prompt-injection prevention",
+    "url": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
+    "note": "Untrusted-source separation, constrained tools and defense in depth.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R53",
+    "title": "FTC Health Breach Notification Rule guidance",
+    "url": "https://www.ftc.gov/business-guidance/resources/complying-ftcs-health-breach-notification-rule-0",
+    "note": "Some non-HIPAA health apps may be covered; legal applicability requires review.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R54",
+    "title": "HHS: Health apps and HIPAA",
+    "url": "https://www.hhs.gov/hipaa/for-professionals/special-topics/health-apps/index.html",
+    "note": "Applicability depends on role and relationships, not simply collecting health data.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R55",
+    "title": "FDA: General Wellness policy",
+    "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/general-wellness-policy-low-risk-devices",
+    "note": "January 2026 guidance landing page; intended use/claims matter.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R56",
+    "title": "Massachusetts General Laws chapter 272 section 99",
+    "url": "https://malegislature.gov/Laws/GeneralLaws/PartIV/TitleI/Chapter272/Section99",
+    "note": "Recording/interception law; consult qualified counsel for applicable jurisdictions and fact patterns.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R57",
+    "title": "USPTO trademark search",
+    "url": "https://www.uspto.gov/trademarks/search",
+    "note": "Federal search is one part of comprehensive clearance, not a legal guarantee.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R58",
+    "title": "Palladium AI existing business",
+    "url": "https://www.palladium-ai.com/",
+    "note": "Observed naming collision; does not by itself establish a legal determination.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R59",
+    "title": "Palladium legal AI existing business",
+    "url": "https://getpalladium.ai/",
+    "note": "Additional related naming use; company name remains provisional.",
+    "checked": "2026-10-20"
+  },
+  {
+    "id": "R60",
+    "title": "Osmium AI existing business",
+    "url": "https://osmium-ai.com/",
+    "note": "Observed naming collision; do not assume osmium.ai domain ownership or availability.",
+    "checked": "2026-10-20"
+  }
+]

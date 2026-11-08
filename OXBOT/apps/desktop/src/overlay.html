@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- The helpers' overlay on another screen (November 5, 2026). It draws only: no network, no frames, nothing but this
+     page's own script and the pictures it is handed. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data:">
+<title>OXBOT helpers</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+  body { font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #F2F1EC; -webkit-font-smoothing: antialiased; cursor: default; user-select: none; }
+  .card { position: absolute; display: grid; gap: 8px; padding: 10px 10px 12px; border-radius: 20px; background: rgba(20, 21, 25, .9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 0 0 1px rgba(255, 255, 255, .1), 0 0 0 2px color-mix(in srgb, var(--c) 60%, transparent), 0 30px 60px -24px rgba(0, 0, 0, .7);
+    opacity: 0; transform: translateY(18px) scale(.94); transition: opacity .35s ease, transform .5s cubic-bezier(.2, .9, .25, 1.15); }
+  .card.in { opacity: 1; transform: none; }
+  .card .page { position: relative; aspect-ratio: 16 / 11; overflow: hidden; border-radius: 12px; background: rgba(255, 255, 255, .06); }
+  .card img { position: absolute; top: 0; left: 0; width: 100%; height: auto; transition: transform .55s cubic-bezier(.25, .8, .3, 1); }
+  .card .wait { position: absolute; inset: 0; display: grid; place-items: center; color: #A9A8A1; font-size: 14px; }
+  .card p { margin: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; color: #A9A8A1; }
+  .card p b { color: #F2F1EC; font-weight: 600; }
+  .cursor { position: absolute; top: 0; left: 0; opacity: 0; will-change: transform, opacity; }
+  .cursor svg { display: block; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .4)); transform: rotate(var(--lean, 0deg)); transform-origin: 3px 2px; }
+  .tag { position: absolute; top: 19px; left: 13px; max-width: 240px; padding: 2px 8px 3px; border-radius: 7px; background: var(--c); color: #0B0C0E; font-size: 13px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, .55); }
+  .cursor[data-tag="name"] .doing { display: none; }
+  .cursor[data-tag="none"] .tag { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .card, .card img { transition: opacity .3s ease; transform: none; } }
+</style>
+</head>
+<body>
+<script src="overlay.js"></script>
+</body>
+</html>
