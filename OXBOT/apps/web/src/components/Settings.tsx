@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, type Background, type Board, type Prefs, type Profile, type Tint, type Tone, type WidgetSize, type WidgetType } from '../api';
 import { Catalog, newWidget, Sheet, sizeNames, WidgetSettings } from './Board';
-import { canListen, type VoiceSettings } from './Voice';
+import { canListen, inDesktop, type VoiceSettings } from './Voice';
 import { OxVoice } from './OxVoice';
 import { catalog } from './widgets';
 
@@ -98,6 +98,7 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
       {hears && voice.wake && <p className="muted">“Yo Ox”, “Hi Ox”, “Ox” and “OXBOT” work too.</p>}
       <label className="check"><input type="checkbox" checked={voice.clap === true} disabled={!hears} onChange={e => setVoice({ ...voice, clap: e.target.checked })} />Clap or snap twice to talk</label>
       {hears && voice.clap && <p className="muted">Only how loud the room is gets measured, here in the browser, while this tab is showing. No sound is recorded or sent.</p>}
+      {hears && inDesktop() && (voice.wake || voice.clap) && <p className="muted">In the desktop app these keep listening while OXBOT is hidden or behind other apps, on this Mac only, and Ox comes to the app you’re in. Esc sends him away. Nothing is recorded or saved.</p>}
       <label className="check"><input type="checkbox" checked={voice.speak} onChange={e => setVoice({ ...voice, speak: e.target.checked })} />Ox reads his answers out loud</label>
       <p className="muted">{hears ? 'Talk in the chat bar works without either. Speech goes through your browser’s own recognition: Google in Chrome, Apple in Safari. Listening stops when this tab is hidden, and nothing is recorded or saved.' : 'This browser has no speech recognition. Talk works in Chrome and Safari.'}</p>
     </fieldset>

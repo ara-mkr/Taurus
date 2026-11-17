@@ -21,6 +21,9 @@ await Promise.all([
   // Ox in the notch (November 6, 2026): a narrow preload and the page that draws the pill and panel.
   build({ ...common, entryPoints: [join(here, 'src/notch-preload.ts')], outfile: join(out, 'notch-preload.cjs'), format: 'cjs', external: ['electron'] }),
   build({ ...common, platform: 'browser', target: 'chrome130', entryPoints: [join(here, 'src/notch-view.ts')], outfile: join(out, 'notch-view.js'), format: 'iife' }),
+  // Ox anywhere (November 16, 2026): a listen-only preload and the page that draws him over other apps.
+  build({ ...common, entryPoints: [join(here, 'src/ox-anywhere-preload.ts')], outfile: join(out, 'ox-anywhere-preload.cjs'), format: 'cjs', external: ['electron'] }),
+  build({ ...common, platform: 'browser', target: 'chrome130', entryPoints: [join(here, 'src/ox-anywhere-view.ts')], outfile: join(out, 'ox-anywhere.js'), format: 'iife' }),
   // Some of the server's dependencies are CommonJS and call require(). Playwright (OXBOT's own browser) can't be
   // bundled: it ships alongside as a dependency and finds its Chromium in the usual Playwright folder. Kokoro (Ox's
   // voice) loads its model runtime with native files, so it stays outside too; in the desktop app the voice is only
@@ -29,6 +32,7 @@ await Promise.all([
 ]);
 copyFileSync(join(here, 'src/overlay.html'), join(out, 'overlay.html'));
 copyFileSync(join(here, 'src/notch.html'), join(out, 'notch.html'));
+copyFileSync(join(here, 'src/ox-anywhere.html'), join(out, 'ox-anywhere.html'));
 // The server reads Composio's app list from beside itself.
 copyFileSync(join(here, '../server/src/connectors/composio-catalog.json'), join(out, 'composio-catalog.json'));
 // Helpers in other apps (November 5, 2026): the fixed-verb oxbot-hands program, built from hands/main.m with clang on a Mac.

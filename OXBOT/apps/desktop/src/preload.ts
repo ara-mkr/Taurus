@@ -14,4 +14,7 @@ contextBridge.exposeInMainWorld('oxbotDesktop', Object.freeze({
     void ipcRenderer.invoke('swarm-screens').then(cb).catch(() => undefined);
     return () => { ipcRenderer.removeListener('swarm-screens', listener); };
   },
+  // Ox anywhere (November 16, 2026): with "Hey Ox" or the double clap switched on, keep hearing while this window is
+  // hidden or behind other apps, so Ox can come to the app in front. Only on or off; no sound or words go this way.
+  keepHearing(on: boolean) { ipcRenderer.send('ox-anywhere:hearing', on === true); },
 }));

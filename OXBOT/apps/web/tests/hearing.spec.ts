@@ -21,7 +21,7 @@ test.use({ permissions: ['microphone'], launchOptions: { args: ['--use-fake-devi
 
 const answer = 'Opening Notes.';
 async function open(page: import('@playwright/test').Page, voice: string) {
-  await page.addInitScript(v => { localStorage.setItem('oxbot-voice', v); Object.assign(window, { oxbotDesktop: { platform: 'darwin' } }); }, voice);
+  await page.addInitScript(v => { localStorage.setItem('oxbot-voice', v); Object.assign(window, { oxbotDesktop: { platform: 'darwin', ...(window as { oxbotDesktop?: object }).oxbotDesktop } }); }, voice);
   await mock(page);
   const asked: string[] = [], heard: number[] = [];
   await page.route('**/api/ask', r => { asked.push((r.request().postDataJSON().turns as { text: string }[]).at(-1)!.text); return r.fulfill({ json: { provider: 'Claude', text: answer } }); });
@@ -87,4 +87,26 @@ test('the Mac’s own mishearings of “Ox” still wake him', async ({ page }) 
     return ['Yoox, what’s next?', '6. Ochs set a timer for 5 minutes.', 'I ox.', 'Iox, open notes', 'Yo-Ox, open notes', 'Hey, Ox, open my notes app.', 'Oxford is lovely', 'I think so'].map(afterWake);
   });
   expect(got).toEqual(['what’s next?', 'set a timer for 5 minutes.', '', 'open notes', 'open notes', 'open my notes app.', null, null]);
+});
+
+// Ox anywhere (November 16, 2026; docs/21-ox-anywhere.md): with "Hey Ox" or the clap on, the desktop window asks to keep
+// hearing while it is hidden or behind other apps; with both off, it asks to rest again.
+test('the desktop window keeps hearing in the background only while “Hey Ox” or the clap is on', async ({ page, context }) => {
+  const watch = (p: import('@playwright/test').Page) => p.addInitScript(() => {
+    const calls: boolean[] = [];
+    Object.assign(window, { keepCalls: calls, oxbotDesktop: { platform: 'darwin', keepHearing: (on: boolean) => calls.push(on) } });
+  });
+  // The distinct values asked for (React's development mode runs the effect twice).
+  const calls = (p: import('@playwright/test').Page) => p.evaluate(() => [...new Set((window as unknown as { keepCalls: boolean[] }).keepCalls)]);
+  await watch(page);
+  await open(page, JSON.stringify({ wake: true, speak: false, clap: false }));
+  await expect.poll(() => calls(page)).toEqual([true]);
+  const clap = await context.newPage();
+  await watch(clap);
+  await open(clap, JSON.stringify({ wake: false, speak: false, clap: true }));
+  await expect.poll(() => calls(clap)).toEqual([true]);
+  const off = await context.newPage();
+  await watch(off);
+  await open(off, JSON.stringify({ wake: false, speak: false, clap: false }));
+  await expect.poll(() => calls(off)).toEqual([false]);
 });

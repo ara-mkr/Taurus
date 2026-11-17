@@ -52,7 +52,7 @@ const problems: Record<string, string> = {
 };
 const unsupported = 'This browser can’t listen. Voice works in Chrome and Safari.';
 // The desktop app's Chromium has no speech service key, so there the words come from this Mac (../hearing.ts).
-function inDesktop() { return typeof window !== 'undefined' && Boolean((window as { oxbotDesktop?: unknown }).oxbotDesktop); }
+export function inDesktop() { return typeof window !== 'undefined' && Boolean((window as { oxbotDesktop?: unknown }).oxbotDesktop); }
 // Speech recognition needs a secure page: this Mac (localhost) or HTTPS. A phone on plain Wi-Fi http has neither.
 const insecure = 'I can’t listen on this connection. Your phone reaches the Mac over plain Wi-Fi, and browsers only allow the microphone on secure pages. Talk to me on the Mac instead.';
 
@@ -78,6 +78,11 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
   const speakRef = useRef(settings.speak);
   useEffect(() => { phaseRef.current = phase; askRef.current = onAsk; speakRef.current = settings.speak; }, [phase, onAsk, settings.speak]);
   useEffect(() => { const v = () => setVisible(!document.hidden); document.addEventListener('visibilitychange', v); return () => document.removeEventListener('visibilitychange', v); }, []);
+
+  // In the desktop app, with "Hey Ox" or the double clap on, the window keeps hearing while it is hidden or behind other
+  // apps, and Ox comes to the app in front (November 16, 2026; docs/21-ox-anywhere.md). Moonshine on this Mac, as before.
+  const listensAnywhere = inDesktop() && (settings.wake || settings.clap === true);
+  useEffect(() => { (window as { oxbotDesktop?: { keepHearing?: (on: boolean) => void } }).oxbotDesktop?.keepHearing?.(listensAnywhere); }, [listensAnywhere]);
 
   const show = useCallback((next: VoicePhase, words: string) => { phaseRef.current = next; setPhase(next); setText(words); }, []);
   // Ox in the Mac's notch (November 6, 2026) shows him listening while the microphone is open here. Only that it is

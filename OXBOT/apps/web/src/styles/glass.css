@@ -367,45 +367,9 @@ main.ask, main.connections, main.phone, main.settings-page { max-width: 880px; m
 }
 
 
-/* Ox, the mascot: two eyes under upturned horns. */
+/* Ox, the mascot: two eyes under upturned horns. Every expression and gesture is driven by src/ox-face.ts, which
+   the desktop overlay over other apps shares (docs/21-ox-anywhere.md); nothing here may set their transforms. */
 .ox { display: block; flex: none; overflow: visible; color: var(--ink); }
-.ox * { transform-box: fill-box; transform-origin: center; }
-.ox-all, .ox-horns { transform-origin: 50% 100%; }
-.ox-eye { transition: transform .3s cubic-bezier(.2, .7, .2, 1); }
-/* Each horn turns inward around the base of the crescent, so the tips draw together like a lowered head. */
-.ox .ox-horn { transition: transform .25s cubic-bezier(.4, 0, .2, 1); }
-.ox .ox-horn-l { transform-origin: 100% 100%; }
-.ox .ox-horn-r { transform-origin: 0% 100%; }
-.ox[data-mood="charge"] .ox-horn-l { transform: rotate(15deg); }
-.ox[data-mood="charge"] .ox-horn-r { transform: rotate(-15deg); }
-/* Charging: lean into the direction, tuck the horns in, narrow the eyes; settle straightens back up as he slows. */
-.ox-all { transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
-.ox-horns { transition: transform .32s cubic-bezier(.2, .7, .2, 1); }
-.ox[data-mood="listening"] .ox-eye { transform: scale(1.12); }
-.ox[data-mood="listening"] .ox-horns { transform: translateY(-46px); }
-.ox[data-mood="idle"] .ox-eye, .ox[data-mood="walk"] .ox-eye, .ox[data-mood="alert"] .ox-eye { animation: ox-blink 5.2s infinite; }
-.ox[data-mood="idle"] .ox-all { animation: ox-breathe 4.5s ease-in-out infinite; }
-.ox[data-mood="happy"] .ox-eye { transform: scaleY(.5); }
-.ox[data-mood="happy"] .ox-all { animation: ox-hop .42s cubic-bezier(.3, .7, .4, 1) 2; }
-.ox[data-mood="thinking"] .ox-eye { animation: ox-glance 2.4s ease-in-out infinite; }
-.ox[data-mood="thinking"] .ox-horns { animation: ox-tilt 2.4s ease-in-out infinite; }
-.ox[data-mood="sleep"] .ox-eye { transform: scaleY(.14); }
-.ox[data-mood="sleep"] .ox-all { animation: ox-breathe 5s ease-in-out infinite; }
-.ox[data-mood="alert"] .ox-all { animation: ox-shake .32s linear infinite; }
-.ox[data-mood="alert"] .ox-eye { transform: scale(1.18); }
-.ox[data-mood="walk"] .ox-all { animation: ox-bob .46s ease-in-out infinite; }
-/* Talking (November 5, 2026): the horns lift and the eyes widen a touch with each syllable of his own voice. */
-.ox[data-mood="talking"] .ox-eye { transform: scale(calc(1 + var(--talk, 0) * .1), calc(1 + var(--talk, 0) * .22)); transition: transform .07s linear; }
-.ox[data-mood="talking"] .ox-horns { transform: translateY(calc(var(--talk, 0) * -38px)); transition: transform .09s linear; }
-@media (prefers-reduced-motion: reduce) { .ox[data-mood="talking"] .ox-eye, .ox[data-mood="talking"] .ox-horns { transform: none; } }
-.ox[data-mood="walk"] .ox-horns { animation: ox-tilt .92s ease-in-out infinite; }
-@keyframes ox-blink { 0%, 92%, 98%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-@keyframes ox-breathe { 50% { transform: translateY(12px) scale(.99); } }
-@keyframes ox-hop { 45% { transform: translateY(-110px); } }
-@keyframes ox-glance { 0%, 100% { transform: translateX(0); } 30%, 45% { transform: translateX(-46px); } 65%, 80% { transform: translateX(46px); } }
-@keyframes ox-tilt { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
-@keyframes ox-shake { 25% { transform: translateY(-40px) rotate(-7deg); } 75% { transform: translateY(-40px) rotate(7deg); } }
-@keyframes ox-bob { 50% { transform: translateY(-50px); } }
 
 /* Ox on the boards: placed in #root's coordinates by Ox.tsx, so he scrolls with the card he sits on.
    The outer box only moves; the rotor turns him around the point between his horn tips. */
@@ -445,8 +409,7 @@ main.standby { position: relative; }
   .ox-hello { flex-direction: column; align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ox *, .ox-bubble { animation: none !important; }
-  .ox .ox-horn { transition: none; }
+  .ox-bubble { animation: none !important; }
 }
 .starters .text-button { justify-content: flex-start; }
 
