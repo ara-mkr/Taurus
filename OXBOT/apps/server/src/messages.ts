@@ -60,6 +60,8 @@ export function bodyText(blob: Uint8Array | null | undefined): string {
 // Apple counts from January 1, 2001, in nanoseconds since macOS 10.13 (seconds before that).
 const APPLE_EPOCH = 978_307_200;
 export const appleDate = (n: number | bigint) => { const v = Number(n); return new Date((APPLE_EPOCH + (v > 1e12 ? v / 1e9 : v)) * 1000).toISOString(); };
+// Nanosecond dates are too big for a JavaScript number, so SQLite turns them into seconds before they come out.
+const SECS = (col: string) => `(CASE WHEN ${col} > 1000000000000 THEN ${col} / 1000000000.0 ELSE ${col} END)`;
 
 export async function messagesStatus(): Promise<MessagesStatus> {
   const on = messagesOn();
@@ -68,7 +70,7 @@ export async function messagesStatus(): Promise<MessagesStatus> {
   let db: Db | undefined;
   try {
     db = await open();
-    const row = db.prepare('SELECT MAX(date) AS d FROM message').get();
+    const row = db.prepare(`SELECT ${SECS('MAX(date)')} AS d FROM message`).get();
     return { on, state: 'ready', newest: row?.d ? appleDate(row.d) : undefined };
   } catch (e) {
     if (!existsSync(join(chatDb(), '..')) && !noAccess(e)) return { on, state: 'missing', detail: 'This Mac has no Messages history yet. Open Messages and sign in first.' };
@@ -90,7 +92,7 @@ export async function readMessages(o: ReadOptions = {}): Promise<MacMessage[]> {
     if (o.incomingOnly) where.push('m.is_from_me = 0');
     if (o.from) { where.push('(h.id LIKE ? OR c.display_name LIKE ? OR c.chat_identifier LIKE ?)'); const f = `%${o.from.replace(/[%_]/g, '')}%`; args.push(f, f, f); }
     // Words kept only in attributedBody can't be searched in SQL, so a search reads more and filters after decoding.
-    const rows = db.prepare(`SELECT m.ROWID AS rowid, m.guid, m.text, m.attributedBody AS body, m.is_from_me AS me, m.date, m.service,
+    const rows = db.prepare(`SELECT m.ROWID AS rowid, m.guid, m.text, m.attributedBody AS body, m.is_from_me AS me, ${SECS('m.date')} AS date, m.service,
         h.id AS handle, c.display_name AS name, c.chat_identifier AS ident, c.style
       FROM message m
       LEFT JOIN handle h ON h.ROWID = m.handle_id

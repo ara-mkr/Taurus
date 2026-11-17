@@ -132,7 +132,8 @@ test('a camera frame reaches the AI with the question, and nothing is written to
 
 test('tool lines are parsed strictly and capped', () => {
   assert.deepEqual(toolCalls('<tool>{"name":"refresh","args":{"section":"needs"}}</tool> <tool>not json</tool>'), [{ name: 'refresh', args: { section: 'needs' } }]);
-  assert.equal(toolCalls('<tool>{"name":"a"}</tool>'.repeat(5)).length, 3);
+  // Four at once since November 16, 2026, so independent reads run together.
+  assert.equal(toolCalls('<tool>{"name":"a"}</tool>'.repeat(5)).length, 4);
 });
 
 // ---------- Calling OXBOT ----------

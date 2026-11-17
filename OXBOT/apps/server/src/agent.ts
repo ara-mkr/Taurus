@@ -304,7 +304,7 @@ export function simpleTurn(turns: Turn[]): boolean {
   if (!last || last.role !== 'user' || last.image) return false;
   const t = last.text.trim();
   if (!t || t.length > 160 || t.split(/\s+/).length > 25 || needsData.test(t) || /attached file/i.test(t)) return false;
-  return turns.length === 1 || /^(what is|what's|whats|calculate|define|translate|convert|explain|how do (i|you)|why)\b/i.test(t);
+  return /^(what is|what's|whats|what does|calculate|define|translate|convert|explain|how do (i|you)|why|tell me a joke|give me a joke|hi|hey|hello|thanks|thank you)\b/i.test(t);
 }
 
 // Streams a reply's words while holding back anything that may be a tool line, a plan or the <need-tools/> mark.
@@ -363,7 +363,7 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
     const hold = new Holdback(options.onText);
     const reply = await ask(`${voice}\n\nThis reply has no tools and no data. If answering needs the owner's own data (their day, mail, messages, health, home, files) or anything live, or they want something done, reply with only <need-tools/>.`, turns, via !== 'ask', { onText: d => hold.feed(d), simple: true });
     const text = clean(reply.text);
-    if (!/<need-tools/.test(reply.text) && text) return { provider: reply.provider, text, proposals: [] };
+    if (!/<need-tools|<tool>/.test(reply.text) && text) return { provider: reply.provider, text, proposals: [] };
     if (hold.streamed) options.onReset?.();
   }
   const d = await dashboardSoon();
