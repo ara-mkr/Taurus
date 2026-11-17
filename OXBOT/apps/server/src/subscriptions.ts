@@ -29,12 +29,20 @@ export const cliFound = (id: CliId) => Boolean(binary(id));
 
 const work = () => { const d = join(store.dir, 'cli-work'); mkdirSync(d, { recursive: true, mode: 0o700 }); return d; };
 
-function runCli(file: string, args: string[], input: string, timeoutMs = 180_000): Promise<string> {
+// The plan's own sign-in, never a key or proxy someone left in the environment (November 16, 2026: on the owner's Mac,
+// Claude Code's user settings pointed it at a local proxy that wasn't running, so every plan question failed). The
+// variables a parent Claude Code session sets are dropped too, so the app doesn't think it is nested.
+const planEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|CLAUDE_AGENT_SDK|OPENAI_API_KEY$|OPENAI_BASE_URL$)/.test(k)).concat([['NO_COLOR', '1']]));
+
+function runCli(file: string, args: string[], input: string, timeoutMs = 180_000, onLine?: (line: string) => void): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(file, args, { cwd: work(), env: { ...process.env, NO_COLOR: '1' }, stdio: ['pipe', 'pipe', 'pipe'] });
-    let out = '', err = '';
+    const child = spawn(file, args, { cwd: work(), env: planEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '', err = '', partial = '';
     const timer = setTimeout(() => { child.kill('SIGTERM'); reject(new Error('Your plan’s app took too long to answer.')); }, timeoutMs);
-    child.stdout.on('data', d => { out += d; if (out.length > 4_000_000) child.kill('SIGTERM'); });
+    child.stdout.on('data', d => {
+      out += d; if (out.length > 4_000_000) child.kill('SIGTERM');
+      if (onLine) { const lines = (partial + d).split('\n'); partial = lines.pop() ?? ''; for (const l of lines) if (l.trim()) onLine(l); }
+    });
     child.stderr.on('data', d => { err += d; if (err.length > 200_000) err = err.slice(-100_000); });
     child.on('error', e => { clearTimeout(timer); reject(e); });
     child.on('close', code => {
@@ -82,13 +90,23 @@ export function usage(): UsageInfo[] {
 /* eslint-disable @typescript-eslint/no-explicit-any -- the apps' JSON events are untyped */
 const events = (out: string) => out.split('\n').flatMap(l => { try { const v = JSON.parse(l); return v && typeof v === 'object' ? [v] : []; } catch { return []; } });
 
-async function askClaudeCode(file: string, system: string, turns: Turn[]): Promise<string> {
+export interface PlanOptions { onText?: (delta: string) => void; simple?: boolean }
+
+async function askClaudeCode(file: string, system: string, turns: Turn[], o: PlanOptions = {}): Promise<string> {
   const last = turns.at(-1)!;
   const earlier = turns.slice(0, -1);
   const image = last.image?.match(/^data:(image\/[a-z]+);base64,(.+)$/);
   const text = `${earlier.length ? `The conversation so far:\n\n${transcript(earlier)}\n\nThe owner now says:\n` : ''}${last.text}`;
   const message = { type: 'user', message: { role: 'user', content: [...(image ? [{ type: 'image', source: { type: 'base64', media_type: image[1], data: image[2] } }] : []), { type: 'text', text }] } };
-  const out = await runCli(file, ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--system-prompt', system], JSON.stringify(message) + '\n');
+  // Only project settings (none, in OXBOT's empty folder): the owner's user settings can route Claude Code somewhere
+  // other than the plan. A model the owner picked wins; a simple question goes to the plan's fast model.
+  const model = store.secret('CLAUDE_PLAN_MODEL') || (o.simple ? 'haiku' : '');
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--setting-sources', 'project',
+    ...(model ? ['--model', model] : []), ...(o.onText ? ['--include-partial-messages'] : []), '--system-prompt', system];
+  const onLine = o.onText ? (line: string) => {
+    try { const e = JSON.parse(line); if (e.type === 'stream_event' && e.event?.type === 'content_block_delta' && e.event.delta?.type === 'text_delta') o.onText!(String(e.event.delta.text)); } catch { /* not a JSON line */ }
+  } : undefined;
+  const out = await runCli(file, args, JSON.stringify(message) + '\n', 180_000, onLine);
   const ev = events(out);
   const result = ev.findLast(e => e.type === 'result');
   const limitEvent = ev.findLast(e => /rate_limit/.test(String(e.type)));
@@ -97,24 +115,69 @@ async function askClaudeCode(file: string, system: string, turns: Turn[]): Promi
   return String(result?.result ?? ev.filter(e => e.type === 'assistant').flatMap(e => e.message?.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')).trim();
 }
 
+// Codex takes its model from the owner's ~/.codex/config.toml, which can name a model a ChatGPT sign-in can't use
+// (November 16, 2026: "gpt-6.1-sol … is not supported when using Codex with a ChatGPT account"). Then OXBOT tries the
+// models that answered through a ChatGPT plan on the owner's Mac that day, and remembers the first one that works.
+// A model the owner types on the AI page wins over all of these.
+export const codexFallbacks = ['gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna'];
+const PLAN_MODELS = 'plan-models.json';
+const notForPlan = (message: string) => /not supported when using codex with a chatgpt account|model_not_found|model metadata .* not found|does not exist/i.test(message);
+
 async function askCodex(file: string, system: string, turns: Turn[]): Promise<string> {
   const last = turns.at(-1)!;
   const image = last.image?.match(/^data:image\/(png|jpeg|webp);base64,(.+)$/);
   let picture: string | undefined;
   if (image) { picture = join(work(), `${randomBytes(6).toString('hex')}.${image[1] === 'jpeg' ? 'jpg' : image[1]}`); writeFileSync(picture, Buffer.from(image[2], 'base64'), { mode: 0o600 }); }
+  const chosen = store.secret('CHATGPT_PLAN_MODEL');
+  const remembered = store.doc<Record<string, string>>(PLAN_MODELS, {})['chatgpt-plan'];
+  const tries = chosen ? [chosen] : [...new Set([remembered ?? '', ...codexFallbacks.filter(m => m !== remembered)])].slice(0, 4);
   try {
     const prompt = `${system}\n\n---\n\n${transcript(turns)}\n\nOx:`;
-    const out = await runCli(file, ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '-s', 'read-only', ...(picture ? ['-i', picture] : []), '-'], prompt);
-    const ev = events(out);
-    const text = ev.filter(e => e.type === 'item.completed' && e.item?.type === 'agent_message').map(e => e.item.text).join('\n')
-      || ev.filter(e => e.msg?.type === 'agent_message').map(e => e.msg.message).join('\n');
-    const turn = ev.findLast(e => e.type === 'turn.completed');
-    const limits = ev.map(e => e.rate_limits ?? e.msg?.rate_limits ?? e.info?.rate_limits).findLast(Boolean);
-    countUsage('chatgpt-plan', turn?.usage?.input_tokens ?? 0, turn?.usage?.output_tokens ?? 0, 0, limits);
-    const failed = ev.findLast(e => e.type === 'turn.failed' || e.type === 'error');
-    if (!text && failed) throw new Error(String(failed.error?.message ?? failed.message ?? 'Codex stopped.').slice(0, 300));
-    return text.trim();
+    let lastError = '';
+    for (const model of tries) {
+      // Low reasoning effort: these are conversational answers, and it halves Codex's wait.
+      const out = await runCli(file, ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '-s', 'read-only', '-c', 'model_reasoning_effort="low"', ...(model ? ['-m', model] : []), ...(picture ? ['-i', picture] : []), '-'], prompt);
+      const ev = events(out);
+      const text = ev.filter(e => e.type === 'item.completed' && e.item?.type === 'agent_message').map(e => e.item.text).join('\n')
+        || ev.filter(e => e.msg?.type === 'agent_message').map(e => e.msg.message).join('\n');
+      const turn = ev.findLast(e => e.type === 'turn.completed');
+      const limits = ev.map(e => e.rate_limits ?? e.msg?.rate_limits ?? e.info?.rate_limits).findLast(Boolean);
+      const failed = ev.findLast(e => e.type === 'turn.failed' || e.type === 'error');
+      if (text) {
+        countUsage('chatgpt-plan', turn?.usage?.input_tokens ?? 0, turn?.usage?.output_tokens ?? 0, 0, limits);
+        if (!chosen && model !== remembered) store.saveDoc(PLAN_MODELS, { ...store.doc<Record<string, string>>(PLAN_MODELS, {}), 'chatgpt-plan': model });
+        return text.trim();
+      }
+      lastError = String(failed?.error?.message ?? failed?.message ?? 'Codex stopped.');
+      if (!notForPlan(lastError) || chosen) break;
+    }
+    const said = lastError.match(/"message":"([^"]+)"/)?.[1] ?? lastError;
+    throw new Error(notForPlan(lastError) ? `Codex couldn’t use ${chosen ? `the model ${chosen}` : 'any model OXBOT tried'} with your ChatGPT plan. Pick another on the AI page, under ChatGPT plan, Model.` : said.slice(0, 300));
   } finally { if (picture) rmSync(picture, { force: true }); }
+}
+
+// ---------- Is it signed in? ----------
+// Each app's own status command, a fixed program with fixed arguments like the questions themselves. Reads nothing else.
+export interface PlanStatus { id: CliId; installed: boolean; signedIn?: boolean; plan?: string; how?: string; error?: string }
+const statusCache = new Map<CliId, { at: number; s: PlanStatus }>();
+export async function planStatus(id: CliId, fresh = false): Promise<PlanStatus> {
+  const hit = statusCache.get(id);
+  if (!fresh && hit && Date.now() - hit.at < 60_000) return hit.s;
+  const file = binary(id);
+  let s: PlanStatus = { id, installed: Boolean(file) };
+  if (file && id === 'claude-plan') {
+    try {
+      const j = JSON.parse(await runCli(file, ['auth', 'status'], '', 15_000));
+      s = { ...s, signedIn: Boolean(j.loggedIn), plan: j.subscriptionType ? String(j.subscriptionType) : undefined, how: j.authMethod === 'claude.ai' ? 'your Claude account' : j.authMethod ? String(j.authMethod) : undefined };
+    } catch (e) { s = { ...s, signedIn: false, error: (e as Error).message.slice(0, 200) }; }
+  } else if (file && id === 'chatgpt-plan') {
+    try {
+      const said = await runCli(file, ['login', 'status'], '', 15_000).catch((e: Error) => e.message);
+      s = { ...s, signedIn: /logged in/i.test(said) && !/not logged in/i.test(said), how: /chatgpt/i.test(said) ? 'your ChatGPT account' : /api key/i.test(said) ? 'an API key' : undefined };
+    } catch (e) { s = { ...s, signedIn: false, error: (e as Error).message.slice(0, 200) }; }
+  }
+  statusCache.set(id, { at: Date.now(), s });
+  return s;
 }
 
 async function askGeminiCli(file: string, system: string, turns: Turn[]): Promise<string> {
@@ -129,9 +192,9 @@ async function askGeminiCli(file: string, system: string, turns: Turn[]): Promis
   return String(data.response ?? '').trim();
 }
 
-export async function askPlan(id: CliId, system: string, turns: Turn[]): Promise<string> {
+export async function askPlan(id: CliId, system: string, turns: Turn[], o: PlanOptions = {}): Promise<string> {
   const file = binary(id);
   if (!file) throw new Error(`${cliNames[id]} isn’t installed on this Mac. Install it and sign in with your plan, then try again.`);
   if (id === 'gemini-plan' && turns.at(-1)?.image) throw new Error('Gemini CLI can’t take a picture from OXBOT yet. Use your Claude or ChatGPT plan for pictures.');
-  return id === 'claude-plan' ? askClaudeCode(file, system, turns) : id === 'chatgpt-plan' ? askCodex(file, system, turns) : askGeminiCli(file, system, turns);
+  return id === 'claude-plan' ? askClaudeCode(file, system, turns, o) : id === 'chatgpt-plan' ? askCodex(file, system, turns) : askGeminiCli(file, system, turns);
 }

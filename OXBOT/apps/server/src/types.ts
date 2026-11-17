@@ -190,7 +190,7 @@ export interface Proposal {
   // A plain warning shown above the buttons: deletes something, first message to this address, a robot-voice call.
   caution?: string;
   editable: boolean;
-  from: 'ask' | 'talk' | 'phone' | 'board';
+  from: 'ask' | 'talk' | 'phone' | 'board' | 'scan';
   createdAt: string;
   expiresAt: string;
   state: ProposalState;

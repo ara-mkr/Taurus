@@ -6,6 +6,7 @@ import { begin } from './activity.ts';
 import { askPlan, cliFound, countUsage, usage, type CliId } from './subscriptions.ts';
 import { toggleField } from './connectors/kit.ts';
 import { api, store } from './store.ts';
+import { postStream } from './stream.ts';
 import type { AiInfo, AskTurn, Profile } from './types.ts';
 
 // A turn may carry one camera frame (a JPEG data URL), only in memory for that one request (owner, November 1, 2026).
@@ -66,7 +67,8 @@ const byId = (id: string) => providers.find(p => p.id === id);
 
 // The Connections page lists each provider with these fields; secrets live in ~/.oxbot like every other key.
 export function aiFields(p: Provider): Field[] {
-  if (p.kind === 'cli') return [toggleField(p.id)];
+  // A plan's model is optional: empty means the plan app's own choice (Codex: a model a ChatGPT plan can use).
+  if (p.kind === 'cli') return [toggleField(p.id), { key: p.model, label: 'Model', optional: true, placeholder: p.id === 'claude-plan' ? 'sonnet, opus, haiku' : p.id === 'chatgpt-plan' ? 'gpt-5.6-terra' : 'your plan’s default' }];
   const fields: Field[] = [];
   if (p.urlField) fields.push({ key: p.urlField, label: 'Address', optional: p.id === 'ollama', placeholder: p.base ?? 'https://example.com/v1' });
   if (p.key) fields.push({ key: p.key, label: `${p.maker === 'OpenAI-compatible' ? 'API' : p.maker} key`, secret: true, optional: p.id === 'custom-ai' });
@@ -115,37 +117,70 @@ async function modelFor(p: Provider, key?: string): Promise<string> {
 }
 
 interface ChatReply { choices?: { message?: { content?: string | { type: string; text?: string }[] } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-async function chat(p: Provider, system: string, turns: Turn[]): Promise<string> {
+const chatBase = (p: Provider) => ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta: string) => void): Promise<string> {
   const key = p.key ? store.secret(p.key) : undefined;
-  const base = ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+  const base = chatBase(p);
   if (!base) throw new Error(`Add the address of ${p.name} on the Connections page.`);
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
   // OpenRouter shows apps by these two headers; they carry no data about you.
   if (p.id === 'openrouter') Object.assign(headers, { 'HTTP-Referer': 'http://localhost:8787', 'X-Title': 'OXBOT' });
-  const data = await api<ChatReply>(`${base}/chat/completions`, {
-    method: 'POST', token: key, headers, signal: AbortSignal.timeout(120_000),
-    body: JSON.stringify({ model: await modelFor(p, key), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] }),
+  // Streamed (November 16, 2026): each piece of the answer is passed on as it arrives. A provider that answers with
+  // plain JSON instead still works.
+  let streamed = '';
+  let usage: ChatReply['usage'];
+  const data: ChatReply | undefined = await postStream(`${base}/chat/completions`, {
+    token: key, headers, timeoutMs: 120_000,
+    body: { model: await modelFor(p, key), stream: true, ...(p.plan ? { stream_options: { include_usage: true } } : {}), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] },
+  }, event => {
+    if (event.error) throw new Error(`${p.name}: ${String(event.error.message ?? event.error).slice(0, 200)}`);
+    const delta = event.choices?.[0]?.delta?.content;
+    if (typeof delta === 'string' && delta) { streamed += delta; onText?.(delta); }
+    if (event.usage) usage = event.usage;
   });
   // A plan key's calls are counted, so the AI page can show how much of the plan you use.
-  if (p.plan) countUsage(p.id, data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0);
-  const content = data.choices?.[0]?.message?.content;
+  if (p.plan) countUsage(p.id, (data?.usage ?? usage)?.prompt_tokens ?? 0, (data?.usage ?? usage)?.completion_tokens ?? 0);
+  const content = data ? data.choices?.[0]?.message?.content : streamed;
   const text = typeof content === 'string' ? content : (content ?? []).map(part => part.text ?? '').join('');
   // Reasoning models sometimes leave their thinking inline.
   return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }
 
-export async function ask(system: string, turns: Turn[], quick = false): Promise<{ provider: string; text: string }> {
-  const p = current();
+export interface AskOptions {
+  // Each piece of the answer as it is written, for streaming to the screen.
+  onText?: (delta: string) => void;
+  // A simple turn (no tools, short): providers with a faster model use it.
+  simple?: boolean;
+  // Ask this AI instead of the one picked in Settings (the AI page's Test button).
+  provider?: string;
+}
+
+export async function ask(system: string, turns: Turn[], quick = false, options: AskOptions = {}): Promise<{ provider: string; text: string }> {
+  const p = options.provider ? byId(options.provider) : current();
   if (!p) throw new Error('Connect an AI first: Settings, then AI. OXBOT Free needs only a free OpenRouter account.');
   const step = begin('ai', `Thinking with ${p.name}`);
+  const { onText, simple = false } = options;
   try {
-    const text = p.kind === 'cli' ? await askPlan(p.id as CliId, system, turns)
-      : p.kind === 'anthropic' ? await askClaude(system, turns, quick ? 'low' : 'medium', store.secret(p.model))
-      : p.kind === 'responses' ? await askChatGPT(system, turns)
-      : await chat(p, system, turns);
+    const text = p.kind === 'cli' ? await askPlan(p.id as CliId, system, turns, { onText, simple })
+      : p.kind === 'anthropic' ? await askClaude(system, turns, quick ? 'low' : 'medium', store.secret(p.model) ?? '', onText, simple && !store.secret(p.model))
+      : p.kind === 'responses' ? await askChatGPT(system, turns, onText, simple)
+      : await chat(p, system, turns, onText);
     step.done(`${p.name} answered`);
     return { provider: p.name, text };
   } catch (error) { step.fail(error); throw error; }
+}
+
+// Opens the connection to your AI before you finish typing, so the first word comes sooner (November 16, 2026).
+// Only a HEAD to the provider's own address: nothing about you is sent. Plans run on this Mac and have nothing to warm.
+let warmedAt = 0;
+export async function warmAi(): Promise<string> {
+  const p = current();
+  if (!p || p.kind === 'cli' || Date.now() - warmedAt < 20_000) return p?.name ?? '';
+  warmedAt = Date.now();
+  const url = p.kind === 'anthropic' ? 'https://api.anthropic.com/v1/models' : p.kind === 'responses' ? 'https://api.openai.com/v1/models' : `${chatBase(p)}/models`;
+  if (!/^https?:\/\//.test(url)) return p.name;
+  await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5_000) }).then(r => r.body?.cancel()).catch(() => undefined);
+  return p.name;
 }
 
 // ---------- OXBOT Free: OpenRouter's free models ----------
