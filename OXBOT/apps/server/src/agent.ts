@@ -13,6 +13,7 @@ import { context, dashboardSoon } from './dashboard.ts';
 import { instant } from './instant.ts';
 import { bodyNow, fresh, searchMail } from './live.ts';
 import { memoryText, remember } from './memory.ts';
+import { brainTool, brainToolsText } from './brain.ts';
 import { control, controls, play, type Control } from './music.ts';
 import { store } from './store.ts';
 import { consequential, doStep, handsReady, handsSettings, lookAtScreen, lookPhrase, readApp, treeText, turn, type Step } from './hands.ts';
@@ -66,6 +67,7 @@ OXBOT runs them and sends the results back. Then answer.
 - timer {"duration": like "10 minutes", "label": optional}: starts a timer that shows on screen and chimes when done.
 - remind {"text": what to remind them, in their words, "when": like "in 20 minutes", "at 6pm", "tomorrow at 9am", "every weekday at 8:30"}: sets a reminder that pops up on screen.
 - remember {"fact": in the owner's words}: saves something the owner asked you to remember. Only when they asked.
+${brainToolsText}
 - propose {"action": one of the actions below, "args": {...}}: puts one action in front of the owner to approve. It does not run until they approve it.
 Actions:
 ${actions}`;
@@ -128,6 +130,9 @@ function describe(call: Call): string {
     case 'timer': return `Timer: ${a.duration ?? ''}`;
     case 'remind': return `Reminder ${a.when ?? ''}`;
     case 'remember': return 'Remembering that';
+    case 'brain_search': return `Looking in your Brain: ${String(a.query ?? '').slice(0, 50)}`;
+    case 'brain_read': return `Reading ${String(a.file ?? a.note ?? 'a note')} in your Brain`;
+    case 'brain_suggest': return 'Suggesting a Brain note';
     case 'propose': return `Drafting ${String(a.action ?? 'an action')} for your OK`;
     default: return `Using ${call.name}`;
   }
@@ -157,6 +162,7 @@ async function runTool(call: Call, via: Via, made: Proposal[], asked = ''): Prom
       if (!/\b(remember|note|keep in mind|don'?t forget)\b/i.test(asked)) return { error: 'Only save a memory when the owner asks you to remember something.' };
       return { done: `Remembered: ${remember(String(call.args.fact ?? '')).text}` };
     }
+    if (call.name.startsWith('brain_')) return (await brainTool(call.name, call.args)) ?? { error: `No tool called ${call.name}.` };
     if (call.name === 'browse_now') { if (!browserState().open) return { error: 'OXBOT’s browser has nothing open.' }; return await readPage(); }
     if (call.name === 'find_file') return { files: findFiles(String(call.args.query ?? asked)) };
     if (call.name === 'open_file') {

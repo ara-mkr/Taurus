@@ -155,6 +155,11 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
   }
 
   // Memory
+  // ProFinder (November 16, 2026): "run ProFinder", which is also what its daily scheduled task says.
+  if (/^(?:\(a task the owner scheduled[^)]*\)\s*)?(?:run|start) (?:pro ?finder|the job search)$|^(?:search|look) for (?:new )?(?:jobs|internships)(?: now)?$/.test(said)) {
+    const r = await (await import('./profinder.ts')).runSearch();
+    return { text: `ProFinder: ${r.added ? `${r.added} new match${r.added === 1 ? '' : 'es'}` : 'no new matches'}${r.shortlisted ? `, ${r.shortlisted} shortlisted` : ''}.` };
+  }
   const keep = said.match(/^(?:remember|note|don'?t forget|keep in mind|make a note)(?: that| this:?)?\s+(.{3,})$/);
   if (keep && !/^(?:when|what|who|how|me to)\b/.test(keep[1])) { remember(original(heard, keep[1]), heard); return { text: 'Got it. I’ll remember that.' }; }
   const drop = said.match(/^(?:forget|stop remembering|delete the memory)(?: about| that| the)?\s+(.{3,})$/);

@@ -288,6 +288,72 @@ register({
   },
 } satisfies Spec);
 
+// ---------- Job applications (ProFinder, November 16, 2026) ----------
+// ProFinder fills an application the same way: it reads the form, types the owner's own answers (never into a password
+// field; a form behind a sign-in or a CAPTCHA goes back to the owner), and presses Submit only through the same door as
+// browser.submit, after the owner approved that job on the batch card. Files come only from the Brain's attachments.
+
+const FIELDS = 'input:not([type=hidden]):not([type=password]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), textarea, select';
+export interface FormField { index: number; label: string; type: string; required: boolean; options?: string[]; group?: string }
+export interface FormShape { url: string; host: string; fields: FormField[]; buttons: string[]; login: boolean; captcha: boolean; text: string }
+
+export const siteOf = site;
+export async function formShape(): Promise<FormShape> {
+  const p = page && !page.isClosed() ? page : undefined;
+  if (!p) throw new Error('Nothing is open in OXBOT’s browser.');
+  const found = await p.evaluate<Omit<FormShape, 'url' | 'host'>>(`(() => {
+    const clean = t => String(t || '').replace(/\\s+/g, ' ').replace(/\\s*\\*\\s*$/, '').trim().slice(0, 140);
+    const labelOf = el => {
+      const byFor = el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      const by = el.getAttribute('aria-labelledby');
+      return clean((byFor && byFor.innerText) || el.getAttribute('aria-label') || (by && document.getElementById(by) && document.getElementById(by).innerText) || (el.closest('label') && el.closest('label').innerText) || el.placeholder || el.name || '');
+    };
+    const els = Array.from(document.querySelectorAll(${JSON.stringify(FIELDS)}));
+    const fields = els.map((el, index) => {
+      const type = el.tagName === 'SELECT' ? 'select' : el.tagName === 'TEXTAREA' ? 'textarea' : (el.type || 'text');
+      const box = el.closest('fieldset');
+      const legend = box && box.querySelector('legend');
+      const raw = (el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')) ? document.querySelector('label[for="' + CSS.escape(el.id) + '"]').innerText : '';
+      return { index, label: labelOf(el), type, required: Boolean(el.required || el.getAttribute('aria-required') === 'true' || /\\*\\s*$/.test(raw)),
+        options: el.tagName === 'SELECT' ? Array.from(el.options).map(o => o.text.trim()).filter(Boolean).slice(0, 60) : undefined,
+        group: (type === 'radio' || type === 'checkbox') ? clean((legend && legend.innerText) || el.name) : undefined };
+    });
+    const buttons = Array.from(document.querySelectorAll('button, input[type=submit]')).map(b => clean(b.innerText || b.value)).filter(t => t && t.length < 40);
+    const login = Boolean(document.querySelector('input[type=password]'));
+    const captcha = Boolean(document.querySelector('iframe[src*="hcaptcha"], iframe[src*="recaptcha"], iframe[src*="turnstile"], .g-recaptcha, .h-captcha, .cf-turnstile'));
+    return { fields, buttons, login, captcha, text: (document.body ? document.body.innerText : '').slice(0, 4000) };
+  })()`);
+  return { url: p.url(), host: site(p.url()), ...found };
+}
+
+// One field, found by its place on the form. The label must still match, so a changed form fails instead of guessing.
+export async function fillAt(index: number, label: string, value: string, file?: string) {
+  const p = page && !page.isClosed() ? page : undefined;
+  if (!p) throw new Error('Nothing is open in OXBOT’s browser.');
+  const el = p.locator(FIELDS).nth(index);
+  const type = await el.evaluate(e => { const x = e as unknown as { tagName: string; type?: string }; return x.tagName === 'SELECT' ? 'select' : x.tagName === 'TEXTAREA' ? 'textarea' : x.type || 'text'; }, undefined, { timeout: 5000 });
+  if (type === 'password') throw new Error('Ox doesn’t type passwords.');
+  const shape = await formShape();
+  if (shape.fields[index]?.label !== label) throw new Error(`The form changed: “${label}” isn’t where it was.`);
+  state.by = 'ox';
+  if (type === 'file') {
+    if (!file || !file.startsWith(join(store.dir, 'brain', 'attachments'))) throw new Error('Files come only from the Brain.');
+    await el.setInputFiles(file, { timeout: 8000 });
+  } else if (type === 'select') await el.selectOption({ label: value }, { timeout: 5000 });
+  else if (type === 'checkbox' || type === 'radio') await el.check({ timeout: 5000, force: true });
+  else await el.fill(value.slice(0, 8000), { timeout: 5000 });
+}
+
+// Presses the form's button through the door, for twelve seconds, to that one site. Returns the page's words after.
+export async function pressFor(button: string, host: string): Promise<string> {
+  const p = page && !page.isClosed() ? page : undefined;
+  if (!p || site(p.url()) !== host) throw new HttpError(409, 'The browser moved to another site.');
+  door = { host, until: Date.now() + 12_000 };
+  try { await clickText(button); await new Promise(r => setTimeout(r, 2500)); await settle(p); }
+  finally { door = undefined; await snap(); }
+  return p.evaluate<string>('(document.body ? document.body.innerText : "").slice(0, 4000)').catch(() => '');
+}
+
 export async function close() {
   const p = page;
   page = undefined;

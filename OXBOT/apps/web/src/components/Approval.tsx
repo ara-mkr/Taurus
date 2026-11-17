@@ -19,6 +19,8 @@ export function ApprovalCard({ p, via = 'board', onChange, level = 3 }: { p: Pro
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  // A batch card (ProFinder, November 16, 2026): every item starts checked; only the checked ones go.
+  const [kept, setKept] = useState<Set<string>>(() => new Set((p.items ?? []).map(i => i.id)));
   const box = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 15_000); return () => window.clearInterval(t); }, []);
   useEffect(() => { if (editing) box.current?.focus(); }, [editing]);
@@ -27,7 +29,7 @@ export function ApprovalCard({ p, via = 'board', onChange, level = 3 }: { p: Pro
   async function decide(approve: boolean) {
     setBusy(true); setProblem('');
     try {
-      const { proposal } = approve ? await api.approve(p, editing && draft !== p.text ? draft : undefined, via) : await api.decline(p, via);
+      const { proposal } = approve ? await api.approve(p, editing && draft !== p.text ? draft : undefined, via, p.items ? [...kept] : undefined) : await api.decline(p, via);
       onChange?.(proposal); setEditing(false);
       // Food has no ordering API: once approved, the delivery app opens at the place, ready to place.
       if (proposal.state === 'done' && proposal.open) window.open(proposal.open, '_blank', 'noopener');
@@ -46,10 +48,22 @@ export function ApprovalCard({ p, via = 'board', onChange, level = 3 }: { p: Pro
     {p.text !== undefined && (editing
       ? <><label className="sr-only" htmlFor={`ed-${p.id}`}>Text to send</label><textarea id={`ed-${p.id}`} ref={box} className="approval-edit" rows={Math.min(10, Math.max(3, draft.split('\n').length + 1))} value={draft} onChange={e => setDraft(e.target.value)} /></>
       : p.text && <blockquote className="approval-text">{p.text.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</blockquote>)}
+    {p.items && <ul className="approval-items" aria-label="Applications on this card">{p.items.map(item => {
+      const on = open ? kept.has(item.id) : (p.kept ?? []).includes(item.id);
+      return <li key={item.id} className={on ? '' : 'unchecked'}>
+        <label className="approval-item-check"><input type="checkbox" checked={on} disabled={!open || busy}
+          onChange={() => setKept(k => { const n = new Set(k); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n; })} /><span>{item.title}</span></label>
+        <details open={p.items!.length <= 2}>
+          <summary>What will be sent</summary>
+          <dl className="approval-lines">{item.lines.map((l, i) => <div key={i}><dt>{l.label}</dt><dd>{l.value}</dd></div>)}</dl>
+          {item.link && <p className="approval-item-link"><a href={item.link} target="_blank" rel="noreferrer">Open the form</a></p>}
+        </details>
+      </li>;
+    })}</ul>}
     {p.lines.length > 0 && <dl className="approval-lines">{p.lines.map((l, i) => <div key={i}><dt>{l.label}</dt><dd>{l.value}</dd></div>)}</dl>}
     {p.caution && open && <p className="approval-caution">{p.caution}</p>}
     {open ? <div className="approval-actions">
-      <button type="button" className="primary" onClick={() => decide(true)} disabled={busy || (editing && !draft.trim())}>{busy ? 'Working' : editing ? 'Approve edited' : verb(p)}</button>
+      <button type="button" className="primary" onClick={() => decide(true)} disabled={busy || (editing && !draft.trim()) || (Boolean(p.items) && !kept.size)}>{busy ? 'Working' : editing ? 'Approve edited' : p.items ? `Approve and send ${kept.size}` : verb(p)}</button>
       {p.editable && <button type="button" onClick={() => { setDraft(p.text ?? ''); setEditing(!editing); }} disabled={busy}>{editing ? 'Undo edit' : 'Edit'}</button>}
       <button type="button" className="text-button" onClick={() => decide(false)} disabled={busy}>Decline</button>
     </div> : p.result && <p className={p.state === 'done' ? 'approval-result' : 'problem'} role="status">{p.result}{p.state === 'done' && p.open && <> <a href={p.open} target="_blank" rel="noreferrer">Open it again</a></>}</p>}

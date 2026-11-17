@@ -35,6 +35,7 @@ import { findFiles } from './files.ts';
 import { addServer, mcpServers, refreshServer, removeServer } from './mcp.ts';
 import { addSchedule, nextLine, removeSchedule, runNow, schedules, setScheduleOn } from './schedule.ts';
 import { removeSkill, saveSkill, skills } from './skills.ts';
+import { brainRoute } from './brain-routes.ts';
 import type { AskTurn, MarketRange, PhoneSettings, Prefs } from './types.ts';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -186,6 +187,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (method !== 'GET' && req.headers['x-oxbot'] !== '1') return send(res, 403, { error: 'Missing x-oxbot header' });
 
   if (!path.startsWith('/api/')) return serveStatic(res, path);
+  // The Brain and ProFinder (November 16, 2026): their routes live in brain-routes.ts.
+  if ((path.startsWith('/api/brain') || path.startsWith('/api/profinder')) && await brainRoute(req, res, url, { send, json, bytes })) return;
 
   // Lets the desktop app tell an OXBOT server already on this port from some other program.
   if (method === 'GET' && path === '/api/health') return send(res, 200, { app: 'oxbot', version: pkg.version });
@@ -334,9 +337,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   m = path.match(/^\/api\/approvals\/([a-f0-9-]{36})\/(approve|decline)$/);
   if (method === 'POST' && m) {
-    const body = await json<{ digest?: string; text?: string; via?: string }>(req);
+    const body = await json<{ digest?: string; text?: string; via?: string; keep?: unknown }>(req);
     const via = body.via === 'ring' || body.via === 'phone' ? body.via : 'board';
-    return send(res, 200, { proposal: m[2] === 'approve' ? await approve(m[1], { digest: String(body.digest ?? ''), text: typeof body.text === 'string' ? body.text : undefined, via }) : decline(m[1], via) });
+    return send(res, 200, { proposal: m[2] === 'approve' ? await approve(m[1], { digest: String(body.digest ?? ''), text: typeof body.text === 'string' ? body.text : undefined, via, keep: Array.isArray(body.keep) ? body.keep.map(String) : undefined }) : decline(m[1], via) });
   }
 
   // What Ox is doing, live, for the Activity terminal.
