@@ -1,0 +1,18 @@
+OxNotch, OXBOT's native notch
+Licensed GPL-3.0-or-later (see LICENSE), because it is ported from Vorssaint.
+
+Source: https://github.com/vorssaint/vorssaint-utils (GPL-3.0-or-later, Copyright (C) 2026 Vorssaint)
+Commit read and ported from: 89d2626089d693bf0462ba29ea5d047d80c9da2e
+
+Ported (rewritten and trimmed, not copied whole):
+- Sources/NowPlayingAdapter/NowPlayingAdapter.swift and Resources/now-playing.pl -> Sources/OxNowPlaying, NowPlaying.swift
+  (MediaRemote read through /usr/bin/perl; play/pause/next/previous only)
+- Services/AgentUsage (ClaudeReader, CodexReader, AgentLogParser) -> Agents.swift (open turns, tokens today, Codex limits)
+- Services/Notch/NotchWindowHost.swift NotchPanel, NotchService display choice and camera width,
+  NotchSupport.swift screenIndex and NotchQuickAccessLayout -> Controller.swift, IslandView.swift
+
+Not used: Vorssaint's mascot, name, icons, strings, artwork or any other asset. Ox comes from OXBOT's
+design/logo/ox-mascot.svg. Dropped features: brightness, screenshots/recording, clipboard, files shelf, calendar,
+lyrics, queue, mixer, lock screen, notifications, prices, update checks.
+
+OXBOT builds are personal. If OXBOT is ever distributed with this notch, OXBOT must be GPL-3.0 (see ../../LICENSE-DECISION.md).
