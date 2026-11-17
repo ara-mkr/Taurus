@@ -2,7 +2,7 @@
 
 Asked for by the owner on November 16, 2026: "make it have a profinder mode where its constantly searching for internships and jobs and applies for u, based on ur resume and a bunch of info given, and make it have a mindmap like obsidian of everything it remembers about u from ur personality to job, friends, hobbies, all that kinda stuff and u can view the mind map, and under certain dots like job, there will be files like resume and shit u can just pull from, so u never forget". On how ProFinder submits, the owner chose "One tap per batch".
 
-The ProFinder submit step needs a new permission (below). Until the owner records it in `AGENTS.md`, the code is built and tested only against mocks: no real application has been sent.
+The owner approved the new permission (below) and it is recorded in `AGENTS.md` and `PROJECT_STATE.json` (`brain_profinder_decision`). The code has been tested only against mocks so far: no real application has been sent yet.
 
 ## The Brain
 
@@ -99,9 +99,9 @@ The general approval system gained one thing for this (`actions/approvals.ts`): 
 - OpenRouter's free models may log prompts under their providers' terms; that's why contact details are removed and the switch exists.
 - A Mac asleep at 8 am searches once when it wakes (the existing schedule behaviour).
 
-## New permission for the owner to record
+## The permission, as recorded
 
-The owner records this in `AGENTS.md` (agents don't edit it). Suggested wording:
+Asked "Record ProFinder's new apply permission in AGENTS.md so it can submit for real?", the owner answered "Yes, record it" (and again in the brain-profinder session). Recorded in `AGENTS.md` as:
 
 > Also authorized (owner, November 16, 2026), in the owner's words: "make it have a profinder mode where its constantly searching for internships and jobs and applies for u, based on ur resume and a bunch of info given", with "One tap per batch" chosen for submitting. This covers, detailed in `docs/23-brain-and-profinder.md`:
 > - **The Brain** (`apps/server/src/brain.ts`): an Obsidian-style vault of markdown notes and attached files in `~/.oxbot/brain`. What the owner asked Ox to remember is copied in; anything else Ox learns waits for the owner's Add. Ox may search and read it, including the text of PDFs attached there, to answer the owner. Nothing in it is sent anywhere except as part of a question the owner asks the AI they chose.
