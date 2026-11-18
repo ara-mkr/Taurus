@@ -25,6 +25,9 @@ export interface NotchSettings {
   dropFromTop: number;
   // How wide the camera housing is, in points; nudge it until no edge of the real notch shows.
   fitWidth: number;
+  // The native notch's own settings (apps/notch-mac, November 17, 2026): sizes, fits and agents, ported from
+  // Vorssaint. Kept as they came; OxNotch checks each field itself (Model.swift, NotchSettings.Native).
+  native?: Record<string, unknown>;
 }
 
 export const notchDefaults: NotchSettings = {
@@ -55,8 +58,14 @@ export function cleanNotch(raw: unknown, base: NotchSettings = notchDefaults): N
     noNotch: pick(r.noNotch, ['pill', 'hidden'] as const, base.noNotch),
     dropFromTop: num(r.dropFromTop, 0, 24, base.dropFromTop),
     fitWidth: num(r.fitWidth, 150, 260, base.fitWidth),
+    ...nativeOf(r.native, base.native),
   };
 }
+const nativeOf = (value: unknown, fallback?: Record<string, unknown>) => {
+  const ok = value && typeof value === 'object' && !Array.isArray(value) && JSON.stringify(value).length <= 8192;
+  const kept = ok ? value as Record<string, unknown> : fallback;
+  return kept ? { native: kept } : {};
+};
 
 export interface Screen { id: number; internal: boolean; primary: boolean; bounds: { x: number; y: number; width: number; height: number }; workArea: { x: number; y: number; width: number; height: number } }
 // A Mac's built-in screen with a notch has a taller menu bar (about 32 to 38 points) than one without (24 or 25).

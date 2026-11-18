@@ -168,7 +168,7 @@ final class IslandWindow {
         let g = state.geometry(hub.settings)
         let s = hub.settings
         if state.open {
-            let body = g.body(CGSize(width: Metrics.openWidth, height: g.openHeight(state.page)))
+            let body = g.body(CGSize(width: g.openWidth, height: g.openHeight(state.page, hub)))
             let reach = screen(body.insetBy(dx: -(Metrics.gutter - 4), dy: 0).insetBy(dx: -6, dy: -8))
             let inside = reach.contains(mouse)
             panel.ignoresMouseEvents = !inside
@@ -312,11 +312,21 @@ final class NotchController: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Applied at once; written once a slider has stopped moving.
+    private var saveWork: DispatchWorkItem?
     private func save(_ s: NotchSettings) {
+        guard s != hub.settings else { return }
         hub.settings = s
         rebuild()
-        if options.managed { tellDesktopApp(["do": "save", "settings": s.editable]) }
-        else { DesktopFile.save(s.editable, home: options.home) }
+        saveWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            let s = self.hub.settings
+            if self.options.managed { self.tellDesktopApp(["do": "save", "settings": s.editable]) }
+            else { DesktopFile.save(s.editable, home: self.options.home) }
+        }
+        saveWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
     }
 
     private func openDashboard() {

@@ -6,6 +6,7 @@
 // Read-only: the session logs Claude Code and Codex already write on this Mac. Nothing is copied, kept or sent.
 
 import Foundation
+import SQLite3
 
 final class AgentScanner {
     private weak var hub: Hub?
@@ -33,6 +34,8 @@ final class AgentScanner {
         var plan: String?
         var sawRecords = false
         var lastTotal = 0
+        var requests: [String: Int] = [:]   // day -> requests (Copilot)
+        var finalResponse = false
         init(_ provider: Provider) { self.provider = provider }
     }
 
@@ -75,6 +78,14 @@ final class AgentScanner {
             let dir = codex.appendingPathComponent(String(format: "%04d/%02d/%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0))
             found += recent(in: dir, since: since).map { ($0, .codex) }
         }
+        // Copilot CLI and the GitHub Copilot app share one event log per session (Vorssaint's AgentUsageStore).
+        let copilot = URL(fileURLWithPath: env["COPILOT_HOME"] ?? home.appendingPathComponent(".copilot").path).appendingPathComponent("session-state")
+        for dir in (try? FileManager.default.contentsOfDirectory(at: copilot, includingPropertiesForKeys: nil)) ?? [] {
+            let events = dir.appendingPathComponent("events.jsonl")
+            if let date = (try? events.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate, date > since {
+                found.append((events, .copilot))
+            }
+        }
         return found
     }
 
@@ -109,7 +120,12 @@ final class AgentScanner {
             start = data.index(after: end)
             // A read that began mid-file starts mid-line.
             if state.seen.remove("skip-first-line") != nil { continue }
-            if state.provider == .claude { claude(line, state, now) } else { codex(line, state, now) }
+            switch state.provider {
+            case .claude: claude(line, state, now)
+            case .codex: codex(line, state, now)
+            case .copilot: copilot(line, state, now)
+            case .opencode: break   // a database, read in `openCode`
+            }
         }
         state.partial = Data(data[start...])
     }
@@ -229,14 +245,106 @@ final class AgentScanner {
         }
     }
 
+    /// Copilot (Vorssaint's CopilotReader): a prompt or turn start opens a turn; a turn end that delivered a final
+    /// response (no tool requests, not thinking) closes it, as do abort and shutdown. Each response is a request;
+    /// tokens come from the per-model totals written at shutdown. Prompts and replies are never read.
+    private func copilot(_ line: Data, _ s: LogState, _ now: Date) {
+        guard let json = Self.object(line), let type = json["type"] as? String, let data = json["data"] as? [String: Any] else { return }
+        let root = ((json["agentId"] as? String) ?? "").isEmpty
+        guard root || type == "assistant.message" else { return }
+        let date = Self.date(json["timestamp"]) ?? now
+        s.last = max(s.last ?? date, date)
+        func project(_ d: [String: Any]?) {
+            if let path = ["gitRoot", "cwd", "repository"].compactMap({ d?[$0] as? String }).first(where: { !$0.isEmpty }) { s.project = Self.project(path) }
+        }
+        switch type {
+        case "session.start": project(data["context"] as? [String: Any])
+        case "session.context_changed": project(data)
+        case "user.message", "assistant.turn_start":
+            s.finalResponse = false
+            if !s.turnOpen { s.turnOpen = true; s.turnStart = date }
+        case "assistant.message":
+            let request = (data["apiCallId"] as? String) ?? (data["messageId"] as? String) ?? (json["id"] as? String) ?? "\(date.timeIntervalSince1970)"
+            if s.seen.insert("request:\((json["agentId"] as? String) ?? ""):\(request)").inserted { s.requests[Self.dayKey(date), default: 0] += 1 }
+            guard root else { return }
+            let tools = (data["toolRequests"] as? [Any])?.isEmpty == false
+            s.finalResponse = !tools && !["thinking", "commentary"].contains(data["phase"] as? String ?? "")
+        case "assistant.turn_end":
+            if s.turnOpen, s.finalResponse { s.turnOpen = false; s.finalResponse = false }
+        case "abort": s.turnOpen = false
+        case "session.shutdown":
+            s.turnOpen = false
+            for case let metric as [String: Any] in ((data["modelMetrics"] as? [String: Any]) ?? [:]).values {
+                let u = metric["usage"] as? [String: Any] ?? [:]
+                func count(_ a: String, _ b: String) -> Int { Self.int(u[a] ?? u[b]) }
+                s.tokens[Self.dayKey(date), default: 0] += count("input", "inputTokens") + count("output", "outputTokens")
+                    + count("cache_read", "cacheReadTokens") + count("cache_write", "cacheWriteTokens")
+            }
+        default: return
+        }
+    }
+
+    /// OpenCode (Vorssaint's AgentOpenCodeReader, simplified): its SQLite database, opened read-only. The newer
+    /// schema marks a busy session with `time_busy` after `time_idle`; the older one leaves a reply without
+    /// `time.completed` while it runs. Tokens are each reply's input, output and cache traffic.
+    private func openCode(_ u: inout AgentUsage, now: Date) {
+        let env = ProcessInfo.processInfo.environment
+        let dataHome = env["XDG_DATA_HOME"].map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent(".local/share")
+        let path = dataHome.appendingPathComponent("opencode/opencode.db").path
+        guard FileManager.default.fileExists(atPath: path) else { return }
+        var db: OpaquePointer?
+        guard sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK else { sqlite3_close(db); return }
+        defer { sqlite3_close(db) }
+        sqlite3_busy_timeout(db, 200)
+        func rows(_ sql: String, _ bind: [Int64], _ each: (OpaquePointer) -> Void) {
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { sqlite3_finalize(stmt); return }
+            defer { sqlite3_finalize(stmt) }
+            for (i, value) in bind.enumerated() { sqlite3_bind_int64(stmt, Int32(i + 1), value) }
+            while sqlite3_step(stmt) == SQLITE_ROW { each(stmt) }
+        }
+        func has(_ table: String) -> Bool {
+            var found = false
+            rows("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1".replacingOccurrences(of: "?1", with: "'\(table)'"), []) { _ in found = true }
+            return found
+        }
+        func text(_ stmt: OpaquePointer, _ i: Int32) -> String { sqlite3_column_text(stmt, i).map { String(cString: $0) } ?? "" }
+        let ms = { (d: Date) in Int64(d.timeIntervalSince1970 * 1000) }
+        let dayStart = ms(Calendar.current.startOfDay(for: now)), fresh = ms(now.addingTimeInterval(-Self.stale))
+        let tokens = "COALESCE(json_extract(data,'$.tokens.input'),0) + COALESCE(json_extract(data,'$.tokens.output'),0) + COALESCE(json_extract(data,'$.tokens.cache.read'),0) + COALESCE(json_extract(data,'$.tokens.cache.write'),0)"
+        var last: Int64 = 0
+        if has("session_v2") && has("session_message") {
+            rows("SELECT COALESCE(SUM(\(tokens)),0) FROM session_message WHERE type = 'assistant' AND time_created >= ?", [dayStart]) { u.tokensToday += Int(sqlite3_column_int64($0, 0)) }
+            rows("SELECT directory, time_busy FROM session_v2 WHERE time_busy IS NOT NULL AND (time_idle IS NULL OR time_busy > time_idle) AND time_updated >= ? AND parent_id IS NULL", [fresh]) {
+                u.working.append(Working(project: Self.project(text($0, 0)), since: Date(timeIntervalSince1970: Double(sqlite3_column_int64($0, 1)) / 1000)))
+            }
+            rows("SELECT MAX(time_updated) FROM session_v2", []) { last = max(last, sqlite3_column_int64($0, 0)) }
+        }
+        if has("message") && has("session") {
+            rows("SELECT COALESCE(SUM(\(tokens)),0) FROM message WHERE json_extract(data,'$.role') = 'assistant' AND time_created >= ?", [dayStart]) { u.tokensToday += Int(sqlite3_column_int64($0, 0)) }
+            rows("""
+                SELECT s.directory, MIN(m.time_created) FROM message m JOIN session s ON s.id = m.session_id
+                WHERE json_extract(m.data,'$.role') = 'assistant' AND json_extract(m.data,'$.time.completed') IS NULL
+                  AND m.time_updated >= ? AND s.parent_id IS NULL GROUP BY s.id
+                """, [fresh]) {
+                u.working.append(Working(project: Self.project(text($0, 0)), since: Date(timeIntervalSince1970: Double(sqlite3_column_int64($0, 1)) / 1000)))
+            }
+            rows("SELECT MAX(time_updated) FROM session", []) { last = max(last, sqlite3_column_int64($0, 0)) }
+        }
+        if last > 0 { u.lastActive = Date(timeIntervalSince1970: Double(last) / 1000) }
+        u.working.sort { $0.since < $1.since }
+    }
+
     // MARK: Publish
 
     private func publish(now: Date) {
         let today = Self.dayKey(now)
         let usage = Provider.allCases.map { provider -> AgentUsage in
-            let logs = files.values.filter { $0.provider == provider }
             var u = AgentUsage(provider: provider)
+            if provider == .opencode { openCode(&u, now: now); return u }
+            let logs = files.values.filter { $0.provider == provider }
             u.tokensToday = logs.reduce(0) { $0 + ($1.tokens[today] ?? 0) }
+            u.requestsToday = logs.reduce(0) { $0 + ($1.requests[today] ?? 0) }
             u.lastActive = logs.compactMap(\.last).max()
             u.working = logs.filter { $0.turnOpen && now.timeIntervalSince($0.last ?? .distantPast) < Self.stale }
                 .map { Working(project: $0.project.isEmpty ? provider.name : $0.project, since: $0.turnStart ?? $0.last ?? now) }
@@ -247,6 +355,6 @@ final class AgentScanner {
             u.plan = freshest?.plan
             return u
         }
-        DispatchQueue.main.async { [weak hub] in if hub?.agents != usage { hub?.agents = usage } }
+        DispatchQueue.main.async { [weak hub] in hub?.update(agents: usage) }
     }
 }

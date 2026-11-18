@@ -60,6 +60,80 @@ struct NotchSettings: Equatable {
     var inCaptures = true
     var pillWithoutNotch = true
     var dropFromTop = 0
+    /// Vorssaint's own notch settings, kept under "native" in desktop.json so the Electron notch keeps them as they are.
+    var native = Native()
+
+    /// Ported from Vorssaint's Settings > Notch and Settings > Agents (NotchSettings.swift, NotchAgentsSettings.swift),
+    /// with its ranges (NotchSupport.swift: NotchSize, NotchCameraFit, NotchCapsuleFit).
+    struct Native: Equatable {
+        enum Size: String, CaseIterable { case compact, spacious, custom }
+        enum Shape: String, CaseIterable { case capsule, notch }
+        enum LimitDisplay: String, CaseIterable { case remaining, used }
+        enum LimitFocus: String, CaseIterable { case mostUsed, session, weekly }
+        enum Readout: String, CaseIterable { case elapsed, tokens, limit }
+        static let widthRange = 360.0...600.0, heightRange = 260.0...640.0
+        static let cameraWidthRange = -10.0...10.0, cameraHeightRange = -6.0...6.0
+        static let capsuleWidthRange = -40.0...40.0, capsuleHeightRange = -4.0...4.0, capsuleDropRange = 0.0...20.0
+
+        var size = Size.spacious
+        var customWidth = 440.0, customHeight = 480.0
+        /// Vorssaint's "translucent background": dark glass instead of solid black once the island opens.
+        var glass = false
+        /// How the island meets a display without a camera: a capsule in the menu bar, or a cutout from the top edge.
+        var shape = Shape.capsule
+        var capsuleWidth = 0.0, capsuleHeight = 0.0, capsuleDrop = 0.0
+        var cameraWidth = 0.0, cameraHeight = 0.0
+        var outline = false
+        var agents: Set<Provider> = Set(Provider.allCases)
+        var limitDisplay = LimitDisplay.remaining
+        var limitFocus = LimitFocus.mostUsed
+        /// Show a working agent in the closed island.
+        var live = true
+        var readout = Readout.elapsed
+        var finishAlert = true
+        /// Minutes a turn must have run for its end to be announced; 0 is any length.
+        var finishMinimum = 1
+        var limitAlert = true
+        var limitThreshold = 90
+
+        init() {}
+        init(json r: [String: Any]?) {
+            guard let r else { return }
+            func clamp(_ key: String, _ range: ClosedRange<Double>, _ fallback: Double) -> Double {
+                guard let n = r[key] as? NSNumber, !(r[key] is Bool), n.doubleValue.isFinite else { return fallback }
+                return min(range.upperBound, max(range.lowerBound, n.doubleValue))
+            }
+            func bool(_ key: String, _ fallback: Bool) -> Bool { r[key] as? Bool ?? fallback }
+            size = (r["size"] as? String).flatMap(Size.init(rawValue:)) ?? size
+            customWidth = (clamp("customWidth", Self.widthRange, customWidth) / 10).rounded() * 10
+            customHeight = (clamp("customHeight", Self.heightRange, customHeight) / 10).rounded() * 10
+            glass = bool("glass", glass)
+            shape = (r["shape"] as? String).flatMap(Shape.init(rawValue:)) ?? shape
+            capsuleWidth = clamp("capsuleWidth", Self.capsuleWidthRange, 0).rounded()
+            capsuleHeight = clamp("capsuleHeight", Self.capsuleHeightRange, 0).rounded()
+            capsuleDrop = clamp("capsuleDrop", Self.capsuleDropRange, 0).rounded()
+            cameraWidth = clamp("cameraWidth", Self.cameraWidthRange, 0).rounded()
+            cameraHeight = (clamp("cameraHeight", Self.cameraHeightRange, 0) * 2).rounded() / 2
+            outline = bool("outline", outline)
+            if let list = r["agents"] as? [String] { agents = Set(list.compactMap(Provider.init(rawValue:))) }
+            limitDisplay = (r["limitDisplay"] as? String).flatMap(LimitDisplay.init(rawValue:)) ?? limitDisplay
+            limitFocus = (r["limitFocus"] as? String).flatMap(LimitFocus.init(rawValue:)) ?? limitFocus
+            live = bool("live", live)
+            readout = (r["readout"] as? String).flatMap(Readout.init(rawValue:)) ?? readout
+            finishAlert = bool("finishAlert", finishAlert)
+            finishMinimum = Int(clamp("finishMinimum", 0...60, Double(finishMinimum)).rounded())
+            limitAlert = bool("limitAlert", limitAlert)
+            limitThreshold = Int(clamp("limitThreshold", 50...99, Double(limitThreshold)).rounded())
+        }
+        var json: [String: Any] {
+            ["size": size.rawValue, "customWidth": customWidth, "customHeight": customHeight, "glass": glass,
+             "shape": shape.rawValue, "capsuleWidth": capsuleWidth, "capsuleHeight": capsuleHeight, "capsuleDrop": capsuleDrop,
+             "cameraWidth": cameraWidth, "cameraHeight": cameraHeight, "outline": outline,
+             "agents": Provider.allCases.filter(agents.contains).map(\.rawValue), "limitDisplay": limitDisplay.rawValue,
+             "limitFocus": limitFocus.rawValue, "live": live, "readout": readout.rawValue, "finishAlert": finishAlert,
+             "finishMinimum": finishMinimum, "limitAlert": limitAlert, "limitThreshold": limitThreshold]
+        }
+    }
 
     init() {}
     init(json raw: [String: Any]?, base: NotchSettings = NotchSettings()) {
@@ -86,12 +160,15 @@ struct NotchSettings: Equatable {
         inCaptures = bool("inCaptures", inCaptures)
         if let n = r["noNotch"] as? String, ["pill", "hidden"].contains(n) { pillWithoutNotch = n == "pill" }
         dropFromTop = num("dropFromTop", 0, 24, dropFromTop)
+        if let n = r["native"] as? [String: Any] { native = Native(json: n) }
     }
 
     /// Only the fields the native notch's own settings page changes, in the Electron shape.
     var editable: [String: Any] {
         ["display": display.rawValue, "open": openOnHover ? "hover" : "click", "idle": idleOx ? "ox" : "nothing",
-         "noNotch": pillWithoutNotch ? "pill" : "hidden", "overFullScreen": overFullScreen, "inCaptures": inCaptures]
+         "noNotch": pillWithoutNotch ? "pill" : "hidden", "overFullScreen": overFullScreen, "inCaptures": inCaptures,
+         "hoverDelay": hoverDelay, "closeDelay": closeDelay, "mascotSide": mascotLeft ? "left" : "right",
+         "show": ["answer": showAnswer, "music": showMusic, "timers": showTimers, "ask": showAsk], "native": native.json]
     }
 }
 
@@ -166,11 +243,20 @@ struct Track: Equatable {
     }
 }
 
+/// The coding agents whose session logs the notch reads, as in Vorssaint's AgentProvider.
 enum Provider: String, CaseIterable, Identifiable {
-    case claude, codex
+    case claude, codex, opencode, copilot
     var id: String { rawValue }
-    var name: String { self == .claude ? "Claude Code" : "Codex" }
-    var short: String { self == .claude ? "Claude" : "Codex" }
+    var name: String {
+        switch self {
+        case .claude: return "Claude Code"
+        case .codex: return "Codex"
+        case .opencode: return "OpenCode"
+        case .copilot: return "GitHub Copilot"
+        }
+    }
+    /// Copilot's local log has no plan allowance in it.
+    var reportsLimits: Bool { self != .copilot }
 }
 
 struct LimitWindow: Equatable {
@@ -193,6 +279,8 @@ struct Working: Equatable {
 struct AgentUsage: Equatable {
     var provider: Provider
     var tokensToday = 0
+    /// Copilot counts requests rather than tokens.
+    var requestsToday = 0
     /// Projects with a turn open right now, and since when.
     var working: [Working] = []
     var lastActive: Date?
@@ -220,8 +308,48 @@ final class Hub: ObservableObject {
     @Published var plans: [PlanUsage] = []
     /// Bumped when Ox finishes an answer, so he charges once.
     @Published var charges = 0
+    /// A short notice in the closed island, as Vorssaint's agent alerts: an agent finished, or a plan is nearly used.
+    @Published var notice: Notice?
+    private var alerted = Set<String>()
+
+    struct Notice: Equatable {
+        var provider: Provider
+        var text: String
+        var at: Date
+    }
 
     init(settings: NotchSettings) { self.settings = settings }
+
+    /// The agents the owner tracks, in Vorssaint's order.
+    var trackedAgents: [AgentUsage] { agents.filter { settings.native.agents.contains($0.provider) } }
+
+    /// New readings from the session logs. A turn that was open and isn't now has finished; a plan window past the
+    /// alert threshold is announced once per window.
+    func update(agents next: [AgentUsage]) {
+        let n = settings.native
+        if n.finishAlert {
+            for old in agents where n.agents.contains(old.provider) {
+                let still = next.first { $0.provider == old.provider }?.working ?? []
+                for w in old.working where !still.contains(w) && Date().timeIntervalSince(w.since) >= Double(n.finishMinimum * 60) {
+                    show(Notice(provider: old.provider, text: "Done in \(w.project)", at: Date()))
+                }
+            }
+        }
+        if n.limitAlert {
+            for a in next where n.agents.contains(a.provider) {
+                for w in a.limits where w.usedPercent >= Double(n.limitThreshold) {
+                    let key = "\(a.provider.rawValue):\(w.name):\(w.resetsAt?.timeIntervalSince1970 ?? 0)"
+                    if alerted.insert(key).inserted { show(Notice(provider: a.provider, text: "\(w.name) \(Int(w.usedPercent))% used", at: Date())) }
+                }
+            }
+        }
+        if agents != next { agents = next }
+    }
+
+    private func show(_ n: Notice) {
+        notice = n
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in if self?.notice == n { self?.notice = nil } }
+    }
 
     var track: Track? {
         guard settings.showMusic else { return nil }
@@ -230,7 +358,7 @@ final class Hub: ObservableObject {
     }
     var running: [Activity] { activity.filter { $0.state == "running" } }
     var workingAgents: [(provider: Provider, work: Working)] {
-        agents.flatMap { a in a.working.map { (a.provider, $0) } }.sorted { $0.work.since < $1.work.since }
+        trackedAgents.flatMap { a in a.working.map { (a.provider, $0) } }.sorted { $0.work.since < $1.work.since }
     }
     /// The spoken answer stays up for a while after it arrives.
     var recentVoice: Voice? {

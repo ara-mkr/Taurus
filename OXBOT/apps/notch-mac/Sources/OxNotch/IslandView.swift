@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// OXBOT's notch, drawn. Layout and motion are ported from Vorssaint's notch (NotchView.swift, NotchWindowHost.swift's
-// silhouette, NotchQuickAccessView.swift and NotchSupport.swift's NotchQuickAccessLayout; Copyright (C) 2026
-// Vorssaint), reskinned for OXBOT: Ox instead of Vorssaint's mascot, words instead of symbols, one ink, red only for
-// what needs you now, nothing under 13 points. See NOTICE.
+// OXBOT's notch, drawn. Layout, sizes, settings and motion are ported from Vorssaint's notch (NotchView.swift,
+// NotchWindowHost.swift's silhouette, NotchQuickAccessView.swift, NotchAgentStrip.swift, NotchSettings.swift and
+// NotchSupport.swift's NotchSize, NotchCameraFit, NotchCapsuleFit and NotchQuickAccessLayout; Copyright (C) 2026
+// Vorssaint), reskinned for OXBOT: Ox instead of Vorssaint's mascot, one ink, red only for what needs you now,
+// nothing under 13 points. See NOTICE.
 
 import SwiftUI
 import AppKit
@@ -32,53 +33,71 @@ struct Actions {
 // MARK: - Geometry
 
 enum Metrics {
-    static let openWidth: CGFloat = 560
     /// Room beside the open island for its side buttons.
     static let gutter: CGFloat = 128
     static let buttonHeight: CGFloat = 34
     static let buttonRows: CGFloat = 44
     static let buttonGap: CGFloat = 12
-    static func content(_ page: Page) -> CGFloat {
-        switch page {
-        case .ox: return 176
-        case .music: return 128
-        case .agents: return 214
-        case .ask: return 156
-        case .settings: return 250
-        }
-    }
-    static let maxContent: CGFloat = 250
+    static let agentRow: CGFloat = 76
     static func text(_ s: String, size: CGFloat = 13) -> CGFloat {
         let font = NSFont.monospacedDigitSystemFont(ofSize: size, weight: .semibold)
         return ceil((s as NSString).size(withAttributes: [.font: font]).width)
     }
 }
 
-/// Where an island sits on one display. On a display with a camera housing it hangs from the top edge around the
-/// camera, as tall as the housing (Vorssaint's cutout). Elsewhere it floats in the menu bar as a small capsule.
+/// Where an island sits on one display. On a display with a camera housing (or, by setting, any display) it hangs
+/// from the top edge, as tall as the housing or menu bar; elsewhere it floats in the menu bar as a capsule.
+/// Vorssaint's sizes: Compact and Spacious, or Custom up to 600 by 640 points.
 struct Geometry {
     let notched: Bool
     let top: CGFloat
     let gap: CGFloat
     let camera: CGFloat
+    let openWidth: CGFloat
+    let maxHeight: CGFloat
+    let capsuleWidth: CGFloat
     let panel: CGSize
 
     init(display: NotchDisplay, settings: NotchSettings) {
-        notched = display.notched
-        if notched {
-            top = display.topHeight; gap = 0; camera = display.cameraWidth
+        let n = settings.native
+        notched = display.notched || n.shape == .notch
+        if display.notched {
+            top = max(16, display.topHeight + CGFloat(n.cameraHeight))
+            camera = max(0, display.cameraWidth + CGFloat(n.cameraWidth))
+            gap = 0; capsuleWidth = 0
+        } else if notched {
+            top = display.topHeight; camera = 0; gap = 0; capsuleWidth = 0
         } else {
             let bar = display.topHeight
-            top = max(22, min(28, bar - 4))
-            gap = max(1, (bar - top) / 2) + CGFloat(settings.dropFromTop)
+            top = max(18, min(32, bar - 4 + CGFloat(n.capsuleHeight)))
+            gap = max(1, (bar - top) / 2) + CGFloat(n.capsuleDrop) + CGFloat(settings.dropFromTop)
             camera = 0
+            capsuleWidth = CGFloat(n.capsuleWidth)
         }
-        panel = CGSize(width: Metrics.openWidth + 2 * Metrics.gutter + 24, height: 64 + Metrics.maxContent + 40)
+        switch n.size {
+        case .compact: openWidth = 480; maxHeight = 320
+        case .spacious: openWidth = 560; maxHeight = 400
+        case .custom: openWidth = CGFloat(n.customWidth); maxHeight = CGFloat(n.customHeight)
+        }
+        panel = CGSize(width: openWidth + 2 * Metrics.gutter + 24, height: maxHeight + 64)
     }
 
-    var header: CGFloat { notched ? top : 34 }
-    var mascot: CGFloat { notched ? max(12, (top * 0.42).rounded()) : 13 }
-    func openHeight(_ page: Page) -> CGFloat { header + Metrics.content(page) + 16 }
+    var header: CGFloat { notched ? max(top, 30) : 34 }
+    var mascot: CGFloat { notched ? max(12, (min(top, 38) * 0.42).rounded()) : 13 }
+    var maxContent: CGFloat { maxHeight - header - 16 }
+
+    func content(_ page: Page, _ hub: Hub) -> CGFloat {
+        let natural: CGFloat
+        switch page {
+        case .ox: natural = 176
+        case .music: natural = 128
+        case .agents: natural = 8 + CGFloat(max(1, hub.trackedAgents.count)) * Metrics.agentRow + (hub.plans.isEmpty ? 0 : 36)
+        case .ask: natural = 156
+        case .settings: natural = .greatestFiniteMagnitude
+        }
+        return min(natural, maxContent)
+    }
+    func openHeight(_ page: Page, _ hub: Hub) -> CGFloat { header + content(page, hub) + 16 }
 
     func closedSize(_ hub: Hub) -> CGSize {
         let reading = Reading.of(hub)
@@ -86,16 +105,16 @@ struct Geometry {
         let oxWidth = OxMark.width(for: mascot)
         if notched {
             // The island stays centred on the camera, so both wings are as wide as the wider one.
-            let wing = max(ox ? oxWidth + 20 : 0, reading == .none ? 0 : reading.width + 20)
+            let wing = max(ox ? oxWidth + 20 : 0, reading == .none ? 0 : reading.width(hub) + 20)
             return CGSize(width: camera + 2 * wing, height: top)
         }
         guard ox || reading != .none else { return .zero }
-        let width = 24 + (ox ? oxWidth : 0) + (reading == .none ? 0 : (ox ? 8 : 0) + reading.width)
-        return CGSize(width: width, height: top)
+        let width = 24 + (ox ? oxWidth : 0) + (reading == .none ? 0 : (ox ? 8 : 0) + reading.width(hub)) + capsuleWidth
+        return CGSize(width: max(top, width), height: top)
     }
 
     func size(_ hub: Hub, _ state: IslandState) -> CGSize {
-        state.open ? CGSize(width: Metrics.openWidth, height: openHeight(state.page)) : closedSize(hub)
+        state.open ? CGSize(width: openWidth, height: openHeight(state.page, hub)) : closedSize(hub)
     }
 
     /// The island's rectangle in the panel, top-left origin.
@@ -104,30 +123,67 @@ struct Geometry {
 
 /// The one reading the closed island shows beside the camera, most urgent first.
 enum Reading: Equatable {
-    case none, ring, listening, thinking, agent(Provider, Date), music, timer(Date)
+    case none, ring, notice(Hub.Notice), listening, thinking, agent(Provider, Date), music, timer(Date)
 
     static func of(_ hub: Hub) -> Reading {
         if hub.ring != nil { return .ring }
+        if let n = hub.notice { return .notice(n) }
         if let v = hub.voice {
             if v.phase == .listening { return .listening }
             if v.phase == .thinking, Date().timeIntervalSince(v.at) < 180 { return .thinking }
         }
-        if let w = hub.workingAgents.first { return .agent(w.provider, w.work.since) }
+        if hub.settings.native.live, let w = hub.workingAgents.first { return .agent(w.provider, w.work.since) }
         if let t = hub.track, t.playing { return .music }
         if hub.settings.showTimers, let t = hub.timers.first(where: { $0.endsAt > Date() }) { return .timer(t.endsAt) }
         return .none
     }
 
-    var width: CGFloat {
+    func width(_ hub: Hub) -> CGFloat {
         switch self {
         case .none: return 0
         case .ring: return Metrics.text("Needs you")
+        case .notice(let n): return AgentMark.width(n.provider, size: 13) + 6 + min(180, Metrics.text(n.text))
         case .listening: return Metrics.text("Listening")
         case .thinking: return Metrics.text("Thinking")
-        case .agent(let p, let since): return Metrics.text(Date().timeIntervalSince(since) > 3000 ? "\(p.short) 0:00:00" : "\(p.short) 00:00")
+        case .agent(let p, let since): return AgentMark.width(p, size: 13) + 6 + Metrics.text(AgentReadout.widest(p, since: since, hub: hub))
         case .music: return 42
         case .timer(let end): return Metrics.text(end.timeIntervalSinceNow > 3000 ? "0:00:00" : "00:00")
         }
+    }
+}
+
+/// What the closed island says beside a working agent's mark (Vorssaint's NotchAgentReadout): how long the turn
+/// has run, today's tokens, or what's left of its plan window.
+enum AgentReadout {
+    static func text(_ p: Provider, since: Date, at date: Date, hub: Hub) -> String {
+        let n = hub.settings.native
+        let usage = hub.agents.first { $0.provider == p }
+        switch n.readout {
+        case .tokens:
+            if p == .copilot, let r = usage?.requestsToday { return "\(r) req" }
+            return tokens(usage?.tokensToday ?? 0)
+        case .limit:
+            if let w = usage.flatMap({ window($0, n.limitFocus) }) { return limit(w, n.limitDisplay) }
+            return clock(date.timeIntervalSince(since))
+        case .elapsed:
+            return clock(date.timeIntervalSince(since))
+        }
+    }
+    static func widest(_ p: Provider, since: Date, hub: Hub) -> String {
+        hub.settings.native.readout == .elapsed && Date().timeIntervalSince(since) < 3000 ? "00:00" : text(p, since: since, at: Date(), hub: hub) + "0"
+    }
+    static func window(_ a: AgentUsage, _ focus: NotchSettings.Native.LimitFocus) -> LimitWindow? {
+        switch focus {
+        case .mostUsed: return a.limits.max { $0.usedPercent < $1.usedPercent }
+        case .session: return a.limits.first { ($0.minutes ?? .max) <= 720 }
+        case .weekly: return a.limits.first { (6 * 1440...8 * 1440).contains($0.minutes ?? 0) }
+        }
+    }
+    static func limit(_ w: LimitWindow, _ display: NotchSettings.Native.LimitDisplay) -> String {
+        display == .remaining ? "\(Int((100 - w.usedPercent).rounded()))% left" : "\(Int(w.usedPercent.rounded()))% used"
+    }
+    static func tokens(_ n: Int) -> String {
+        n >= 1_000_000 ? String(format: "%.1fM", Double(n) / 1_000_000) : n >= 1_000 ? "\(n / 1_000)K" : "\(n)"
     }
 }
 
@@ -154,8 +210,8 @@ final class IslandState: ObservableObject {
 
 // MARK: - The island
 
-/// Vorssaint's silhouette: on a notched display the top corners flare out into the menu bar and the bottom corners
-/// are round; elsewhere a capsule or a rounded panel.
+/// Vorssaint's silhouette: hanging from the top edge, the top corners flare out into the menu bar and the bottom
+/// corners are round; floating, a capsule or a rounded panel.
 struct IslandShape: Shape {
     var notched: Bool
     var flare: CGFloat
@@ -181,8 +237,7 @@ struct IslandShape: Shape {
     }
 }
 
-/// Dark glass, for the floating capsule and the side buttons. A notched island stays solid black so it reads as part
-/// of the camera housing.
+/// Dark glass, for the translucent background and the side buttons.
 struct Glass: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let v = NSVisualEffectView()
@@ -202,18 +257,21 @@ struct IslandView: View {
 
     var body: some View {
         let g = state.geometry(hub.settings)
+        let n = hub.settings.native
         let size = g.size(hub, state)
         let flare: CGFloat = g.notched ? (state.open ? 14 : 6) : 0
         let radius: CGFloat = g.notched ? (state.open ? 26 : 10) : (state.open ? 24 : size.height / 2)
         let shape = IslandShape(notched: g.notched, flare: flare, radius: radius)
+        // A closed island around a camera stays solid black so it reads as part of the housing.
+        let glass = n.glass && (state.open || !state.display.notched)
         ZStack(alignment: .topLeading) {
             SideButtons(hub: hub, state: state, actions: actions, geometry: g)
             ZStack(alignment: .top) {
                 Group {
-                    if g.notched { Color.black } else { ZStack { Glass(); Color.black.opacity(0.72) } }
+                    if glass { ZStack { Glass(); Color.black.opacity(0.55) } } else { Color.black }
                 }
                 .clipShape(shape)
-                .overlay { if !g.notched { shape.stroke(Ink.line, lineWidth: 1) } }
+                .overlay { if n.outline { shape.stroke(Color.white.opacity(0.22), lineWidth: 1) } }
                 Group {
                     if state.open { OpenContent(hub: hub, state: state, actions: actions, geometry: g).transition(.opacity.animation(.easeOut(duration: 0.18).delay(0.08))) }
                     else { ClosedContent(hub: hub, geometry: g, size: size).transition(.opacity.animation(.easeOut(duration: 0.12))) }
@@ -253,7 +311,7 @@ struct ClosedContent: View {
             let wing = max(0, (size.width - geometry.camera) / 2)
             HStack(spacing: 0) {
                 Group { if hub.settings.mascotLeft { if ox { mark } } else { ReadingView(hub: hub, reading: reading) } }
-                    .frame(width: wing, alignment: .leading).padding(.leading, 10).frame(width: wing, alignment: .leading)
+                    .padding(.leading, 10).frame(width: wing, alignment: .leading)
                 Color.clear.frame(width: geometry.camera)
                 Group { if hub.settings.mascotLeft { ReadingView(hub: hub, reading: reading) } else if ox { mark } }
                     .padding(.trailing, 10).frame(width: wing, alignment: .trailing)
@@ -278,10 +336,15 @@ struct ReadingView: View {
             switch reading {
             case .none: EmptyView()
             case .ring: Text("Needs you").foregroundStyle(Ink.signal)
+            case .notice(let n):
+                HStack(spacing: 6) { AgentMark(provider: n.provider, size: 13); Text(n.text).lineLimit(1).frame(maxWidth: 180, alignment: .leading) }
             case .listening: Text("Listening")
             case .thinking: Text("Thinking").foregroundStyle(Ink.secondary)
             case .agent(let p, let since):
-                TimelineView(.periodic(from: .now, by: 1)) { c in Text("\(p.short) \(clock(c.date.timeIntervalSince(since)))") }
+                HStack(spacing: 6) {
+                    AgentMark(provider: p, size: 13)
+                    TimelineView(.periodic(from: .now, by: 1)) { c in Text(AgentReadout.text(p, since: since, at: c.date, hub: hub)) }
+                }
             case .music:
                 HStack(spacing: 6) { Artwork(image: hub.track?.artwork, size: 20, radius: 5); Bars(playing: hub.track?.playing == true).frame(width: 14, height: 12) }
             case .timer(let end):
@@ -375,11 +438,19 @@ struct OpenContent: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 22)
             if geometry.notched { Color.clear.frame(width: geometry.camera) }
-            Group { if hub.ring != nil { Text("Needs you").font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.signal) } }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, 22)
+            HStack(spacing: 6) {
+                if hub.ring != nil { Text("Needs you").foregroundStyle(Ink.signal) }
+                else { ForEach(hub.workingAgents.map(\.provider).uniqued(), id: \.self) { AgentMark(provider: $0, size: 13) } }
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 22)
         }
     }
+}
+
+private extension Array where Element: Hashable {
+    func uniqued() -> [Element] { var seen = Set<Element>(); return filter { seen.insert($0).inserted } }
 }
 
 struct WordButton: View {
@@ -514,12 +585,9 @@ struct Progress: View {
 struct AgentsPage: View {
     @ObservedObject var hub: Hub
 
-    private func tokens(_ n: Int) -> String {
-        n >= 1_000_000 ? String(format: "%.1fM", Double(n) / 1_000_000) : n >= 1_000 ? "\(n / 1_000)K" : "\(n)"
-    }
     private func ago(_ d: Date) -> String {
         let m = Int(Date().timeIntervalSince(d) / 60)
-        return m < 1 ? "just now" : m < 60 ? "\(m) min ago" : "\(m / 60) h ago"
+        return m < 1 ? "just now" : m < 60 ? "\(m) min ago" : m < 2880 ? "\(m / 60) h ago" : "\(m / 1440) days ago"
     }
     private func resets(_ d: Date) -> String {
         let f = DateFormatter()
@@ -528,46 +596,54 @@ struct AgentsPage: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(hub.agents.enumerated()), id: \.element.provider) { i, a in
-                if i > 0 { Rule() }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(a.provider.name).font(.system(size: 15, weight: .semibold))
-                        Spacer()
-                        TimelineView(.periodic(from: .now, by: 1)) { c in
-                            if let w = a.working.first {
-                                Text("Working \(clock(c.date.timeIntervalSince(w.since))) in \(w.project)\(a.working.count > 1 ? " and \(a.working.count - 1) more" : "")")
-                                    .foregroundStyle(Ink.primary)
-                            } else {
-                                Text(a.lastActive.map { "Idle, last active \(ago($0))" } ?? "No sessions today").foregroundStyle(Ink.secondary)
-                            }
-                        }
-                        .font(.system(size: 13, weight: .semibold)).monospacedDigit().lineLimit(1)
-                    }
-                    Text("\(tokens(a.tokensToday)) tokens today\(a.plan.map { " · \($0) plan" } ?? "")")
-                        .font(.system(size: 13)).foregroundStyle(Ink.secondary)
-                    ForEach(Array(a.limits.enumerated()), id: \.offset) { _, w in
-                        HStack(spacing: 10) {
-                            Text(w.name).frame(width: 104, alignment: .leading)
-                            GeometryReader { g in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.white.opacity(0.14))
-                                    Capsule().fill(Ink.primary).frame(width: g.size.width * w.usedPercent / 100)
+        let agents = hub.trackedAgents
+        let display = hub.settings.native.limitDisplay
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 10) {
+                if agents.isEmpty { Text("No agents tracked. Turn them on in Settings.").font(.system(size: 15)).foregroundStyle(Ink.secondary) }
+                ForEach(Array(agents.enumerated()), id: \.element.provider) { i, a in
+                    if i > 0 { Rule() }
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            AgentMark(provider: a.provider, size: 15, nameIfMissing: false)
+                            Text(a.provider.name).font(.system(size: 15, weight: .semibold))
+                            Spacer()
+                            TimelineView(.periodic(from: .now, by: 1)) { c in
+                                if let w = a.working.first {
+                                    Text("Working \(clock(c.date.timeIntervalSince(w.since))) in \(w.project)\(a.working.count > 1 ? " and \(a.working.count - 1) more" : "")")
+                                        .foregroundStyle(Ink.primary)
+                                } else {
+                                    Text(a.lastActive.map { "Idle, last active \(ago($0))" } ?? "No sessions").foregroundStyle(Ink.secondary)
                                 }
                             }
-                            .frame(height: 4)
-                            Text("\(Int(w.usedPercent.rounded()))% used\(w.resetsAt.map { ", resets \(resets($0))" } ?? "")")
-                                .frame(width: 176, alignment: .trailing)
+                            .font(.system(size: 13, weight: .semibold)).monospacedDigit().lineLimit(1)
                         }
-                        .font(.system(size: 13)).monospacedDigit().foregroundStyle(Ink.secondary)
+                        Text(a.provider == .copilot ? "\(a.requestsToday) requests and \(AgentReadout.tokens(a.tokensToday)) tokens today"
+                             : "\(AgentReadout.tokens(a.tokensToday)) tokens today\(a.plan.map { " · \($0) plan" } ?? "")")
+                            .font(.system(size: 13)).foregroundStyle(Ink.secondary)
+                        ForEach(Array(a.limits.enumerated()), id: \.offset) { _, w in
+                            HStack(spacing: 10) {
+                                Text(w.name).frame(width: 104, alignment: .leading)
+                                GeometryReader { g in
+                                    ZStack(alignment: .leading) {
+                                        Capsule().fill(Color.white.opacity(0.14))
+                                        let share = display == .remaining ? 100 - w.usedPercent : w.usedPercent
+                                        Capsule().fill(Ink.primary).frame(width: g.size.width * share / 100)
+                                    }
+                                }
+                                .frame(height: 4)
+                                Text("\(AgentReadout.limit(w, display))\(w.resetsAt.map { ", resets \(resets($0))" } ?? "")")
+                                    .frame(width: 176, alignment: .trailing)
+                            }
+                            .font(.system(size: 13)).monospacedDigit().foregroundStyle(Ink.secondary)
+                        }
                     }
                 }
-            }
-            if !hub.plans.isEmpty {
-                Rule()
-                Text("Ox through your plans today: " + hub.plans.map { "\($0.name) \($0.callsToday) \($0.callsToday == 1 ? "call" : "calls")" }.joined(separator: ", "))
-                    .font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(2)
+                if !hub.plans.isEmpty {
+                    Rule()
+                    Text("Ox through your plans today: " + hub.plans.map { "\($0.name) \($0.callsToday) \($0.callsToday == 1 ? "call" : "calls")" }.joined(separator: ", "))
+                        .font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(2)
+                }
             }
         }
     }
@@ -597,22 +673,26 @@ struct AskPage: View {
     }
 }
 
+/// Vorssaint's Settings > Notch and Settings > Agents, in the island, in its order. Every change applies at once.
 struct SettingsPage: View {
     @ObservedObject var hub: Hub
     let actions: Actions
+    typealias N = NotchSettings.Native
+
+    private func change(_ edit: (inout NotchSettings) -> Void) {
+        var s = hub.settings
+        edit(&s)
+        actions.save(s)
+    }
 
     private func row<T: Equatable>(_ label: String, _ options: [(String, T)], _ value: T, _ set: @escaping (inout NotchSettings, T) -> Void) -> some View {
         HStack {
-            Text(label).font(.system(size: 13)).foregroundStyle(Ink.secondary)
-            Spacer()
+            Text(label).font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(1)
+            Spacer(minLength: 12)
             HStack(spacing: 2) {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, o in
                     let on = o.1 == value
-                    Button {
-                        var s = hub.settings
-                        set(&s, o.1)
-                        actions.save(s)
-                    } label: {
+                    Button { change { set(&$0, o.1) } } label: {
                         Text(o.0).font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(on ? Ink.primary : Ink.secondary)
                             .padding(.horizontal, 9).padding(.vertical, 3)
@@ -626,15 +706,88 @@ struct SettingsPage: View {
         }
     }
 
+    private func onOff(_ label: String, _ value: Bool, _ set: @escaping (inout NotchSettings, Bool) -> Void) -> some View {
+        row(label, [("On", true), ("Off", false)], value, set)
+    }
+
+    private func slider(_ label: String, _ value: Double, _ range: ClosedRange<Double>, step: Double, unit: String = " pt",
+                        _ set: @escaping (inout NotchSettings, Double) -> Void) -> some View {
+        HStack(spacing: 10) {
+            Text(label).font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(1)
+            Spacer(minLength: 12)
+            Slider(value: Binding(get: { value }, set: { v in change { set(&$0, (v / step).rounded() * step) } }), in: range, step: step)
+                .frame(width: 180).tint(Ink.primary)
+            Text(step < 1 ? String(format: "%.1f\(unit)", value) : "\(Int(value))\(unit)")
+                .font(.system(size: 13, weight: .semibold)).monospacedDigit().frame(width: 64, alignment: .trailing)
+        }
+    }
+
+    private func heading(_ title: String) -> some View {
+        Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.tertiary).padding(.top, 6)
+    }
+
     var body: some View {
-        let s = hub.settings
-        VStack(alignment: .leading, spacing: 9) {
-            row("Screens", [("Automatic", NotchSettings.Display.automatic), ("Built-in", .builtin), ("Main", .main), ("All", .all)], s.display) { $0.display = $1 }
-            row("Opens on", [("Hover", true), ("Click", false)], s.openOnHover) { $0.openOnHover = $1 }
-            row("While nothing is happening", [("Ox", true), ("Nothing", false)], s.idleOx) { $0.idleOx = $1 }
-            row("Screens without a notch", [("Small pill", true), ("Nothing", false)], s.pillWithoutNotch) { $0.pillWithoutNotch = $1 }
-            row("Over full-screen apps", [("Show", true), ("Hide", false)], s.overFullScreen) { $0.overFullScreen = $1 }
-            row("In screenshots and sharing", [("Show", true), ("Hide", false)], s.inCaptures) { $0.inCaptures = $1 }
+        let s = hub.settings, n = s.native
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 9) {
+                heading("Notch")
+                row("Screens", [("Automatic", NotchSettings.Display.automatic), ("Built-in", .builtin), ("Main", .main), ("All", .all)], s.display) { $0.display = $1 }
+                row("Opens on", [("Hover", true), ("Click", false)], s.openOnHover) { $0.openOnHover = $1 }
+                slider("Open after", Double(s.hoverDelay) / 1000, 0.1...1.0, step: 0.05, unit: " s") { $0.hoverDelay = Int(($1 * 1000).rounded()) }
+                slider("Close after", Double(s.closeDelay) / 1000, 0.1...2.0, step: 0.05, unit: " s") { $0.closeDelay = Int(($1 * 1000).rounded()) }
+                row("Size", [("Compact", N.Size.compact), ("Spacious", .spacious), ("Custom", .custom)], n.size) { $0.native.size = $1 }
+                if n.size == .custom {
+                    slider("Width", n.customWidth, N.widthRange, step: 10) { $0.native.customWidth = $1 }
+                    slider("Maximum height", n.customHeight, N.heightRange, step: 10) { $0.native.customHeight = $1 }
+                }
+                row("Background", [("Black", false), ("Glass", true)], n.glass) { $0.native.glass = $1 }
+                onOff("Outline", n.outline) { $0.native.outline = $1 }
+                row("Ox sits", [("Left", true), ("Right", false)], s.mascotLeft) { $0.mascotLeft = $1 }
+                row("While nothing is happening", [("Ox", true), ("Nothing", false)], s.idleOx) { $0.idleOx = $1 }
+                row("Screens without a notch", [("Capsule", 0), ("Notch shape", 1), ("Nothing", 2)],
+                    !s.pillWithoutNotch ? 2 : n.shape == .notch ? 1 : 0) { s, v in
+                    s.pillWithoutNotch = v != 2
+                    if v != 2 { s.native.shape = v == 1 ? .notch : .capsule }
+                }
+                if s.pillWithoutNotch && n.shape == .capsule {
+                    slider("Capsule width", n.capsuleWidth, N.capsuleWidthRange, step: 1) { $0.native.capsuleWidth = $1 }
+                    slider("Capsule height", n.capsuleHeight, N.capsuleHeightRange, step: 1) { $0.native.capsuleHeight = $1 }
+                    slider("Capsule from top", n.capsuleDrop, N.capsuleDropRange, step: 1) { $0.native.capsuleDrop = $1 }
+                }
+                slider("Camera fit, width", n.cameraWidth, N.cameraWidthRange, step: 1) { $0.native.cameraWidth = $1 }
+                slider("Camera fit, height", n.cameraHeight, N.cameraHeightRange, step: 0.5) { $0.native.cameraHeight = $1 }
+                row("Over full-screen apps", [("Show", true), ("Hide", false)], s.overFullScreen) { $0.overFullScreen = $1 }
+                row("In screenshots and sharing", [("Show", true), ("Hide", false)], s.inCaptures) { $0.inCaptures = $1 }
+
+                Rule().padding(.vertical, 4)
+                heading("What it shows")
+                onOff("Ox’s answers", s.showAnswer) { $0.showAnswer = $1 }
+                onOff("Now playing", s.showMusic) { $0.showMusic = $1 }
+                onOff("Timers", s.showTimers) { $0.showTimers = $1 }
+                onOff("Ask", s.showAsk) { $0.showAsk = $1 }
+
+                Rule().padding(.vertical, 4)
+                heading("Agents")
+                ForEach(Provider.allCases) { p in
+                    HStack(spacing: 8) {
+                        AgentMark(provider: p, size: 13, nameIfMissing: false)
+                        onOff(p.name, n.agents.contains(p)) { s, on in if on { s.native.agents.insert(p) } else { s.native.agents.remove(p) } }
+                    }
+                }
+                onOff("Working agent in the closed notch", n.live) { $0.native.live = $1 }
+                row("Beside its mark", [("Time", N.Readout.elapsed), ("Tokens", .tokens), ("Limit", .limit)], n.readout) { $0.native.readout = $1 }
+                row("Limits as", [("Left", N.LimitDisplay.remaining), ("Used", .used)], n.limitDisplay) { $0.native.limitDisplay = $1 }
+                row("Limit to show", [("Most used", N.LimitFocus.mostUsed), ("5-hour", .session), ("Week", .weekly)], n.limitFocus) { $0.native.limitFocus = $1 }
+                onOff("Tell me when an agent finishes", n.finishAlert) { $0.native.finishAlert = $1 }
+                if n.finishAlert {
+                    row("After a turn of", [("Any length", 0), ("1 min", 1), ("5 min", 5), ("15 min", 15)], n.finishMinimum) { $0.native.finishMinimum = $1 }
+                }
+                onOff("Tell me when a plan is nearly used", n.limitAlert) { $0.native.limitAlert = $1 }
+                if n.limitAlert {
+                    row("At", [("75%", 75), ("90%", 90), ("95%", 95)], n.limitThreshold) { $0.native.limitThreshold = $1 }
+                }
+            }
+            .padding(.bottom, 8)
         }
     }
 }
@@ -664,7 +817,7 @@ struct SideButtons: View {
     }
 
     var body: some View {
-        let size = CGSize(width: Metrics.openWidth, height: geometry.openHeight(state.page))
+        let size = CGSize(width: geometry.openWidth, height: geometry.openHeight(state.page, hub))
         let island = geometry.body(size)
         let p = state.buttons
         ZStack(alignment: .topLeading) {
