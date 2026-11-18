@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { swarmScreens } from './swarm-screens';
 import { handsService } from './hands';
 import { notchService, type Notch } from './notch';
+import { oxAnywhere, type OxAnywhere } from './ox-anywhere';
 import { randomBytes } from 'node:crypto';
 
 // OXBOT on the desktop (owner decision, October 31, 2026, docs/decision-log.md): the same local server and
@@ -50,6 +51,8 @@ const handsToken = randomBytes(24).toString('hex');
 let hands: ReturnType<typeof handsService> | null = null;
 // Ox in the notch (November 6, 2026): on until switched off in its settings or the tray menu.
 let notch: Notch | null = null;
+// Ox anywhere (November 16, 2026): Ox over the app in front when "Hey Ox" or a double clap wakes him.
+let anywhere: OxAnywhere | null = null;
 interface Bounds { x?: number; y?: number; width: number; height: number; background?: string }
 const windowFile = () => join(app.getPath('userData'), 'window.json');
 
@@ -227,7 +230,7 @@ async function listen() {
           const name = block.match(/^event: ([\w-]+)$/m)?.[1];
           if (!name || !data) continue;
           // Rings bring the window forward; Ox's windows and voice go to the notch.
-          try { if (name === 'ring') onRing(JSON.parse(data)); else notch?.event(name, JSON.parse(data)); } catch { /* malformed event */ }
+          try { if (name === 'ring') onRing(JSON.parse(data)); else { const d = JSON.parse(data); notch?.event(name, d); anywhere?.event(name, d); } } catch { /* malformed event */ }
         }
       }
     } catch { /* server restarting or not up yet */ }
@@ -339,6 +342,7 @@ async function start() {
   swarms = swarmScreens({ here, local, on: swarmOn, main: () => win, quitting: () => quitting });
   hands = handsService({ here, local, home, token: owned ? handsToken : '', quitting: () => quitting, changed: () => trayMenu() });
   createWindow();
+  anywhere = oxAnywhere({ here, main: () => win });
   notch = notchService({
     here, local,
     load: () => readJson<{ notch?: unknown }>(desktopFile, {}).notch,
@@ -360,7 +364,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);
-  app.on('before-quit', () => { quitting = true; endRing(); swarms?.closeAll(); hands?.quit(); notch?.closeAll(); });
+  app.on('before-quit', () => { quitting = true; endRing(); swarms?.closeAll(); hands?.quit(); notch?.closeAll(); anywhere?.closeAll(); });
   app.on('will-quit', event => { if (server) { event.preventDefault(); void stopServer().then(() => app.quit()); } });
   app.on('window-all-closed', () => { /* stays in the tray */ });
   void app.whenReady().then(start);

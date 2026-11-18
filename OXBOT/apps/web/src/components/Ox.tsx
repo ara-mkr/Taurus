@@ -3,21 +3,45 @@ import type { Dashboard, NewsTopic, Prefs, Quote, Widget } from '../api';
 import { catalog, label, pct, seen } from './widgets';
 import type { VoiceView } from './Voice';
 import { useSpeaking } from '../speech';
+import { OX_ASPECT, OX_PATHS, OX_VIEWBOX, oxFace, type Expression, type Face } from '../ox-face';
 
 // Ox, the OXBOT mascot, from design/logo/ox-mascot.svg: two eyes under upturned horns, nothing else.
-// The crescent is drawn as a left and a right horn so each can turn inward on its own when he charges.
-export type Mood = 'idle' | 'happy' | 'thinking' | 'sleep' | 'alert' | 'walk' | 'charge' | 'settle' | 'listening' | 'talking';
+// The crescent is drawn as a left and a right horn so each can turn inward on its own when he charges. His expressions
+// come from ../ox-face.ts, which the desktop overlay over other apps runs too (docs/21-ox-anywhere.md).
+export type Mood = Expression;
 
-export function Ox({ size = 96, mood = 'idle', label: name, className = '', talk }: { size?: number; mood?: Mood; label?: string; className?: string; talk?: number }) {
-  return <svg className={`ox ${className}`} data-mood={mood} style={talk === undefined ? undefined : { '--talk': talk.toFixed(3) } as React.CSSProperties} viewBox="455 738 1138 857" width={Math.round(size * 1138 / 857)} height={size}
+export function Ox({ size = 96, mood = 'idle', label: name, className = '', talk, gaze = false, nod }: {
+  size?: number; mood?: Mood; label?: string; className?: string; talk?: number;
+  // gaze: his eyes follow the pointer. nod: each new value is something he just understood, and he nods once.
+  gaze?: boolean; nod?: string | number | null;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+  const face = useRef<Face | null>(null);
+  const first = useRef(mood);
+  useEffect(() => { const f = oxFace(ref.current!, { expression: first.current }); face.current = f; return () => { f.destroy(); face.current = null; }; }, []);
+  useEffect(() => { face.current?.set(mood); }, [mood]);
+  useEffect(() => { face.current?.talk(talk ?? 0); }, [talk]);
+  useEffect(() => { if (nod !== undefined && nod !== null && nod !== '') void face.current?.play('nod'); }, [nod]);
+  useEffect(() => {
+    if (!gaze) return;
+    const move = (e: PointerEvent) => {
+      const r = ref.current?.getBoundingClientRect();
+      if (r) face.current?.look(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height * 0.75));
+    };
+    const away = () => face.current?.look(null);
+    window.addEventListener('pointermove', move, { passive: true });
+    document.documentElement.addEventListener('pointerleave', away);
+    return () => { window.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', away); away(); };
+  }, [gaze]);
+  return <svg ref={ref} className={`ox ${className}`} data-mood={mood} viewBox={OX_VIEWBOX} width={Math.round(size * OX_ASPECT)} height={size}
     role={name ? 'img' : undefined} aria-label={name} aria-hidden={name ? undefined : true}>
     <g className="ox-all" fill="currentColor">
       <g className="ox-horns" stroke="currentColor" strokeWidth="24" strokeLinejoin="round">
-        <path className="ox-horn ox-horn-l" d="M477 760A547 547 0 0 0 1024 1307L1024 1185A425 425 0 0 1 599 760Z" />
-        <path className="ox-horn ox-horn-r" d="M1571 760A547 547 0 0 1 1024 1307L1024 1185A425 425 0 0 0 1449 760Z" />
+        <path className="ox-horn ox-horn-l" d={OX_PATHS.hornL} />
+        <path className="ox-horn ox-horn-r" d={OX_PATHS.hornR} />
       </g>
-      <path className="ox-eye ox-eye-l" d="M543 1301H647A133 133 0 0 1 780 1434V1525A57 57 0 0 1 683 1563L507 1394A54 54 0 0 1 543 1301Z" />
-      <path className="ox-eye ox-eye-r" d="M1505 1301H1401A133 133 0 0 0 1268 1434V1525A57 57 0 0 0 1365 1563L1541 1394A54 54 0 0 0 1505 1301Z" />
+      <path className="ox-eye ox-eye-l" d={OX_PATHS.eyeL} />
+      <path className="ox-eye ox-eye-r" d={OX_PATHS.eyeR} />
     </g>
   </svg>;
 }
@@ -355,7 +379,7 @@ export function OxBuddy({ lines, lineFor, voice, roam = true }: { lines: Line[];
   const shown = voiceLine ?? say;
   // While he talks (November 5, 2026), his horns nod and his eyes open with the loudness of his own voice.
   const speaking = useSpeaking();
-  const face: Mood = flight ?? (phase === 'listening' ? 'listening' : phase === 'thinking' ? 'thinking' : speaking.active ? 'talking' : mood);
+  const face: Mood = flight ?? (phase === 'listening' ? 'listening' : phase === 'thinking' ? 'thinking' : phase === 'error' ? 'confused' : speaking.active ? 'talking' : mood);
 
   // Keep the bubble inside the viewport: centred on him, nudged in from the edges, below him when the top is too close.
   useLayoutEffect(() => {
@@ -380,7 +404,7 @@ export function OxBuddy({ lines, lineFor, voice, roam = true }: { lines: Line[];
     </div>}
     <div className="ox-rotor" ref={rotor}>
       <button className="ox-button" onClick={() => speak()} aria-label="Ox. Tap to hear what matters now" aria-describedby={shown ? 'ox-says' : undefined}>
-        <Ox size={SIZE} mood={face} talk={face === 'talking' ? speaking.level : undefined} />
+        <Ox size={SIZE} mood={face} talk={face === 'talking' ? speaking.level : undefined} gaze={!flight} nod={phase === 'thinking' ? voice?.text : undefined} />
       </button>
     </div>
   </aside>;

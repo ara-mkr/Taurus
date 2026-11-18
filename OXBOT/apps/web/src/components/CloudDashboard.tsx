@@ -193,7 +193,7 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
   const menu = useBackgroundMenu();
   const [menuAdd, setMenuAdd] = useState(false);
   const phase = voice.view.phase;
-  const mood: Mood = phase === 'listening' ? 'listening' : phase === 'thinking' ? 'thinking' : speaking.active ? 'talking' : 'idle';
+  const mood: Mood = phase === 'listening' ? 'listening' : phase === 'thinking' ? 'thinking' : phase === 'error' ? 'confused' : speaking.active ? 'talking' : 'idle';
   // The disc counts down every second while it shows a clock.
   const tick = useTick(1000, Boolean(center));
   const live = useLiveMusic(center?.kind === 'music' ? center.music : null);
@@ -294,7 +294,7 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
         <span className="cloud-pulse" style={{ '--level': speaking.level.toFixed(3) } as CSSProperties} aria-hidden="true" />
         <button type="button" className="cloud-ox" data-ox-center aria-pressed={phase === 'listening'} aria-label={phase === 'listening' ? 'Ox is listening. Tap to stop' : 'Talk to Ox'}
           aria-describedby={widget ? 'cloud-widget-name' : undefined} {...voice.talkButton}>
-          {!widget && <Ox size={oxPx[t.oxSize]} mood={mood} talk={mood === 'talking' ? speaking.level : undefined} />}
+          {!widget && <Ox size={oxPx[t.oxSize]} mood={mood} talk={mood === 'talking' ? speaking.level : undefined} gaze nod={phase === 'thinking' ? voice.view.text : undefined} />}
         </button>
         {/* The widget sits over the button, letting taps through to it, so tapping still talks to Ox. */}
         {widget && <div className="cw-layer" aria-hidden="true"><CenterFace key={widget.key} center={widget} data={data} music={live.music} now={tick} /></div>}
