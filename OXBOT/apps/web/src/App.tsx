@@ -3,6 +3,7 @@ import { api, ApiError, type Dashboard, type History, type Prefs } from './api';
 import { Actions } from './components/Actions';
 import { ApprovalTray } from './components/Approval';
 import { Ask, type ChatTurn } from './components/Ask';
+import { Scans } from './components/Scans';
 import { BoardView } from './components/Board';
 import { AI } from './components/AI';
 import { ChatBar, type Extras } from './components/ChatBar';
@@ -186,7 +187,12 @@ export default function App() {
     const next: ChatTurn[] = [...turns, { role: 'user', text: question, looked: Boolean(frame), attached: extras?.names, screen: extras?.screen, preview: extras?.preview }];
     setTurns(next); setPending(true); setAskError('');
     try {
-      const answer = await api.ask(next, { image: frame ?? extras?.image, files: extras?.files, via: 'ask' });
+      // Streamed (November 16, 2026): Ox's words show as they are written.
+      let live = '';
+      const answer = await api.askStream(next, { image: frame ?? extras?.image, files: extras?.files, via: 'ask' }, {
+        text: d => { live += d; setTurns([...next, { role: 'assistant', text: live }]); },
+        reset: () => { live = ''; setTurns(next); },
+      });
       (answer.proposals ?? []).forEach(update);
       setTurns([...next, { role: 'assistant', text: answer.text, proposals: (answer.proposals ?? []).map(p => p.id) }]); if (answer.provider) setProvider(answer.provider);
     }
@@ -199,7 +205,11 @@ export default function App() {
     const next: ChatTurn[] = [...turnsRef.current, { role: 'user', text: question }];
     turnsRef.current = next; setTurns(next); setAskError('');
     try {
-      const answer = await api.ask(next, { via: 'talk' });
+      let live = '';
+      const answer = await api.askStream(next, { via: 'talk' }, {
+        text: d => { live += d; setTurns([...next, { role: 'assistant', text: live }]); },
+        reset: () => { live = ''; setTurns(next); },
+      });
       (answer.proposals ?? []).forEach(update);
       const done: ChatTurn[] = [...next, { role: 'assistant', text: answer.text, proposals: (answer.proposals ?? []).map(p => p.id) }];
       turnsRef.current = done; setTurns(done); if (answer.provider) setProvider(answer.provider);
@@ -271,6 +281,7 @@ export default function App() {
           {page.page === 'ai' && <AI />}
           {page.page === 'skills' && <Skills />}
           {page.page === 'schedule' && <Schedule />}
+          {page.page === 'scans' && <Scans />}
           {page.page === 'phone' && <Phone />}
           {page.page === 'actions' && <Actions onChange={update} />}
         </>}

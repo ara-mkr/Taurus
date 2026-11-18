@@ -98,6 +98,8 @@ export interface Ring {
 }
 
 export interface PhoneSettings {
+  // Who answers each kind of ask (November 17, 2026): 'free' for OXBOT's free models, or a connected AI's id.
+  aiRoute?: Partial<Record<'simple' | 'medium' | 'hard', string>>;
   leadMinutes: number;
   escalateAfterSeconds: number;
   vipSenders: string[];
@@ -120,6 +122,10 @@ export interface AiInfo {
   // How much of each plan OXBOT has used (November 6, 2026), from what each app reported.
   usage?: { id: string; name: string; today: PlanDay; week: PlanDay; month: PlanDay; limits?: unknown; seen?: string }[];
   freeModel: string;
+  // Who answers each kind of ask, and how fast each AI's first word has been lately (November 17, 2026).
+  route?: Partial<Record<'simple' | 'medium' | 'hard', string>>;
+  tierNames?: Record<'simple' | 'medium' | 'hard', string>;
+  speeds?: { model: string; firstWordMs: number; samples: number; busy: boolean }[];
 }
 
 // ---------- Boards: the customizable dashboard ----------
@@ -190,7 +196,7 @@ export interface Proposal {
   // A plain warning shown above the buttons: deletes something, first message to this address, a robot-voice call.
   caution?: string;
   editable: boolean;
-  from: 'ask' | 'talk' | 'phone' | 'board';
+  from: 'ask' | 'talk' | 'phone' | 'board' | 'scan';
   createdAt: string;
   expiresAt: string;
   state: ProposalState;

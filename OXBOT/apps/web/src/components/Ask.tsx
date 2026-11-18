@@ -16,12 +16,13 @@ export function Transcript({ turns, pending, error, proposals, onUpdate }: Trans
       <p className="speaker">{turn.role === 'user' ? 'You' : <><Ox size={22} mood="idle" />Ox</>}</p>
       <div className="words">
         {turn.preview && <img className="turn-preview" src={turn.preview} alt="" />}
-        {(turn.looked || turn.screen || turn.attached?.length) && <p className="turn-attached">{[turn.looked && 'Camera frame', turn.screen && 'Your screen', ...(turn.attached ?? [])].filter(Boolean).join(' · ')}</p>}
+        {Boolean(turn.looked || turn.screen || turn.attached?.length) && <p className="turn-attached">{[turn.looked && 'Camera frame', turn.screen && 'Your screen', ...(turn.attached ?? [])].filter(Boolean).join(' · ')}</p>}
         {turn.text.split(/\n{2,}/).map((para, j) => <p key={j}>{para}</p>)}
       </div>
       {turn.proposals?.map(id => proposals[id] && <ApprovalCard key={id} p={proposals[id]} onChange={onUpdate} level={2} />)}
     </div>)}
-    {pending && <div className="turn assistant"><p className="speaker"><Ox size={22} mood="thinking" />Ox</p><p className="muted">Thinking</p></div>}
+    {/* While an answer streams in, its words are the last turn, so "Thinking" steps aside (November 16, 2026). */}
+    {pending && turns.at(-1)?.role !== 'assistant' && <div className="turn assistant"><p className="speaker"><Ox size={22} mood="thinking" />Ox</p><p className="muted">Thinking</p></div>}
     {error && <p className="problem">{error}{/Connect/.test(error) && <> <a href="#ai">Open AI settings</a></>}</p>}
     <div ref={end} />
   </div>;

@@ -16,7 +16,11 @@ import { imageParts, seesImages, current as currentAi } from './ai.ts';
 import { voice, voiceUrl } from './voice.ts';
 import { composioApps, composioCatalog, readers as composioReaders } from './connectors/composio.ts';
 import { aiCard, board, generateBoard, prefs, savePrefs } from './boards.ts';
-import { aiInfo, openRouterFinish, openRouterSignIn, providers as aiProviders } from './ai.ts';
+import { aiInfo, providerForBrand, ask as askAi, openRouterFinish, openRouterSignIn, providers as aiProviders, warmAi, type Turn } from './ai.ts';
+import { planStatus } from './subscriptions.ts';
+import { saveRoute, type Brand } from './route.ts';
+import { feed, removeScan, runScan, saveScan, scans as scanList, scanSources, startScans } from './scans.ts';
+import { MESSAGES_SWITCH, messagesStatus } from './messages.ts';
 import { aiProvider, dashboard } from './dashboard.ts';
 import { news, quotes } from './feeds.ts';
 import { history } from './history.ts';
@@ -100,6 +104,22 @@ async function bytes(req: IncomingMessage, limit: number) {
 async function json<T>(req: IncomingMessage, limit?: number): Promise<T> {
   const text = await raw(req, limit);
   try { return JSON.parse(text || '{}') as T; } catch { throw new HttpError(400, 'Invalid JSON'); }
+}
+
+// Ask, streamed: one JSON object per line. {type: 'text', delta} pieces of the answer, {type: 'reset'} when what was
+// shown turned into working notes, {type: 'step', text} while Ox works, then {type: 'done', answer} or {type: 'error'}.
+async function streamAsk(res: ServerResponse, asked: Turn[], spoken: boolean, said: string) {
+  res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
+  const line = (v: unknown) => { if (!res.writableEnded) res.write(`${JSON.stringify(v)}\n`); };
+  try {
+    const answer = await converse(asked, spoken ? 'talk' : 'ask', { onText: delta => line({ type: 'text', delta }), onReset: () => line({ type: 'reset' }), onStep: text => line({ type: 'step', text }) });
+    if (spoken) broadcast('voice', { phase: 'answer', said, text: answer.text.slice(0, 600), at: new Date().toISOString() });
+    line({ type: 'done', answer });
+  } catch (error) {
+    if (spoken) broadcast('voice', { phase: 'error', said, text: (error as Error).message.slice(0, 300), at: new Date().toISOString() });
+    line({ type: 'error', error: (error as Error).message });
+  }
+  res.end();
 }
 
 const page = (title: string, text: string) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="font:16px/1.5 -apple-system,system-ui,sans-serif;margin:15vh auto;max-width:28rem;padding:0 1rem"><h1 style="font-size:20px">${title}</h1><p>${text}</p><p><a href="/#connections">Back to OXBOT</a></p>`;
@@ -240,7 +260,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  // AI: which one writes, OXBOT Free's model, and one-click OpenRouter sign-in (from this Mac only: the callback is localhost).
+  // AI: which one writes, OXBOT's free model, and one-click OpenRouter sign-in (from this Mac only: the callback is localhost).
   if (method === 'GET' && path === '/api/ai') return send(res, 200, await aiInfo());
   if (method === 'POST' && path === '/api/ai') {
     const next = await json<{ provider?: string; freeModel?: string }>(req);
@@ -259,7 +279,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     try {
       await openRouterFinish(url.searchParams.get('state') ?? '', url.searchParams.get('code') ?? '');
       await dashboard(true);
-      res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#ai"><title>Connected</title>OXBOT Free is on.`);
+      res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#ai"><title>Connected</title>OXBOT is on.`);
     } catch (error) { res.end(page('Not connected', (error as Error).message.replace(/[<>&]/g, ''))); }
     return;
   }
@@ -267,7 +287,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   // Ask and Talk. An optional camera frame (owner, November 1, 2026) rides along with the last question only; it is
   // passed to the AI and never written anywhere.
   if (method === 'POST' && path === '/api/ask') {
-    const { turns, image, via, files } = await json<{ turns: AskTurn[]; image?: string; via?: string; files?: { name?: string; text?: string }[] }>(req, 8_000_000);
+    const { turns, image, via, files, stream } = await json<{ turns: AskTurn[]; image?: string; via?: string; files?: { name?: string; text?: string }[]; stream?: boolean }>(req, 8_000_000);
     const clean = (turns ?? []).filter(t => (t.role === 'user' || t.role === 'assistant') && typeof t.text === 'string').slice(-16).map(t => ({ role: t.role, text: t.text.slice(0, 8000) }));
     if (!clean.length || clean.at(-1)!.role !== 'user') return send(res, 400, { error: 'Ask something' });
     if (image !== undefined && (typeof image !== 'string' || !imageParts(image) || image.length > 6_000_000)) return send(res, 400, { error: 'That picture didn’t come through. Try a PNG, JPEG or WebP under 4 MB.' });
@@ -279,6 +299,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     // In memory only, on the same local stream as Ox's windows; nothing is stored.
     const spoken = via === 'talk', said = clean.at(-1)!.text.slice(0, 200);
     if (spoken) broadcast('voice', { phase: 'thinking', said, at: new Date().toISOString() });
+    // Streaming (November 16, 2026): stream: true answers in lines of JSON as Ox works: text pieces, steps, then the answer.
+    if (stream === true || url.searchParams.has('stream')) return streamAsk(res, asked, spoken, said);
     try {
       const answer = await converse(asked, spoken ? 'talk' : 'ask');
       if (spoken) broadcast('voice', { phase: 'answer', said, text: answer.text.slice(0, 600), at: new Date().toISOString() });
@@ -288,6 +310,51 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       return send(res, 409, { error: (error as Error).message });
     }
   }
+  // Open the connection to the AI while the owner types (November 16, 2026). Sends nothing about him.
+  if (method === 'POST' && path === '/api/ask/warm') return send(res, 200, { ai: await warmAi() });
+  // Who answers each kind of ask (November 17, 2026): a preset ("all OXBOT", "all Claude", "mixed") or one row at a time.
+  if (method === 'POST' && path === '/api/ai/route') {
+    const { route, preset } = await json<{ route?: Record<string, string>; preset?: string }>(req);
+    if (preset) {
+      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'] };
+      if (!brands[preset]) return send(res, 400, { error: 'No such preset.' });
+      const picked = brands[preset].map(b => providerForBrand(b));
+      const failed = picked.find(p => 'error' in p);
+      if (failed && 'error' in failed) return send(res, 409, { error: failed.error });
+      saveRoute({ simple: (picked[0] as { id: string }).id, medium: (picked[1] as { id: string }).id, hard: (picked[2] as { id: string }).id });
+    } else saveRoute(route ?? {});
+    return send(res, 200, await aiInfo());
+  }
+  // Is each plan app signed in, and does it answer? (November 16, 2026: "make sign in for claude and gpt actually usable")
+  if (method === 'GET' && path === '/api/ai/plans') {
+    const fresh = url.searchParams.has('fresh');
+    return send(res, 200, { plans: await Promise.all((['claude-plan', 'chatgpt-plan'] as const).map(id => planStatus(id, fresh))) });
+  }
+  if (method === 'POST' && path === '/api/ai/test') {
+    const { provider } = await json<{ provider?: string }>(req);
+    if (!aiProviders.some(p => p.id === provider)) return send(res, 400, { error: 'No such AI.' });
+    const started = Date.now();
+    try {
+      const reply = await askAi('You are Ox. Answer in five words or fewer.', [{ role: 'user', text: 'Say hello to the owner.' }], true, { provider: String(provider) });
+      return send(res, 200, { ok: true, text: reply.text.slice(0, 200), ms: Date.now() - started });
+    } catch (e) { return send(res, 200, { ok: false, error: (e as Error).message.slice(0, 300), ms: Date.now() - started }); }
+  }
+
+  // Scans, their feed and Messages on this Mac (November 16, 2026).
+  const scanInfo = async () => ({ scans: scanList(), feed: feed(), messages: await messagesStatus(), sources: scanSources });
+  if (method === 'GET' && path === '/api/scans') return send(res, 200, await scanInfo());
+  if (method === 'GET' && path === '/api/feed') return send(res, 200, { feed: feed() });
+  if (method === 'POST' && path === '/api/scans') { saveScan(await json(req, 20_000)); return send(res, 200, await scanInfo()); }
+  m = path.match(/^\/api\/scans\/(s-[a-z0-9]{3,8})(\/run)?$/);
+  if (method === 'POST' && m?.[2]) { try { const result = await runScan(m[1]); return send(res, 200, { result, ...(await scanInfo()) }); } catch (e) { if (e instanceof HttpError && e.status < 500 && e.status !== 409) throw e; return send(res, 200, { error: (e as Error).message, ...(await scanInfo()) }); } }
+  if (method === 'DELETE' && m && !m[2]) { removeScan(m[1]); return send(res, 200, await scanInfo()); }
+  if (method === 'GET' && path === '/api/messages') return send(res, 200, await messagesStatus());
+  if (method === 'POST' && path === '/api/messages') {
+    const { on } = await json<{ on?: boolean }>(req);
+    store.setSecrets({ [MESSAGES_SWITCH]: on === true ? '1' : '' });
+    return send(res, 200, await messagesStatus());
+  }
+
   // The web app says when its microphone opens and closes, so the notch can show Ox listening. Words never travel here.
   if (method === 'POST' && path === '/api/voice/presence') {
     const { phase } = await json<{ phase?: string }>(req, 1_000);
@@ -529,6 +596,7 @@ createServer(handle).listen(port, host, () => {
     }
   }
   startScheduler();
+  startScans();
   startSpeech();
   void checkBroker();
   setInterval(() => void checkBroker(), 600_000);

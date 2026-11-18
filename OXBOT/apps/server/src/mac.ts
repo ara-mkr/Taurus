@@ -45,6 +45,8 @@ export const useRunner = (r?: Runner, apps?: string[]) => {
 };
 
 export const isMac = () => process.platform === 'darwin' || runner !== real;
+// Hands one file OXBOT wrote to its Mac app (November 16, 2026: an approved calendar card's .ics goes to Calendar).
+export const openWithMac = (path: string) => { if (!isMac()) throw new HttpError(409, 'Only works when OXBOT runs on a Mac.'); return runner('open', [path]); };
 export const macAllowed = () => isMac() && isConnected('mac-control');
 const need = () => {
   if (!isMac()) throw new HttpError(409, 'Controlling apps only works when OXBOT runs on a Mac.');

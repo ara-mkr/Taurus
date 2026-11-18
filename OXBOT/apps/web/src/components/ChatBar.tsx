@@ -161,7 +161,7 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
       <form className={`composer-bar ${over ? 'drop-over' : ''}`} onSubmit={send} onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={drop}>
         <button type="button" className={`fn-talk ${talking ? 'on' : ''}`} aria-pressed={talking} {...voice.talkButton}>Talk</button>
         <label className="sr-only" htmlFor="ask-input">Message Ox</label>
-        <textarea id="ask-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={keys} onPaste={paste} onFocus={() => { if (turns.length) setOpen(true); }}
+        <textarea id="ask-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={keys} onPaste={paste} onFocus={() => { if (turns.length) setOpen(true); void api.warm().catch(() => undefined); }}
           placeholder={talking ? 'Listening' : voice.waking ? 'Ask Ox, or say “Hey Ox”' : 'Ask or tell Ox anything'} maxLength={4000} />
         {!open && !onAskPage && turns.length > 0 && <button type="button" className="text-button chat-show" onClick={() => setOpen(true)}>Show chat</button>}
         <span className="attach-wrap">

@@ -5,7 +5,10 @@ import type { Field } from './connectors/kit.ts';
 import { begin } from './activity.ts';
 import { askPlan, cliFound, countUsage, usage, type CliId } from './subscriptions.ts';
 import { toggleField } from './connectors/kit.ts';
-import { api, store } from './store.ts';
+import { api, HttpError, store } from './store.ts';
+import { postStream } from './stream.ts';
+import { getRoute, tierNames, type Brand } from './route.ts';
+import { freeOrder, freeTiers, markBusy, recordFirstWord, speeds, SUPER, type Tier } from './speed.ts';
 import type { AiInfo, AskTurn, Profile } from './types.ts';
 
 // A turn may carry one camera frame (a JPEG data URL), only in memory for that one request (owner, November 1, 2026).
@@ -30,7 +33,7 @@ interface Provider {
 }
 
 export const providers: Provider[] = [
-  { id: 'openrouter', name: 'OXBOT Free', maker: 'OpenRouter', kind: 'chat', base: 'https://openrouter.ai/api/v1', key: 'OPENROUTER_API_KEY', model: 'OPENROUTER_MODEL', fallback: 'openrouter/free', free: true,
+  { id: 'openrouter', name: 'OXBOT', maker: 'OpenRouter', kind: 'chat', base: 'https://openrouter.ai/api/v1', key: 'OPENROUTER_API_KEY', model: 'OPENROUTER_MODEL', fallback: 'openrouter/free', free: true,
     keyUrl: 'https://openrouter.ai/settings/keys', note: 'Free models through a free OpenRouter account. Any paid OpenRouter model works too if you add credit.' },
   // Plans you already pay for (owner, November 6, 2026): no API key, and usage shows on the AI page.
   { id: 'claude-plan', name: 'Claude plan', maker: 'Anthropic', kind: 'cli', plan: true, model: 'CLAUDE_PLAN_MODEL', fallback: 'your plan’s default', keyUrl: 'https://claude.com/product/claude-code',
@@ -66,7 +69,8 @@ const byId = (id: string) => providers.find(p => p.id === id);
 
 // The Connections page lists each provider with these fields; secrets live in ~/.oxbot like every other key.
 export function aiFields(p: Provider): Field[] {
-  if (p.kind === 'cli') return [toggleField(p.id)];
+  // A plan's model is optional: empty means the plan app's own choice (Codex: a model a ChatGPT plan can use).
+  if (p.kind === 'cli') return [toggleField(p.id), { key: p.model, label: 'Model', optional: true, placeholder: p.id === 'claude-plan' ? 'sonnet, opus, haiku' : p.id === 'chatgpt-plan' ? 'gpt-5.6-terra' : 'your plan’s default' }];
   const fields: Field[] = [];
   if (p.urlField) fields.push({ key: p.urlField, label: 'Address', optional: p.id === 'ollama', placeholder: p.base ?? 'https://example.com/v1' });
   if (p.key) fields.push({ key: p.key, label: `${p.maker === 'OpenAI-compatible' ? 'API' : p.maker} key`, secret: true, optional: p.id === 'custom-ai' });
@@ -115,40 +119,137 @@ async function modelFor(p: Provider, key?: string): Promise<string> {
 }
 
 interface ChatReply { choices?: { message?: { content?: string | { type: string; text?: string }[] } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-async function chat(p: Provider, system: string, turns: Turn[]): Promise<string> {
+const chatBase = (p: Provider) => ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta: string) => void, tier: Tier = 'medium'): Promise<{ text: string; model: string }> {
   const key = p.key ? store.secret(p.key) : undefined;
-  const base = ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+  const base = chatBase(p);
   if (!base) throw new Error(`Add the address of ${p.name} on the Connections page.`);
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
   // OpenRouter shows apps by these two headers; they carry no data about you.
   if (p.id === 'openrouter') Object.assign(headers, { 'HTTP-Referer': 'http://localhost:8787', 'X-Title': 'OXBOT' });
-  const data = await api<ChatReply>(`${base}/chat/completions`, {
-    method: 'POST', token: key, headers, signal: AbortSignal.timeout(120_000),
-    body: JSON.stringify({ model: await modelFor(p, key), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] }),
-  });
-  // A plan key's calls are counted, so the AI page can show how much of the plan you use.
-  if (p.plan) countUsage(p.id, data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0);
-  const content = data.choices?.[0]?.message?.content;
-  const text = typeof content === 'string' ? content : (content ?? []).map(part => part.text ?? '').join('');
-  // Reasoning models sometimes leave their thinking inline.
-  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  // OXBOT's free models (November 17, 2026): unless the owner pinned one, each kind of ask goes to the free model that
+  // suits it, the fastest lately for quick asks (speed.ts), and thinks only as much as it needs: free models think
+  // silently before their first word, which was most of the wait. A busy model hands over to the next.
+  const pinned = store.secret(p.model);
+  const free = Boolean(p.free);
+  const seesPicture = turns.some(t => t.image);
+  const order = !free ? [await modelFor(p, key)] : pinned ? [pinned] : seesPicture ? [SUPER, ...freeOrder(tier).filter(m => m !== SUPER)] : freeOrder(tier, (await freeModels()).map(m => m.id));
+  const reasoning = free ? freeTiers[tier].reasoning : undefined;
+  let lastError: unknown;
+  for (const model of order) {
+    // Streamed (November 16, 2026): each piece of the answer is passed on as it arrives. A provider that answers with
+    // plain JSON instead still works.
+    let streamed = '', usage: ChatReply['usage'], first = 0;
+    const started = performance.now();
+    const attempt = (think: unknown) => postStream(`${base}/chat/completions`, {
+      token: key, headers, timeoutMs: 120_000,
+      body: { model, stream: true, ...(think ? { reasoning: think } : {}), ...(p.plan ? { stream_options: { include_usage: true } } : {}), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] },
+    }, event => {
+      if (event.error) throw new Error(`${p.name}: ${String(event.error.message ?? event.error).slice(0, 200)}`);
+      const delta = event.choices?.[0]?.delta?.content;
+      if (typeof delta === 'string' && delta) { if (!first) first = performance.now() - started; streamed += delta; onText?.(delta); }
+      if (event.usage) usage = event.usage;
+    }) as Promise<ChatReply | undefined>;
+    try {
+      let data: ChatReply | undefined;
+      // A model that won't take the thinking setting runs once more without it.
+      try { data = await attempt(reasoning); } catch (e) { if (!(reasoning && e instanceof HttpError && e.status === 400 && !streamed)) throw e; data = await attempt(undefined); }
+      if (free) recordFirstWord(model, first || performance.now() - started);
+      // A plan key's calls are counted, so the AI page can show how much of the plan you use.
+      if (p.plan) countUsage(p.id, (data?.usage ?? usage)?.prompt_tokens ?? 0, (data?.usage ?? usage)?.completion_tokens ?? 0);
+      const content = data ? data.choices?.[0]?.message?.content : streamed;
+      const text = typeof content === 'string' ? content : (content ?? []).map(part => part.text ?? '').join('');
+      // Reasoning models sometimes leave their thinking inline.
+      return { text: text.replace(/<think>[\s\S]*?<\/think>/g, '').trim(), model };
+    } catch (e) {
+      lastError = e;
+      // The account's daily allowance of free asks is used up: every free model says the same, so say it plainly.
+      if (free && e instanceof HttpError && e.status === 429 && /per-day|per day|daily/i.test(e.message)) throw new HttpError(429, FREE_DAY_LIMIT);
+      // Busy (429), down (5xx) or gone (404), before a word was shown: the next free model.
+      if (!free || pinned || streamed || !(e instanceof HttpError) || ![404, 408, 429, 500, 502, 503, 504].includes(e.status)) throw e;
+      markBusy(model);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Every free model was busy. Try again in a minute.');
 }
 
-export async function ask(system: string, turns: Turn[], quick = false): Promise<{ provider: string; text: string }> {
-  const p = current();
-  if (!p) throw new Error('Connect an AI first: Settings, then AI. OXBOT Free needs only a free OpenRouter account.');
+// OpenRouter's free accounts get 50 free-model asks a day; $5 of credit raises it to 1,000 (OpenRouter's own message,
+// November 17, 2026).
+export const FREE_DAY_LIMIT = 'Today’s free OXBOT asks are used up: a free OpenRouter account gets 50 a day, and they come back tomorrow. Adding $5 of credit on OpenRouter raises it to 1,000 a day. Or say “use Claude for everything” to switch now.';
+
+export interface AskOptions {
+  // Each piece of the answer as it is written, for streaming to the screen.
+  onText?: (delta: string) => void;
+  // What kind of ask this is (November 17, 2026): it picks who answers (the owner's route) and how much they think.
+  tier?: Tier;
+  // Older name for tier 'simple'.
+  simple?: boolean;
+  // Ask this AI instead of the one picked in Settings (the AI page's Test button).
+  provider?: string;
+}
+
+// Who answers this kind of ask: the owner's route if that AI is connected, else the AI picked in Settings.
+export function routed(tier: Tier): Provider | undefined {
+  const v = getRoute()[tier];
+  const id = v === 'free' ? 'openrouter' : v;
+  return (id && ready(id) ? byId(id) : undefined) ?? current();
+}
+
+export async function ask(system: string, turns: Turn[], quick = false, options: AskOptions = {}): Promise<{ provider: string; text: string; model?: string }> {
+  const tier: Tier = options.tier ?? (options.simple ? 'simple' : quick ? 'medium' : 'medium');
+  const p = options.provider ? byId(options.provider) : routed(tier);
+  if (!p) throw new Error('Connect an AI first: Settings, then AI. OXBOT needs only a free OpenRouter account.');
   const step = begin('ai', `Thinking with ${p.name}`);
+  const simple = tier === 'simple';
+  // How fast the first word came, for the AI page (the free models time each model themselves).
+  const started = performance.now();
+  let first = 0;
+  const onText = (delta: string) => { if (!first) first = performance.now() - started; options.onText?.(delta); };
   try {
-    const text = p.kind === 'cli' ? await askPlan(p.id as CliId, system, turns)
-      : p.kind === 'anthropic' ? await askClaude(system, turns, quick ? 'low' : 'medium', store.secret(p.model))
-      : p.kind === 'responses' ? await askChatGPT(system, turns)
-      : await chat(p, system, turns);
+    let model: string | undefined;
+    const text = p.kind === 'cli' ? await askPlan(p.id as CliId, system, turns, { onText, simple })
+      : p.kind === 'anthropic' ? await askClaude(system, turns, quick || tier !== 'hard' ? 'low' : 'medium', store.secret(p.model) ?? '', onText, simple && !store.secret(p.model))
+      : p.kind === 'responses' ? await askChatGPT(system, turns, onText, simple)
+      : await chat(p, system, turns, onText, tier).then(r => { model = r.model; return r.text; });
+    if (!p.free) recordFirstWord(p.id, first || performance.now() - started);
     step.done(`${p.name} answered`);
-    return { provider: p.name, text };
+    return { provider: p.name, text, model };
   } catch (error) { step.fail(error); throw error; }
 }
 
-// ---------- OXBOT Free: OpenRouter's free models ----------
+// "Use Claude for big jobs": the connected AI for a name the owner said. A plan installed on this Mac wins over a key,
+// and saying it switches the plan on, the same as its switch on the AI page.
+export function providerForBrand(brand: Brand): { id: string; name: string } | { error: string } {
+  const pick = (planId: string, keyId: string, label: string) => {
+    const plan = byId(planId);
+    if (plan?.kind === 'cli' && cliFound(plan.id as CliId)) {
+      if (!ready(plan.id)) store.setSecrets({ [toggleField(plan.id).key]: '1' });
+      return { id: plan.id, name: plan.name };
+    }
+    if (plan && plan.kind !== 'cli' && ready(plan.id)) return { id: plan.id, name: plan.name };
+    if (ready(keyId)) return { id: keyId, name: byId(keyId)!.name };
+    return { error: `${label} isn’t connected yet. Connect it in Settings, AI, then say it again.` };
+  };
+  if (brand === 'free') return ready('openrouter') ? { id: 'free', name: 'OXBOT' } : { error: 'OXBOT’s free models need a free OpenRouter sign-in first: Settings, AI.' };
+  if (brand === 'claude') return pick('claude-plan', 'claude', 'Claude');
+  if (brand === 'chatgpt') return pick('chatgpt-plan', 'chatgpt', 'ChatGPT');
+  return pick('gemini-plan', 'gemini', 'Gemini');
+}
+
+// Opens the connection to your AI before you finish typing, so the first word comes sooner (November 16, 2026).
+// Only a HEAD to the provider's own address: nothing about you is sent. Plans run on this Mac and have nothing to warm.
+let warmedAt = 0;
+export async function warmAi(): Promise<string> {
+  const p = current();
+  if (!p || p.kind === 'cli' || Date.now() - warmedAt < 20_000) return p?.name ?? '';
+  warmedAt = Date.now();
+  const url = p.kind === 'anthropic' ? 'https://api.anthropic.com/v1/models' : p.kind === 'responses' ? 'https://api.openai.com/v1/models' : `${chatBase(p)}/models`;
+  if (!/^https?:\/\//.test(url)) return p.name;
+  await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5_000) }).then(r => r.body?.cancel()).catch(() => undefined);
+  return p.name;
+}
+
+// ---------- OXBOT: OpenRouter's free models ----------
 
 interface FreeModel { id: string; name: string; context: number }
 let freeCache: { at: number; list: FreeModel[] } | undefined;
@@ -202,6 +303,7 @@ export async function aiInfo(): Promise<AiInfo> {
     usage: usage(),
     free: await freeModels(),
     freeModel: store.secret('OPENROUTER_MODEL') || '',
+    route: getRoute(), tierNames, speeds: speeds().slice(0, 8),
   };
 }
 
