@@ -6,7 +6,7 @@ import { OxVoice } from './OxVoice';
 import { catalog } from './widgets';
 
 export type Appearance = 'auto' | 'light' | 'dark';
-export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', actions: 'Actions', phone: 'Phone' } as const;
+export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone' } as const;
 
 export function SettingsNav({ page }: { page: string }) {
   return <nav className="subnav" aria-label="Settings">

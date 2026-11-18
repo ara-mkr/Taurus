@@ -118,6 +118,8 @@ async function modelFor(p: Provider, key?: string): Promise<string> {
 
 interface ChatReply { choices?: { message?: { content?: string | { type: string; text?: string }[] } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } }
 const chatBase = (p: Provider) => ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+// Simple turns stay on the free model you picked: on November 17, 2026 OpenRouter's free "lightning" model started
+// answering later (1.6 to 20 s) than Nemotron 3 Ultra (1.6 to 3.4 s), so routing to it made OXBOT Free slower.
 async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta: string) => void): Promise<string> {
   const key = p.key ? store.secret(p.key) : undefined;
   const base = chatBase(p);

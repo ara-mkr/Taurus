@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
-import { api, type AiInfo, type ConnectorInfo } from '../api';
+import { api, type AiInfo, type ConnectorInfo, type PlanStatus } from '../api';
 import { Connector } from './Connections';
+
+// Asks that one AI to say hello, so you know it really answers, and how fast (November 16, 2026).
+function TestAnswer({ id }: { id: string }) {
+  const [state, setState] = useState<{ busy?: boolean; text?: string; error?: string }>({});
+  return <p className="plan-status">
+    <button type="button" className="text-button" disabled={state.busy} onClick={async () => {
+      setState({ busy: true });
+      try { const r = await api.aiTest(id); setState(r.ok ? { text: `Answered in ${(r.ms / 1000).toFixed(1)} s: “${r.text}”` } : { error: r.error }); }
+      catch (e) { setState({ error: (e as Error).message }); }
+    }}>{state.busy ? 'Asking' : 'Test it'}</button>
+    {state.text && <span className="muted"> {state.text}</span>}
+    {state.error && <span className="problem"> {state.error}</span>}
+  </p>;
+}
 
 // Which AI writes the brief, builds boards and answers Ask. OXBOT Free is OpenRouter's free models on your own
 // free account; every other lab takes your own key. Owner, October 31, 2026.
@@ -23,7 +37,9 @@ export function AI() {
     setInfo(i => i && { ...i, chosen: next.provider ?? i.chosen, freeModel: next.freeModel ?? i.freeModel });
     try { setInfo(await api.saveAi(next)); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  async function connectorsChanged(next: ConnectorInfo[]) { setList(next); setInfo(await api.ai()); }
+  async function connectorsChanged(next: ConnectorInfo[]) { setList(next); setInfo(await api.ai()); setStatus((await api.aiPlans(true).catch(() => ({ plans: [] }))).plans); }
+  const [status, setStatus] = useState<PlanStatus[]>([]);
+  useEffect(() => { api.aiPlans().then(r => setStatus(r.plans)).catch(() => undefined); }, []);
 
   const free = info?.providers.find(p => p.free);
   const connected = info?.providers.filter(p => p.connected) ?? [];
@@ -57,9 +73,15 @@ export function AI() {
     {info && plans.length > 0 && <section aria-labelledby="plans">
       <h2 id="plans">Use a plan you already pay for</h2>
       <p>No API key. Claude, ChatGPT and Gemini plans work through each company’s own app on this Mac, signed in with your plan: Claude Code, Codex and Gemini CLI. OXBOT runs them with their tools off, so they only answer. Kimi and GLM coding plans use the key from your plan.</p>
-      {plans.map(c => { const p = info.providers.find(x => x.id === c.id); return <div key={c.id} className="plan-row">
+      {plans.map(c => { const p = info.providers.find(x => x.id === c.id); const s = status.find(x => x.id === c.id); return <div key={c.id} className="plan-row">
         <Connector c={c} onChange={connectorsChanged} />
         {p?.installed === false && <p className="muted plan-note">{c.name.split(' (')[0]} needs its app on this Mac first: <a href={p.keyUrl} target="_blank" rel="noreferrer">install it</a>, open Terminal, run it once and sign in.</p>}
+        {/* The plan app's own sign-in, read from the app itself (November 16, 2026). */}
+        {s?.installed && <p className="muted plan-status">{s.signedIn
+          ? `Signed in with ${s.how ?? 'your account'}${s.plan ? ` (${s.plan} plan)` : ''}.`
+          : s.signedIn === undefined ? `${c.name.split(' (')[0]} is installed. Switch it on and press Test it to check it answers with your plan.`
+          : <>Not signed in yet. Open Terminal, type <code>{c.id === 'claude-plan' ? 'claude' : 'codex login'}</code>, press Return and sign in with your {c.id === 'claude-plan' ? 'Claude' : 'ChatGPT'} account. Then come back here.</>}</p>}
+        {p?.connected && <TestAnswer id={c.id} />}
       </div>; })}
       {info.usage && info.usage.length > 0 && <div className="plan-usage">
         <h3>How much you’ve used through OXBOT</h3>
@@ -109,7 +131,10 @@ export function AI() {
     <section aria-labelledby="labs">
       <h2 id="labs">Your own AI</h2>
       <p className="muted">Paste a key from any lab below. You pay that lab for what you use; OXBOT adds nothing. Keys stay on this Mac.</p>
-      {others.map(c => <Connector key={c.id} c={c} onChange={connectorsChanged} />)}
+      {others.map(c => <div key={c.id}>
+        <Connector c={c} onChange={connectorsChanged} />
+        {info?.providers.find(p => p.id === c.id)?.connected && (c.id === 'claude' || c.id === 'chatgpt') && <TestAnswer id={c.id} />}
+      </div>)}
     </section>
   </main>;
 }

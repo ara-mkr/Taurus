@@ -280,7 +280,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   // Ask and Talk. An optional camera frame (owner, November 1, 2026) rides along with the last question only; it is
   // passed to the AI and never written anywhere.
   if (method === 'POST' && path === '/api/ask') {
-    const { turns, image, via, files } = await json<{ turns: AskTurn[]; image?: string; via?: string; files?: { name?: string; text?: string }[] }>(req, 8_000_000);
+    const { turns, image, via, files, stream } = await json<{ turns: AskTurn[]; image?: string; via?: string; files?: { name?: string; text?: string }[]; stream?: boolean }>(req, 8_000_000);
     const clean = (turns ?? []).filter(t => (t.role === 'user' || t.role === 'assistant') && typeof t.text === 'string').slice(-16).map(t => ({ role: t.role, text: t.text.slice(0, 8000) }));
     if (!clean.length || clean.at(-1)!.role !== 'user') return send(res, 400, { error: 'Ask something' });
     if (image !== undefined && (typeof image !== 'string' || !imageParts(image) || image.length > 6_000_000)) return send(res, 400, { error: 'That picture didn’t come through. Try a PNG, JPEG or WebP under 4 MB.' });
@@ -292,8 +292,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     // In memory only, on the same local stream as Ox's windows; nothing is stored.
     const spoken = via === 'talk', said = clean.at(-1)!.text.slice(0, 200);
     if (spoken) broadcast('voice', { phase: 'thinking', said, at: new Date().toISOString() });
-    // Streaming (November 16, 2026): ?stream answers in lines of JSON as Ox works: text pieces, steps, then the answer.
-    if (url.searchParams.has('stream')) return streamAsk(res, asked, spoken, said);
+    // Streaming (November 16, 2026): stream: true answers in lines of JSON as Ox works: text pieces, steps, then the answer.
+    if (stream === true || url.searchParams.has('stream')) return streamAsk(res, asked, spoken, said);
     try {
       const answer = await converse(asked, spoken ? 'talk' : 'ask');
       if (spoken) broadcast('voice', { phase: 'answer', said, text: answer.text.slice(0, 600), at: new Date().toISOString() });

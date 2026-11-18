@@ -37,6 +37,45 @@ export interface Skill { id: string; name: string; description: string; instruct
 export interface McpServer { id: string; name: string; url: string; on: boolean; token: boolean; tools: { name: string; description: string; readOnly: boolean }[]; checked?: string; error?: string }
 export interface Scheduled { id: string; task: string; when: string; repeat?: string; nextAt: string; next: string; on: boolean; lastAt?: string; last?: string; error?: string }
 
+// Scans, their feed and Messages on this Mac (November 16, 2026).
+export type ScanSource = 'email' | 'calendar' | 'messages' | 'chat';
+export interface Scan { id: string; name: string; sources: ScanSource[]; everyMinutes: number; instruction: string; on: boolean; ai: 'free' | 'mine'; lastRunAt?: string; lastNote?: string; lastError?: string }
+export interface FeedItem { id: string; scan: string; at: string; kind: 'update' | 'calendar' | 'reply' | 'note'; text: string; source?: string; item?: string; url?: string; proposal?: string; draft?: string }
+export interface MessagesStatus { on: boolean; state: 'off' | 'ready' | 'no-access' | 'missing' | 'not-mac'; detail?: string; steps?: string[]; newest?: string }
+export interface ScansInfo { scans: Scan[]; feed: FeedItem[]; messages: MessagesStatus; sources: ScanSource[]; error?: string; result?: { note: string } }
+export interface PlanStatus { id: string; installed: boolean; signedIn?: boolean; plan?: string; how?: string; error?: string }
+
+// Ask, streamed: lines of JSON as Ox works. Falls back to the error a non-streamed reply carries.
+async function askStream(turns: AskTurn[], options: { image?: string; files?: { name: string; text: string }[]; via?: 'ask' | 'talk' }, on: { text?: (delta: string) => void; reset?: () => void; step?: (text: string) => void }): Promise<Answer> {
+  let response: Response;
+  try {
+    response = await fetch('/api/ask', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify({ turns: turns.map(({ role, text }) => ({ role, text })), ...options, stream: true }) });
+  } catch { throw new ApiError(0, 'The OXBOT server is not running. Start it with pnpm dev from the OXBOT folder.'); }
+  if (!response.ok || !response.body || !(response.headers.get('content-type') ?? '').includes('ndjson')) {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new ApiError(response.status, data.error ?? `Request failed (${response.status})`);
+    return data as Answer;
+  }
+  const reader = response.body.getReader(), decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    let end: number;
+    while ((end = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, end).trim(); buffer = buffer.slice(end + 1);
+      if (!line) continue;
+      const event = JSON.parse(line) as { type: string; delta?: string; text?: string; answer?: Answer; error?: string };
+      if (event.type === 'text' && event.delta) on.text?.(event.delta);
+      else if (event.type === 'reset') on.reset?.();
+      else if (event.type === 'step' && event.text) on.step?.(event.text);
+      else if (event.type === 'done' && event.answer) return event.answer;
+      else if (event.type === 'error') throw new ApiError(409, event.error ?? 'Ox couldn’t answer.');
+    }
+    if (done) throw new ApiError(0, 'The answer was cut off. Ask again.');
+  }
+}
+
 export interface ActionsInfo { grants: Grant[]; log: Proposal[]; vision: { name: string; sees: boolean } | null }
 export interface Answer { provider: string; text: string; proposals: Proposal[] }
 type Via = 'board' | 'phone' | 'ring';
@@ -55,6 +94,15 @@ export const api = {
   saveMcp: (server: { id?: string; name?: string; url?: string; token?: string; on?: boolean }) => request<{ mcp: McpServer[] }>('/api/mcp', { method: 'POST', body: server }),
   refreshMcp: (id: string) => request<{ mcp: McpServer[] }>(`/api/mcp/${id}/refresh`, { method: 'POST' }),
   removeMcp: (id: string) => request<{ mcp: McpServer[] }>(`/api/mcp/${id}`, { method: 'DELETE' }),
+  askStream,
+  warm: () => request<{ ai: string }>('/api/ask/warm', { method: 'POST' }),
+  aiPlans: (fresh = false) => request<{ plans: PlanStatus[] }>(`/api/ai/plans${fresh ? '?fresh' : ''}`),
+  aiTest: (provider: string) => request<{ ok: boolean; text?: string; error?: string; ms: number }>('/api/ai/test', { method: 'POST', body: { provider } }),
+  scans: () => request<ScansInfo>('/api/scans'),
+  saveScan: (s: Partial<Scan>) => request<ScansInfo>('/api/scans', { method: 'POST', body: s }),
+  runScan: (id: string) => request<ScansInfo>(`/api/scans/${id}/run`, { method: 'POST' }),
+  removeScan: (id: string) => request<ScansInfo>(`/api/scans/${id}`, { method: 'DELETE' }),
+  setMessages: (on: boolean) => request<MessagesStatus>('/api/messages', { method: 'POST', body: { on } }),
   schedules: () => request<{ schedules: Scheduled[] }>('/api/schedules'),
   saveSchedule: (s: { task: string; when: string; id?: string }) => request<{ schedules: Scheduled[] }>('/api/schedules', { method: 'POST', body: s }),
   scheduleDo: (id: string, what: 'on' | 'off' | 'run') => request<{ schedules: Scheduled[] }>(`/api/schedules/${id}/${what}`, { method: 'POST' }),

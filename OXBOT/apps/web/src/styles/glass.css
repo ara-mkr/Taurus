@@ -814,3 +814,15 @@ main.ask .transcript { gap: 22px; margin-top: 4px; padding-bottom: 120px; }
 .plan-usage th, .plan-usage td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
 .plan-usage thead th { color: var(--ink-2); font-weight: 550; }
 .plan-usage .muted { margin-top: 8px; font-size: 13px; }
+
+/* Scans (November 16, 2026) */
+.scan-sources { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; border: 0; }
+.scan-sources legend { font-weight: 550; margin-bottom: 6px; }
+.skill-edit .scan-sources label.check { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+.scan-every { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.scan-every input { width: 6em; }
+.feed-list .row { grid-template-columns: minmax(0, 1fr); }
+.row-actions { display: flex; gap: 10px; }
+.messages-setup ol { margin: 8px 0 12px; padding-left: 1.4em; display: grid; gap: 4px; }
+.messages-switch { display: inline-flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.plan-status { margin: 4px 0 0; }

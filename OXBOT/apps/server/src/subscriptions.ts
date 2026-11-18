@@ -34,7 +34,7 @@ const work = () => { const d = join(store.dir, 'cli-work'); mkdirSync(d, { recur
 // variables a parent Claude Code session sets are dropped too, so the app doesn't think it is nested.
 const planEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|CLAUDE_AGENT_SDK|OPENAI_API_KEY$|OPENAI_BASE_URL$)/.test(k)).concat([['NO_COLOR', '1']]));
 
-function runCli(file: string, args: string[], input: string, timeoutMs = 180_000, onLine?: (line: string) => void): Promise<string> {
+function runCli(file: string, args: string[], input: string, timeoutMs = 180_000, onLine?: (line: string) => void, withErr = false): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, { cwd: work(), env: planEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '', err = '', partial = '';
@@ -47,7 +47,7 @@ function runCli(file: string, args: string[], input: string, timeoutMs = 180_000
     child.on('error', e => { clearTimeout(timer); reject(e); });
     child.on('close', code => {
       clearTimeout(timer);
-      if (code === 0 || out.trim()) resolve(out);
+      if (code === 0 || out.trim()) resolve(withErr ? `${out}\n${err}` : out);
       else reject(new Error(/log ?in|auth|sign ?in|credential|unauthori[sz]ed/i.test(err) ? 'That app isn’t signed in. Open Terminal, run it once and sign in with your plan.' : `It stopped: ${err.trim().split('\n').at(-1)?.slice(0, 200) || `exit ${code}`}`));
     });
     child.stdin.on('error', () => undefined);
@@ -168,11 +168,15 @@ export async function planStatus(id: CliId, fresh = false): Promise<PlanStatus> 
   if (file && id === 'claude-plan') {
     try {
       const j = JSON.parse(await runCli(file, ['auth', 'status'], '', 15_000));
-      s = { ...s, signedIn: Boolean(j.loggedIn), plan: j.subscriptionType ? String(j.subscriptionType) : undefined, how: j.authMethod === 'claude.ai' ? 'your Claude account' : j.authMethod ? String(j.authMethod) : undefined };
+      // Claude Code's status reads its user settings, which OXBOT skips when asking. A token set there (as on the owner's
+      // Mac, for a proxy) hides the Claude account underneath, so only "claude.ai" counts as a sure yes; otherwise the
+      // AI page says to press Test it, which asks the way OXBOT really does.
+      s = { ...s, signedIn: j.authMethod === 'claude.ai' ? true : j.loggedIn === false ? false : undefined, plan: j.subscriptionType ? String(j.subscriptionType) : undefined, how: j.authMethod === 'claude.ai' ? 'your Claude account' : undefined };
     } catch (e) { s = { ...s, signedIn: false, error: (e as Error).message.slice(0, 200) }; }
   } else if (file && id === 'chatgpt-plan') {
     try {
-      const said = await runCli(file, ['login', 'status'], '', 15_000).catch((e: Error) => e.message);
+      // Codex prints its status on stderr.
+      const said = await runCli(file, ['login', 'status'], '', 15_000, undefined, true).catch((e: Error) => e.message);
       s = { ...s, signedIn: /logged in/i.test(said) && !/not logged in/i.test(said), how: /chatgpt/i.test(said) ? 'your ChatGPT account' : /api key/i.test(said) ? 'an API key' : undefined };
     } catch (e) { s = { ...s, signedIn: false, error: (e as Error).message.slice(0, 200) }; }
   }
