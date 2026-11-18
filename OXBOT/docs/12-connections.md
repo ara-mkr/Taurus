@@ -76,6 +76,20 @@ Forty-nine data connectors, all read-only, plus 16 ways to connect an AI, Twilio
 
 The new OAuth apps (Todoist, Asana, Atlassian, monday.com, Dropbox, Box, Spotify, Zoom, Xero, Withings) are in `apps/server/src/providers.ts` with their read-only scopes, so the sign-in service (`apps/broker`) can offer one-click sign-in for them too once OXBOT's own app keys for each are added there. The service refuses any scope not on that list. Google and Microsoft gained `tasks.readonly`, `drive.metadata.readonly`, `analytics.readonly`, `Chat.Read`, `Tasks.Read` and `Files.Read` on the same list.
 
+## Added November 18 (tested against mocks only)
+
+| Group | Connector | Sign-in and scopes | What OXBOT reads | Lands in |
+|---|---|---|---|---|
+| Tasks | Canvas (Instructure) | Your school's Canvas address plus a personal access token you make yourself (Canvas → Account → Settings → Approved Integrations → New Access Token). Not OAuth: Canvas OAuth needs a developer key issued by each school, which the one-click sign-in service can't hold | Coursework that is overdue (last 14 days) or due in the next 7 days (course, title, due date), and the last 7 days of course announcements. Work you have handed in is left out | Needs you, From your apps |
+
+Canvas details (`apps/server/src/connectors/canvas.ts`, tests in `apps/server/test/canvas.test.ts` and `connectors.test.ts`, fake `*.instructure.com` data only):
+- **Read only, GET only.** Reads `/api/v1/courses?enrollment_state=active`, `/api/v1/planner/items?filter=incomplete_items` (what Canvas's own student dashboard uses, so submitted, excused and marked-complete work is left out), `/api/v1/users/self/todo`, `/api/v1/users/self/missing_submissions` (with the same filters Canvas's planner uses) and `/api/v1/announcements`. Never submits, posts, marks or deletes anything, and never calls the todo "ignore" links. Teacher "grading" to-dos are skipped. `/users/self/upcoming_events` is deliberately not used: it ignores its parameters and lists work already handed in.
+- **On the board:** each item is a "Needs you" row with the course as the name and the due date in the detail line. Overdue work keeps its due date as its time; work still coming counts from now, because the board shows that time as "how long ago" and sorts by it. Ox reads it like any other task source, including when you ask out loud.
+- **The address is checked before the token goes anywhere:** https only, a real public domain (schools often use their own, like `canvas.school.edu`), no `localhost`, `.local`, `.internal`, no IP addresses or private networks, no user name in the address, no custom port. Only the scheme and host are kept. Redirects are never followed.
+- **The token** is sent only as `Authorization: Bearer <token>`, is stored in `~/.oxbot/secrets.json` like every other pasted key, and is never put in an error message. A 401 says to check the token; a 403 says the school may not allow tokens.
+- **Capped:** 10 assignments and 5 announcements (140 characters each, tags stripped). If a school hides one of the lists, the others still show; a bad token always shows.
+- **Not tried with a real token yet.** Settings says so until the owner signs in with one.
+
 ### Looked at, not built
 
 Compared with OpenClaw (formerly Clawdbot and Moltbot) and similar personal agents, whose integration lists centre on chat channels (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Teams), notes and tasks (Notion, Obsidian, Apple Notes and Reminders, Things, Todoist, Trello), developer tools, music, smart home and the web. The list was checked from memory of those projects: web search wasn't available in this session. Every item they share with OXBOT's read-only scope is above, except:
