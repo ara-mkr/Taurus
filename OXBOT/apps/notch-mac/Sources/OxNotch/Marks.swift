@@ -61,6 +61,8 @@ private extension Provider {
 struct AgentMark: View {
     let provider: Provider
     var size: CGFloat = 13
+    /// Vorssaint draws a menu-bar mark in the agent's own colour.
+    var tint: Color = Ink.primary
     /// Where the name is written beside it anyway, a missing mark leaves nothing rather than the name twice.
     var nameIfMissing = true
 
@@ -69,14 +71,14 @@ struct AgentMark: View {
         case .template(let image):
             Image(nsImage: image).renderingMode(.template).resizable().interpolation(.high).scaledToFit()
                 .frame(width: size * provider.markScale, height: size * provider.markScale)
-                .foregroundStyle(Ink.primary)
+                .foregroundStyle(tint)
                 .accessibilityLabel(provider.name)
         case .icon(let image):
             Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
                 .frame(width: size * 1.35, height: size * 1.35)
                 .accessibilityLabel(provider.name)
         case nil:
-            if nameIfMissing { Text(provider.name).font(.system(size: 13, weight: .semibold)) }
+            if nameIfMissing { Text(provider.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint) }
         }
     }
 

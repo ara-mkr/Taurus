@@ -71,6 +71,8 @@ struct NotchSettings: Equatable {
         enum LimitDisplay: String, CaseIterable { case remaining, used }
         enum LimitFocus: String, CaseIterable { case mostUsed, session, weekly }
         enum Readout: String, CaseIterable { case elapsed, tokens, limit }
+        /// Vorssaint's "At rest": what the closed island's wings show while nothing else does.
+        enum Resting: String, CaseIterable { case none, music, battery, agents }
         static let widthRange = 360.0...600.0, heightRange = 260.0...640.0
         static let cameraWidthRange = -10.0...10.0, cameraHeightRange = -6.0...6.0
         static let capsuleWidthRange = -40.0...40.0, capsuleHeightRange = -4.0...4.0, capsuleDropRange = 0.0...20.0
@@ -95,6 +97,7 @@ struct NotchSettings: Equatable {
         var finishMinimum = 1
         var limitAlert = true
         var limitThreshold = 90
+        var resting = Resting.none
 
         init() {}
         init(json r: [String: Any]?) {
@@ -124,6 +127,7 @@ struct NotchSettings: Equatable {
             finishMinimum = Int(clamp("finishMinimum", 0...60, Double(finishMinimum)).rounded())
             limitAlert = bool("limitAlert", limitAlert)
             limitThreshold = Int(clamp("limitThreshold", 50...99, Double(limitThreshold)).rounded())
+            resting = (r["resting"] as? String).flatMap(Resting.init(rawValue:)) ?? resting
         }
         var json: [String: Any] {
             ["size": size.rawValue, "customWidth": customWidth, "customHeight": customHeight, "glass": glass,
@@ -131,7 +135,7 @@ struct NotchSettings: Equatable {
              "cameraWidth": cameraWidth, "cameraHeight": cameraHeight, "outline": outline,
              "agents": Provider.allCases.filter(agents.contains).map(\.rawValue), "limitDisplay": limitDisplay.rawValue,
              "limitFocus": limitFocus.rawValue, "live": live, "readout": readout.rawValue, "finishAlert": finishAlert,
-             "finishMinimum": finishMinimum, "limitAlert": limitAlert, "limitThreshold": limitThreshold]
+             "finishMinimum": finishMinimum, "limitAlert": limitAlert, "limitThreshold": limitThreshold, "resting": resting.rawValue]
         }
     }
 

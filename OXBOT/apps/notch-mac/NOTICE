@@ -13,7 +13,11 @@ Ported (rewritten and trimmed, not copied whole):
   UI/Settings/NotchSettings.swift and NotchAgentsSettings.swift -> Controller.swift, IslandView.swift, Model.swift
 - Services/AgentUsage/AgentOpenCodeReader.swift, Harness/CopilotReader.swift -> Agents.swift
 - UI/Notch/NotchAgentComponents.swift AgentMarks, NotchAgentStrip.swift readouts -> Marks.swift, IslandView.swift
-- Sections: camera (CameraPreviewService), files shelf, timer, scratchpad, system, sections grid -> Tools.swift
+- Sections: camera (CameraPreviewService), files shelf, timer, scratchpad, system -> Tools.swift
+- Look: UI/Notch/NotchView.swift (resting strip, expanded row, island menu), NotchQuickAccessView.swift (circles
+  and drops), NotchComponents.swift (NotchButtonStyle, NotchIconButton, NotchControlSurface), NotchSectionsView.swift,
+  NotchMusicView.swift and NotchMusicStrip.swift, NotchAgentsView.swift and NotchAgentComponents.swift (cards,
+  colours) -> IslandView.swift; Settings > Notch wording -> apps/web/src/components/NotchSettings.tsx
 
 Not used: Vorssaint's mascot, name, icons, strings, artwork or any other asset. Ox comes from OXBOT's
 design/logo/ox-mascot.svg; agent marks are read at run time from the makers' installed apps. Not ported:

@@ -190,9 +190,9 @@ test.describe('in the desktop app', () => {
     await page.evaluate(() => { location.hash = 'notch'; });
     await expect(page.getByRole('heading', { name: 'Notch', level: 1 })).toBeVisible();
     const saved = () => JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch;
-    await page.getByRole('checkbox', { name: 'Show Ox at the top of the screen' }).check();
+    await page.getByRole('checkbox', { name: 'Enable Dynamic Island' }).check();
     await expect.poll(() => saved()?.on).toBe(true);
-    await page.getByRole('radio', { name: 'Every screen' }).check();
+    await page.getByRole('radio', { name: 'All displays' }).check();
     await expect.poll(() => saved()?.display).toBe('all');
     await page.getByRole('radio', { name: 'Custom' }).check();
     await expect.poll(() => saved()?.native?.size).toBe('custom');

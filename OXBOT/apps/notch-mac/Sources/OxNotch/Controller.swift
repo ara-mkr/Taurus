@@ -150,6 +150,8 @@ final class IslandWindow {
     }
 
     func show(_ page: Page) {
+        // Explore's Back returns to the page it was opened from.
+        if page == .all, state.page != .all { state.lastPage = state.page } else if page != .all { state.lastPage = page }
         state.page = page
         focusIfAsking()
     }
@@ -174,7 +176,8 @@ final class IslandWindow {
         if state.open {
             let body = g.body(CGSize(width: g.openWidth, height: g.openHeight(state.page, hub)))
             var area = body.insetBy(dx: -(Metrics.gutter - 4), dy: 0).insetBy(dx: -6, dy: -8)
-            area.size.height += Metrics.buttonHeight + Metrics.buttonGap   // the bottom row
+            // Down to the lowest circle, which can sit below a short island.
+            area.size.height = max(area.height, Metrics.diameter + Metrics.gap + 2 * Metrics.rowSpacingButtons + Metrics.diameter / 2 + 16)
             let reach = screen(area)
             let inside = reach.contains(mouse)
             panel.ignoresMouseEvents = !inside
