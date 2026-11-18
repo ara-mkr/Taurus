@@ -79,6 +79,19 @@ export function viaEcho(form: Record<string, string>) {
   const { Twiml, Timeout: _timeout, ...rest } = form;
   return Twiml ? { ...rest, Url: `https://twimlets.com/echo?Twiml=${encodeURIComponent(Twiml)}` } : rest;
 }
+export interface TwilioReply { sid?: string; code?: number; message?: string }
+// Once Twilio has refused, the account is a trial until OXBOT restarts, so later calls skip the refused try.
+let trialAccount = false;
+export async function placeCall(post: (form: Record<string, string>) => Promise<Response>, form: Record<string, string>) {
+  let response = await post(trialAccount ? viaEcho(form) : form);
+  let body = await response.json().catch(() => ({})) as TwilioReply;
+  if (!trialAccount && trialRefused(response.status, body.message)) {
+    trialAccount = true;
+    response = await post(viaEcho(form));
+    body = await response.json().catch(() => ({})) as TwilioReply;
+  }
+  return { response, body };
+}
 export interface CallResult { at: string; ok: boolean; message: string }
 let lastCall: CallResult | null = null;
 
@@ -96,18 +109,10 @@ async function call(ring: Pick<Ring, 'title' | 'detail'>): Promise<CallResult> {
     method: 'POST',
     headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(form),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(20_000),
   });
   try {
-    const form = { To: to, From: from, Twiml: twiml, Timeout: '30' };
-    let response = await post(form);
-    type Failure = { code?: number; message?: string };
-    const failure = async (r: Response): Promise<Failure> => r.ok ? {} : await r.json().catch(() => ({})) as Failure;
-    let body = await failure(response);
-    if (trialRefused(response.status, body.message)) {
-      response = await post(viaEcho(form));
-      body = await failure(response);
-    }
+    const { response, body } = await placeCall(post, { To: to, From: from, Twiml: twiml, Timeout: '30' });
     if (response.ok) return done(true, `Called ${to.slice(0, -4).replace(/\d/g, '•')}${to.slice(-4)}.`);
     console.warn('twilio:', response.status, body.code ?? '', (body.message ?? '').slice(0, 200));
     return done(false, (body.code && twilioErrors[body.code]) || `Twilio said: ${body.message ?? `error ${response.status}`}`);
