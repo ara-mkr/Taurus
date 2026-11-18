@@ -16,6 +16,7 @@
   },
   "packageManager": "pnpm@11.21.0",
   "dependencies": {
+    "force-graph": "1.52.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "simple-icons": "16.36.0",

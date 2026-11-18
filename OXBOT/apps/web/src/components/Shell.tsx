@@ -79,6 +79,8 @@ export function Rail({ boards, current, page, dock, setDock, open, onClose, home
           {page === 'taurus' && <li><button type="button" className="rail-quiet" onClick={() => { onCustomize(); onClose(); }}>Customize</button></li>}
           <li><a href="#ask" aria-current={page === 'ask' ? 'page' : undefined} onClick={onClose}>Ask Ox</a></li>
           <li><a href="#house" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}>House</a></li>
+          <li><a href="#brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}>Brain</a></li>
+          <li><a href="#profinder" aria-current={page === 'profinder' ? 'page' : undefined} onClick={onClose}>ProFinder</a></li>
           <li><button type="button" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}>Browser</button></li>
           <li><button type="button" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}>Activity</button></li>
         </ul>

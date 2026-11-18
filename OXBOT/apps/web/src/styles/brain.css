@@ -1,0 +1,128 @@
+/* The Brain and ProFinder (November 16, 2026). Glass panels in one ink, rules inside, nothing under 13 px.
+   Red (--signal) is used only for "needs you". */
+
+/* Above the Taurus sky, which is fixed at z-index 0, the way the cloud dashboard sits. */
+main.brain, main.profinder { position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 1440px; margin: 12px auto 72px; padding: 18px 20px 0; }
+main.brain .page-head, main.profinder .page-head { align-items: center; border-bottom: 0; padding-bottom: 12px; }
+.brain-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.brain-tools input[type="search"] { width: min(320px, 60vw); margin: 0; }
+
+.brain-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.brain-map { position: relative; border-radius: 22px; overflow: hidden; }
+/* A soft vignette so the glowing dots read like Obsidian's dark canvas, in either theme. */
+.brain-map::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(135% 105% at 50% 40%, transparent 50%, color-mix(in srgb, var(--ink) 10%, transparent) 100%); }
+.brain-graph-wrap { position: relative; }
+.brain-graph { height: min(72vh, 760px); min-height: 420px; touch-action: none; }
+.brain-zoom { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; gap: 6px; }
+.brain-zoom .glass-button { min-width: 36px; padding: 0 10px; font-size: 15px; }
+.brain-foot { margin: 0; padding: 10px 18px 14px; border-top: 1px solid var(--rule); font-size: 13px; }
+
+.brain-side { display: grid; gap: 14px; padding: 20px 22px; border-radius: 22px; max-height: calc(min(72vh, 760px) + 46px); overflow: auto; scrollbar-width: thin; }
+.brain-side.dragging { outline: 2px dashed var(--rule-strong); outline-offset: -8px; }
+.brain-side h2 { font-size: 22px; font-weight: 650; letter-spacing: -.015em; }
+.brain-side h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.brain-crumb { margin: 0; font-size: 13px; }
+.brain-hint { margin: 0; color: var(--ink-2); }
+.brain-body { display: grid; gap: 8px; line-height: 1.5; }
+.brain-body p, .brain-body ul { margin: 0; }
+.brain-body ul { padding-left: 18px; }
+.brain-body h3 { margin-top: 6px; }
+.brain-link { padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+.brain-files, .brain-outline ul, .brain-suggest ul, .pf-log, .jobs { margin: 0; padding: 0; list-style: none; }
+.brain-files li { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--rule); }
+.brain-files li:first-child { border-top: 0; }
+.brain-file-name { font-weight: 600; overflow-wrap: anywhere; }
+.brain-file-do { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.brain-file-do .text-button { padding: 0; font-size: 14px; }
+.brain-drop label { display: block; padding: 14px; border: 1px dashed var(--rule-strong); border-radius: 14px; text-align: center; color: var(--ink-2); cursor: pointer; }
+.brain-drop input:focus-visible + label { outline: 2px solid var(--ink); outline-offset: 2px; }
+.brain-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.brain-edit { display: grid; gap: 6px; }
+.brain-edit label { margin-top: 6px; font-weight: 600; font-size: 14px; }
+.brain-edit input, .brain-edit select, .brain-edit textarea { margin: 0; }
+.brain-edit textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.5; }
+.brain-outline ul ul { padding-left: 14px; }
+.brain-outline li .text-button { padding: 3px 0; text-align: left; color: var(--ink); }
+.brain-outline [aria-current="true"] { text-decoration: underline; text-underline-offset: 3px; }
+
+.brain-suggest { margin-bottom: 16px; padding: 16px 20px; border-radius: 20px; }
+.brain-suggest h2 { font-size: 17px; font-weight: 650; }
+.brain-suggest li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.brain-suggest li:first-child { border-top: 0; }
+.brain-suggest-fact { flex: 1 1 280px; font-weight: 550; }
+.brain-suggest-do { display: flex; gap: 8px; }
+
+/* ProFinder */
+.pf-run { margin: 6px 0 0; }
+.pf-cards { display: grid; gap: 14px; margin: 18px 0 4px; max-width: 760px; }
+.pf-send { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 4px; padding: 14px 20px; border-radius: 18px; max-width: 760px; }
+.pf-send p { margin: 0; }
+.pf-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.pf-col { min-width: 0; padding: 16px 18px; border-radius: 20px; }
+.pf-col h2 { display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 650; padding-bottom: 8px; border-bottom: 1px solid var(--rule-strong); }
+.pf-col h2 .count { margin-left: auto; color: var(--ink-2); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pf-needs-you h2 { color: var(--signal); }
+.pf-col > .muted { margin: 10px 0 0; }
+.pf-col-do { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.pf-col-do .text-button { padding: 0; }
+.job { display: grid; gap: 3px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.job:last-child { border-bottom: 0; }
+.job-top { display: flex; align-items: baseline; gap: 8px; }
+.job-top input { margin: 0; flex: none; }
+.job-title { flex: 1; min-width: 0; color: var(--ink); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.job-title:hover { text-decoration: underline; }
+.job-score { font-weight: 650; font-variant-numeric: tabular-nums; }
+.job-where, .job-why, .job-meta, .job-needs { margin: 0; font-size: 14px; }
+.job-where { color: var(--ink); }
+.job-why, .job-meta { color: var(--ink-2); }
+.job-meta { font-size: 13px; }
+.job-needs { color: var(--signal); }
+.job-do { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 4px; font-size: 14px; }
+.job-do button { min-height: 30px; padding: 0 10px; font-size: 14px; }
+.job-do .text-button { padding: 0; }
+
+.pf-setup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; align-items: start; }
+.pf-panel { display: grid; gap: 10px; padding: 18px 20px; border-radius: 20px; min-width: 0; }
+.pf-panel h2 { font-size: 17px; font-weight: 650; }
+.pf-panel > p { margin: 0; }
+.pf-form { display: grid; gap: 4px; }
+.pf-form label { margin-top: 6px; font-size: 14px; font-weight: 600; }
+.pf-form input, .pf-form select, .pf-form textarea { margin: 0; }
+.pf-form textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+.pf-form .brain-actions { margin-top: 10px; }
+.pf-hint { margin: 2px 0 0; font-size: 13px; }
+.pf-answer { display: grid; gap: 2px; }
+.pf-checks { display: grid; gap: 8px; margin: 6px 0 0; padding: 10px 0 0; border: 0; border-top: 1px solid var(--rule); }
+.pf-checks legend { padding: 0; font-size: 14px; font-weight: 600; }
+.pf-checks label { display: flex; align-items: center; gap: 8px; }
+.pf-checks input[type="checkbox"] { margin: 0; }
+.pf-select { justify-content: space-between; }
+.pf-select select { width: auto; margin: 0; }
+.pf-log li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); }
+.pf-log li:first-child { border-top: 0; }
+
+/* The batch card (in the tray, in Ask and on this page). */
+.approval-items { display: grid; margin: 0; padding: 0; list-style: none; }
+.approval-items > li { padding: 8px 0; border-top: 1px solid var(--rule); }
+.approval-items > li.unchecked .approval-item-check span { color: var(--ink-2); text-decoration: line-through; }
+.approval-item-check { display: flex; align-items: baseline; gap: 10px; font-weight: 600; }
+.approval-item-check input { margin: 0; flex: none; }
+.approval-items details { margin: 4px 0 0 26px; }
+.approval-items summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+.approval-item-link { margin: 6px 0 0; font-size: 14px; }
+
+@media (max-width: 1100px) {
+  .brain-layout { grid-template-columns: 1fr; }
+  .brain-side { max-height: none; }
+  .pf-board, .pf-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  main.brain, main.profinder { padding: 12px 8px 0; }
+  .brain-graph { height: 56vh; min-height: 320px; }
+  .pf-board, .pf-setup { grid-template-columns: 1fr; }
+  .brain-tools input[type="search"] { width: 100%; }
+}
+/* On the ProFinder page the batch card stands on its own glass, as it does in the tray. */
+.pf-cards .approval { padding: 18px 20px; border-radius: 20px; background: var(--glass); -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-shine), 0 0 0 1px var(--glass-edge), var(--shadow); }

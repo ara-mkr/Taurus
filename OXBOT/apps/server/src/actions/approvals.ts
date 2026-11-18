@@ -16,6 +16,7 @@ export interface Prepared {
   title: string; to?: string; text?: string;
   lines?: { label: string; value: string }[];
   purchase?: Proposal['purchase']; caution?: string; open?: string;
+  items?: Proposal['items'];
   payload: Args;
 }
 export interface Spec {
@@ -30,6 +31,8 @@ export interface Spec {
   // The text can be edited before approving; editing prepares the action again with the new text.
   editable?: boolean;
   ttlMinutes?: number;
+  // A batch: the payload for only the items the owner left checked (a subset of what they saw).
+  narrow?: (payload: Args, keep: string[]) => Args;
 }
 
 const specs = new Map<string, Spec>();
@@ -46,8 +49,8 @@ const save = () => store.saveDoc(LOG, all.slice(-500));
 
 // Only what the owner sees; the arguments and payload stay on the server.
 const shown = ({ args: _a, payload: _p, ...p }: Stored): Proposal => p;
-const digestOf = (p: Pick<Stored, 'kind' | 'payload' | 'title' | 'to' | 'text' | 'purchase'>) =>
-  createHash('sha256').update(JSON.stringify([p.kind, p.payload, p.title, p.to ?? '', p.text ?? '', p.purchase ?? null])).digest('hex').slice(0, 32);
+const digestOf = (p: Pick<Stored, 'kind' | 'payload' | 'title' | 'to' | 'text' | 'purchase' | 'items'>) =>
+  createHash('sha256').update(JSON.stringify([p.kind, p.payload, p.title, p.to ?? '', p.text ?? '', p.purchase ?? null, ...(p.items ? [p.items] : [])])).digest('hex').slice(0, 32);
 
 function expire() {
   const now = Date.now();
@@ -79,7 +82,7 @@ export async function propose(kind: string, args: Args, from: Proposal['from']):
   const now = Date.now();
   const p: Stored = {
     id: randomUUID(), kind, app: s.app, title: ready.title, to: ready.to, text: ready.text, lines: ready.lines ?? [], purchase: ready.purchase,
-    caution: [ready.caution, first].filter(Boolean).join(' ') || undefined, open: ready.open, editable: Boolean(s.editable && ready.text !== undefined), from,
+    caution: [ready.caution, first].filter(Boolean).join(' ') || undefined, open: ready.open, ...(ready.items ? { items: ready.items } : {}), editable: Boolean(s.editable && ready.text !== undefined), from,
     createdAt: new Date(now).toISOString(), expiresAt: new Date(now + (s.ttlMinutes ?? (ready.purchase ? 10 : 15)) * 60_000).toISOString(),
     state: 'pending', digest: '', args, payload: ready.payload,
   };
@@ -102,7 +105,7 @@ export function decline(id: string, via: ApprovedVia = 'board'): Proposal {
 
 // The one door to every action. digest must be the version the owner saw; an edited text prepares the action
 // again and that new version is what runs, because the owner approved exactly what they typed.
-export async function approve(id: string, input: { digest: string; text?: string; via?: ApprovedVia }): Promise<Proposal> {
+export async function approve(id: string, input: { digest: string; text?: string; via?: ApprovedVia; keep?: string[] }): Promise<Proposal> {
   expire();
   const p = all.find(x => x.id === id);
   if (!p) throw new HttpError(404, 'No such action.');
@@ -110,6 +113,15 @@ export async function approve(id: string, input: { digest: string; text?: string
   if (p.state !== 'pending') throw new HttpError(409, `That action is already ${p.state}.`);
   if (!input.digest || input.digest !== p.digest) throw new HttpError(409, 'That action changed after you saw it. Look at it again before approving.');
   const s = specs.get(p.kind)!;
+  // A batch runs only the items left checked, each one of those the owner saw on the card.
+  let keep: string[] | undefined;
+  if (input.keep !== undefined) {
+    const ids = new Set((p.items ?? []).map(i => i.id));
+    keep = [...new Set(input.keep.map(String))];
+    if (!s.narrow || !p.items) throw new HttpError(400, 'This action has nothing to uncheck.');
+    if (!keep.length) throw new HttpError(400, 'Nothing is checked. Decline it instead.');
+    if (keep.some(k => !ids.has(k))) throw new HttpError(409, 'That item wasn’t on the card you saw.');
+  }
   // Claim it before anything awaits, so a second tap (or a second screen) can never run it twice.
   p.state = 'running';
   p.decidedAt = new Date().toISOString(); p.via = input.via ?? 'board';
@@ -123,6 +135,8 @@ export async function approve(id: string, input: { digest: string; text?: string
       Object.assign(p, { title: again.title, to: again.to, text: again.text, lines: again.lines ?? [], payload: again.payload });
       p.digest = digestOf(p);
     }
+    if (keep && s.narrow) { p.payload = s.narrow(p.payload, keep); p.kept = keep; }
+    else if (p.items) p.kept = p.items.map(i => i.id);
     running++;
     try { p.result = await s.run(p.payload); } finally { running--; }
     p.state = 'done';

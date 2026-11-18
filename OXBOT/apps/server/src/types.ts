@@ -206,6 +206,10 @@ export interface Proposal {
   result?: string;
   // Where to finish by hand, when an app has no API for the last step (food delivery).
   open?: string;
+  // A batch (ProFinder, November 16, 2026): one card, many items, each one the owner can uncheck before approving.
+  items?: { id: string; title: string; link?: string; lines: { label: string; value: string }[] }[];
+  // After approval: the items that were checked.
+  kept?: string[];
 }
 
 export interface Grant {

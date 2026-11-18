@@ -17,6 +17,8 @@ import { Phone } from './components/Phone';
 import { ProfilePage } from './components/Profile';
 import { Schedule, Skills } from './components/Skills';
 import { House } from './components/House';
+import { BrainPage } from './components/Brain';
+import { ProFinderPage } from './components/ProFinder';
 import { CloudDashboard, customizeTaurus, Sky, taurusDefaults, useParted } from './components/CloudDashboard';
 import { pickCenter, useTick, type Asked } from './components/OxWidget';
 import { armAlarm, RingScreen, Standby, Unreachable, useRing } from './components/Ringing';
@@ -26,11 +28,13 @@ import { readVoice, saveVoice, useVoice, type VoiceSettings } from './components
 import { unlockAudio } from './speech';
 
 // Routes: #b/<board id>, #ask, the settings pages, and #ring for a phone on standby.
-type Page = { kind: 'board'; id?: string } | { kind: 'ask' | 'ring' | 'house' | 'profile' } | { kind: 'taurus'; implicit?: boolean } | { kind: 'settings'; page: keyof typeof settingsPages };
+type Page = { kind: 'board'; id?: string } | { kind: 'ask' | 'ring' | 'house' | 'profile' | 'brain' | 'profinder' } | { kind: 'taurus'; implicit?: boolean } | { kind: 'settings'; page: keyof typeof settingsPages };
 function readPage(): Page {
   const hash = location.hash.slice(1);
   if (hash.startsWith('b/')) return { kind: 'board', id: decodeURIComponent(hash.slice(2)) };
-  if (hash === 'ask' || hash === 'ring' || hash === 'house' || hash === 'profile') return { kind: hash };
+  if (hash === 'ask' || hash === 'ring' || hash === 'house' || hash === 'profile' || hash === 'profinder') return { kind: hash };
+  // The Brain (November 16, 2026): #brain, or #brain/<note> to open one note.
+  if (hash === 'brain' || hash.startsWith('brain/')) return { kind: 'brain' };
   // Taurus (November 5, 2026) is where OXBOT opens, unless you picked the board instead.
   if (hash === 'taurus' || hash === 'sky') return { kind: 'taurus' };
   // The last choice is remembered on this device too, so the right page shows before preferences arrive.
@@ -174,7 +178,7 @@ export default function App() {
   const boards = prefs?.boards ?? [];
   const board = page.kind === 'board' ? boards.find(b => b.id === page.id) ?? boards[0] : undefined;
   useEffect(() => {
-    const title = page.kind === 'board' ? board?.name ?? 'Home' : page.kind === 'ask' ? 'Ask' : page.kind === 'house' ? 'House' : page.kind === 'profile' ? 'Profile' : page.kind === 'taurus' ? 'Taurus' : page.kind === 'settings' ? settingsPages[page.page] : '';
+    const title = page.kind === 'board' ? board?.name ?? 'Home' : page.kind === 'ask' ? 'Ask' : page.kind === 'house' ? 'House' : page.kind === 'profile' ? 'Profile' : page.kind === 'brain' ? 'Brain' : page.kind === 'profinder' ? 'ProFinder' : page.kind === 'taurus' ? 'Taurus' : page.kind === 'settings' ? settingsPages[page.page] : '';
     document.title = title ? `${title} · OXBOT` : 'OXBOT';
   }, [page, board?.name]);
 
@@ -248,7 +252,8 @@ export default function App() {
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
   </>;
   // Cards already shown in the Ask conversation don't repeat in the tray.
-  const inline = page.kind === 'ask' || chatOpen ? turns.flatMap(t => t.proposals ?? []) : [];
+  // The ProFinder page shows its own batch card, so the tray leaves it out there.
+  const inline = [...(page.kind === 'ask' || chatOpen ? turns.flatMap(t => t.proposals ?? []) : []), ...(page.kind === 'profinder' ? waiting.filter(p => p.kind === 'profinder.batch').map(p => p.id) : [])];
   const shownPrefs = prefs ?? offline;
   const profile = shownPrefs.profile ?? offline.profile;
   if (page.kind === 'ring') return <>
@@ -269,6 +274,8 @@ export default function App() {
         {page.kind === 'board' && board && board.id === boards[0]?.id && <PeopleStrip data={data} prefs={shownPrefs} now={now} onAsk={ask} />}
         {page.kind === 'board' && (board ? <BoardView key={board.id} board={board} ctx={ctx} /> : <main id="main" tabIndex={-1} className="board"><p className="board-note">Loading.</p></main>)}
         {page.kind === 'house' && <House onProposal={update} />}
+        {page.kind === 'brain' && <BrainPage onAsk={ask} />}
+        {page.kind === 'profinder' && <ProFinderPage waiting={Object.values(proposals)} onUpdate={update} />}
         {page.kind === 'profile' && prefs && <ProfilePage prefs={prefs} setPrefs={setPrefs} />}
         {page.kind === 'taurus' && <CloudDashboard ctx={ctx} voice={voice} profile={profile} center={center} closeWin={closeWin} onLanguage={setLanguage}
           onBack={key => setDismissed(d => new Set(d).add(key))} />}

@@ -7,5 +7,6 @@ import '../mac.ts';
 import '../browser.ts';
 import '../mcp.ts';
 import './calendar.ts';
+import '../profinder.ts';
 export { allSpecs, approve, decline, get, log, pending, propose, runningNow, spoken } from './approvals.ts';
 export { findTools, readTool } from './composio.ts';
