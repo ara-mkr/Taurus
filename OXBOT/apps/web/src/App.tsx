@@ -8,6 +8,7 @@ import { AI } from './components/AI';
 import { ChatBar, type Extras } from './components/ChatBar';
 import { Connections } from './components/Connections';
 import { Dock, useActivity, useBrowser, type DockTab } from './components/Live';
+import { Onboarding, wasOnboarded } from './components/Onboarding';
 import { cardLine, oxLines, OxBuddy } from './components/Ox';
 import { OxWindows, useOxWindows } from './components/OxWindows';
 import { Swarm } from './components/Swarm';
@@ -53,6 +54,8 @@ const offline: Prefs = { tint: 'graphite', ambient: true, ox: true, todos: [], p
 
 export default function App() {
   const [opened, setPage] = useState<Page>(readPage);
+  // First launch (owner, November 17, 2026): Ox's calm, voice-guided welcome, shown until it's finished once.
+  const [showOnboarding, setShowOnboarding] = useState(() => !wasOnboarded());
   const [appearance, setAppearance] = useState<Appearance>(readAppearance);
   const [data, setData] = useState<Dashboard | null>(null);
   const [history, setHistory] = useState<History | null>(null);
@@ -281,5 +284,6 @@ export default function App() {
     {!ring && <Swarm />}
     {showOx && <OxBuddy lines={oxLines(data, shownPrefs, now)} lineFor={lineFor} voice={voice.view} roam={page.kind === 'board' && prefs?.ox !== false} />}
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
+    {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = 'taurus'; }} />}
   </>;
 }

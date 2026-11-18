@@ -58,5 +58,13 @@ export function ProfilePage({ prefs, setPrefs }: { prefs: Prefs; setPrefs: (u: (
       </div>
       <p className="muted">Shows at the top of the side bar and on your phone’s tab bar.</p>
     </fieldset>
+
+    <fieldset className="choice">
+      <legend>Welcome</legend>
+      <p className="muted">Replay Ox’s voice-guided setup and tour, the one from the first launch.</p>
+      <div className="actions">
+        <button type="button" onClick={() => { try { localStorage.removeItem('oxbot-onboarded'); } catch { /* storage blocked */ } location.reload(); }}>Replay the welcome</button>
+      </div>
+    </fieldset>
   </main>;
 }

@@ -491,7 +491,8 @@ export async function checkBroker() {
   try { brokerApps = await api<Partial<Record<AppName, boolean>>>(`${brokerUrl()}/providers`); }
   catch (error) { console.warn('sign-in service:', error instanceof Error ? error.message : error); }
 }
-const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey }>();
+// A sign-in in flight. `ids` is set when one sign-in connects several connectors at once (a provider bundle, below).
+const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey; ids?: string[] }>();
 const errors = new Map<string, string>();
 
 const byId = (id: string) => {
@@ -538,7 +539,7 @@ export function disconnect(id: string) {
   errors.delete(id);
 }
 
-function remember(id: string, entry: { verifier: string; handoff?: CryptoKey }) {
+function remember(id: string, entry: { verifier: string; handoff?: CryptoKey; ids?: string[] }) {
   for (const [key, value] of pending) if (Date.now() - value.created > 600_000) pending.delete(key);
   const state = randomBytes(24).toString('base64url');
   pending.set(state, { id, created: Date.now(), ...entry });
@@ -565,6 +566,54 @@ export async function startOAuth(id: string): Promise<string> {
   return `${app.authorize}?${params}`;
 }
 
+// One sign-in, your whole account (owner, November 17, 2026: "a lot of things r sign in with gmail or apple account").
+// Google and Microsoft each hand out mail and calendar from a single consent, so OXBOT asks for both scopes at once and
+// saves the one token under each connector. Read-only, same scopes as the separate sign-ins — just one tap instead of two.
+export const providerBundles: { provider: AppName; name: string; ids: string[] }[] = [
+  { provider: 'google', name: 'Google', ids: ['gmail', 'google-calendar'] },
+  { provider: 'microsoft', name: 'Microsoft', ids: ['outlook-mail', 'outlook-calendar'] },
+];
+
+// For the web: which bundles there are, whether they're fully connected, and whether they can start with one tap.
+export function bundleInfo() {
+  return providerBundles.map(b => {
+    const app = apps[b.provider];
+    const picked = b.ids.map(byId);
+    const hasOwnKeys = Boolean(store.secret(app.id) && store.secret(app.secret));
+    return {
+      provider: b.provider, name: b.name, ids: b.ids,
+      connected: picked.every(d => isConnected(d.id)),
+      oneClick: picked.every(d => oneClick(d)),
+      ready: picked.every(d => oneClick(d)) || hasOwnKeys,
+    };
+  });
+}
+
+export async function startOAuthBundle(provider: string): Promise<string> {
+  const bundle = providerBundles.find(b => b.provider === provider);
+  if (!bundle) throw new Error(`No one-tap sign-in for ${provider}`);
+  const app = apps[bundle.provider];
+  const picked = bundle.ids.map(byId).filter(d => d.oauth?.app === bundle.provider && !d.write);
+  if (!picked.length) throw new Error(`Nothing to connect for ${bundle.name}`);
+  const scopes = [...new Set(picked.flatMap(d => d.oauth!.scopes))];
+  const ids = picked.map(d => d.id);
+  const primary = picked[0].id;
+  // One click through OXBOT's sign-in service, exactly like a single connector, but with the combined scopes and id list.
+  if (!ownKeys(app) && brokerUrl() && brokerApps[bundle.provider]) {
+    const handoff = await newHandoffKey();
+    const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids });
+    const params = new URLSearchParams({ provider: bundle.provider, scopes: scopes.join(' '), return_to: `${publicUrl}/api/oauth/handoff`, nonce, key: handoff.publicKey });
+    return `${brokerUrl()}/start?${params}`;
+  }
+  const clientId = store.secret(app.id);
+  if (!clientId || !store.secret(app.secret)) throw new Error(`Add the ${app.name} client ID and secret first`);
+  const verifier = randomBytes(48).toString('base64url');
+  const state = remember(primary, { verifier, ids });
+  const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri(), response_type: 'code', scope: scopes.join(app.sep), state, ...app.extra });
+  if (app.pkce) { params.set('code_challenge', createHash('sha256').update(verifier).digest('base64url')); params.set('code_challenge_method', 'S256'); }
+  return `${app.authorize}?${params}`;
+}
+
 const ownKeyExchange = (app: App, body: Record<string, string>) => exchange(app, store.secret(app.id)!, store.secret(app.secret)!, body);
 const take = (state: string) => {
   const entry = pending.get(state);
@@ -577,9 +626,10 @@ export async function finishOAuth(state: string, code: string): Promise<{ name: 
   const entry = take(state);
   const def = byId(entry.id), app = apps[def.oauth!.app];
   const tokens = await ownKeyExchange(app, { grant_type: 'authorization_code', code, redirect_uri: redirectUri(), ...(app.pkce ? { code_verifier: entry.verifier } : {}) });
-  store.setTokens(def.id, tokens);
-  errors.delete(def.id);
-  return { name: def.name, page: def.write ? 'actions' : 'connections' };
+  // A bundle saves the one token under each connector it covers; a single sign-in is just the one id.
+  for (const id of entry.ids ?? [def.id]) { store.setTokens(id, tokens); errors.delete(id); }
+  const bundle = entry.ids && entry.ids.length > 1 ? providerBundles.find(b => b.provider === def.oauth!.app) : undefined;
+  return { name: bundle?.name ?? def.name, page: def.write ? 'actions' : 'connections' };
 }
 
 export async function finishHandoff(nonce: string, payload: string): Promise<string> {
@@ -587,9 +637,10 @@ export async function finishHandoff(nonce: string, payload: string): Promise<str
   if (!entry.handoff) throw new Error('Sign-in was not started through the OXBOT sign-in service.');
   const tokens = await openSealed<TokenSet>(entry.handoff, payload);
   if (!tokens.access_token) throw new Error('The sign-in service returned no token.');
-  store.setTokens(entry.id, { ...tokens, meta: { via: 'broker' } });
-  errors.delete(entry.id);
-  return byId(entry.id).name;
+  for (const id of entry.ids ?? [entry.id]) { store.setTokens(id, { ...tokens, meta: { via: 'broker' } }); errors.delete(id); }
+  const def = byId(entry.id);
+  const bundle = entry.ids && entry.ids.length > 1 ? providerBundles.find(b => b.provider === def.oauth!.app) : undefined;
+  return bundle?.name ?? def.name;
 }
 
 async function accessToken(def: Def): Promise<string> {

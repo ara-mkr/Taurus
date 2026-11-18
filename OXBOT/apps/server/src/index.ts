@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { hostname, networkInterfaces } from 'node:os';
 import { extname, join, normalize, sep } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
-import { checkBroker, connectorInfo, disconnect, finishHandoff, finishOAuth, grantInfo, saveFields, setPublicUrl, startOAuth } from './connectors.ts';
+import { bundleInfo, checkBroker, connectorInfo, disconnect, finishHandoff, finishOAuth, grantInfo, saveFields, setPublicUrl, startOAuth, startOAuthBundle } from './connectors.ts';
 import { approve, decline, log as actionLog, pending as pendingActions, propose as proposeAction } from './actions/index.ts';
 import { converse } from './agent.ts';
 import { stream as activityStream, recent as recentActivity } from './activity.ts';
@@ -190,7 +190,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   // Lets the desktop app tell an OXBOT server already on this port from some other program.
   if (method === 'GET' && path === '/api/health') return send(res, 200, { app: 'oxbot', version: pkg.version });
   if (method === 'GET' && path === '/api/dashboard') return send(res, 200, await dashboard(url.searchParams.has('refresh')));
-  if (method === 'GET' && path === '/api/connectors') return send(res, 200, { connectors: connectorInfo(), redirectUri: `${publicUrl}/api/oauth/callback`, home: store.dir });
+  if (method === 'GET' && path === '/api/connectors') return send(res, 200, { connectors: connectorInfo(), bundles: bundleInfo(), redirectUri: `${publicUrl}/api/oauth/callback`, home: store.dir });
 
   // Composio: every app it lists, which of them OXBOT reads, and what your own Composio project returned last pull.
   if (method === 'GET' && path === '/api/composio') return send(res, 200, {
@@ -207,6 +207,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   m = path.match(/^\/api\/oauth\/start\/([a-z-]+)$/);
   if (method === 'GET' && m) {
     try { res.writeHead(302, { Location: await startOAuth(m[1]) }); return res.end(); }
+    catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
+  }
+  // One tap connects a whole provider (Google mail+calendar, Microsoft mail+calendar) in a single sign-in.
+  m = path.match(/^\/api\/oauth\/start-bundle\/([a-z-]+)$/);
+  if (method === 'GET' && m) {
+    try { res.writeHead(302, { Location: await startOAuthBundle(m[1]) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   if (method === 'GET' && path === '/api/oauth/callback') {

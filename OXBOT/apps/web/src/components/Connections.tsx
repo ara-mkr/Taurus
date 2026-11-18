@@ -213,7 +213,7 @@ function PhoneLink({ target, name }: { target: string; name?: string }) {
 }
 
 // One app, like an AI app's connector directory: the mark, what it reads, and the ways to connect it.
-function AppSheet({ c, onChange, onClose }: { c: ConnectorInfo; onChange: (list: ConnectorInfo[]) => void; onClose: () => void }) {
+export function AppSheet({ c, onChange, onClose }: { c: ConnectorInfo; onChange: (list: ConnectorInfo[]) => void; onClose: () => void }) {
   const [tab, setTab] = useState<'mac' | 'phone'>('mac');
   const [arrived, setArrived] = useState(false);
   const was = useRef(c.connected);
@@ -251,7 +251,8 @@ function AppSheet({ c, onChange, onClose }: { c: ConnectorInfo; onChange: (list:
 type Found = { ids: string[]; composio: [string, string][]; sites: number; at: string };
 const readFound = (): Found | null => { try { return JSON.parse(localStorage.getItem('oxbot-found') ?? 'null'); } catch { return null; } };
 
-function FindAccounts({ list, onFound, onOpen, onClose }: { list: ConnectorInfo[]; onFound: (f: Found | null) => void; onOpen: (id: string) => void; onClose: () => void }) {
+export type { Found };
+export function FindAccounts({ list, onFound, onOpen, onClose }: { list: ConnectorInfo[]; onFound: (f: Found | null) => void; onOpen: (id: string) => void; onClose: () => void }) {
   const [found, setFound] = useState<Found | null>(readFound);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);

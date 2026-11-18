@@ -28,6 +28,9 @@ async function request<T>(path: string, init?: { method?: string; body?: unknown
   return data as T;
 }
 
+// One sign-in that connects a whole provider (Google mail+calendar, Microsoft mail+calendar) at once.
+export interface Bundle { provider: string; name: string; ids: string[]; connected: boolean; oneClick: boolean; ready: boolean }
+
 export interface ComposioInfo { catalog: [string, string][]; readers: Record<string, string>; apps: { slug: string; name: string; reads?: string; error?: string }[] }
 
 export interface PhoneInfo { settings: PhoneSettings; channels: { screens: number; ntfy: boolean; call: boolean; lastCall: { at: string; ok: boolean; message: string } | null; number?: string | null }; ai: string | null; bound: string; pairing: string[]; lanReady: boolean; tls?: { fingerprint: string; certificate: string[] } | null }
@@ -44,7 +47,7 @@ type Via = 'board' | 'phone' | 'ring';
 export const api = {
   dashboard: (refresh = false) => request<Dashboard>(`/api/dashboard${refresh ? '?refresh' : ''}`),
   composio: () => request<ComposioInfo>('/api/composio'),
-  connectors: () => request<{ connectors: ConnectorInfo[]; redirectUri: string; home: string }>('/api/connectors'),
+  connectors: () => request<{ connectors: ConnectorInfo[]; bundles?: Bundle[]; redirectUri: string; home: string }>('/api/connectors'),
   saveFields: (id: string, values: Record<string, string>) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/fields`, { method: 'POST', body: { values } }),
   disconnect: (id: string) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/disconnect`, { method: 'POST' }),
   ask: (turns: AskTurn[], options: { image?: string; files?: { name: string; text: string }[]; via?: 'ask' | 'talk' } = {}) => request<Answer>('/api/ask', { method: 'POST', body: { turns: turns.map(({ role, text }) => ({ role, text })), ...options } }),

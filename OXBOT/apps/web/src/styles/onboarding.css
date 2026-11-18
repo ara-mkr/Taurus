@@ -1,0 +1,105 @@
+/* Onboarding (owner, November 17, 2026): the calm welcome Ox gives you the first time. One ink, one glass panel,
+   high contrast in both themes, nothing under 13px. It floats above everything (swarm is 70, menus 80). */
+
+.ob-screen {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; grid-template-rows: 1fr; place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  overflow: auto;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(130%); backdrop-filter: blur(26px) saturate(130%);
+  animation: ob-fade .4s ease both;
+}
+
+.ob-ox { color: var(--ink); margin-bottom: 18px; filter: drop-shadow(0 10px 28px rgba(0, 0, 0, .28)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+.ob-ox[data-big="true"] { margin-bottom: 26px; }
+
+.ob-head {
+  position: absolute; top: max(16px, env(safe-area-inset-top)); left: 20px; right: 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ob-progress { display: flex; gap: 8px; }
+.ob-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); opacity: .35; transition: opacity .25s, background .25s, transform .25s; }
+.ob-dot.done { opacity: .6; }
+.ob-dot.on { opacity: 1; background: var(--ink); transform: scale(1.25); }
+.ob-head-actions { display: flex; gap: 14px; align-items: center; }
+
+/* The content column, a single glass panel so the words always sit on a readable ground. */
+.ob-body {
+  width: min(560px, 100%);
+  display: grid; justify-items: center; gap: 14px;
+  padding: 30px 30px 26px; text-align: center;
+  border-radius: 26px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-shine), 0 0 0 1px var(--glass-edge), var(--shadow);
+  animation: ob-rise .45s cubic-bezier(.2, .7, .2, 1) both;
+}
+.ob-hello { background: none; border: 0; box-shadow: none; }
+
+.ob-body h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.05; letter-spacing: -.02em; font-weight: 650; }
+.ob-body h2 { font-size: clamp(22px, 4.5vw, 30px); line-height: 1.1; letter-spacing: -.01em; font-weight: 600; }
+.ob-body h3 { font-size: 15px; font-weight: 600; color: var(--ink-2); align-self: start; margin-top: 4px; }
+.ob-lede { font-size: clamp(15px, 2.3vw, 17px); line-height: 1.5; color: var(--ink); max-width: 46ch; }
+.ob-fine { font-size: 13px; max-width: 42ch; }
+
+.ob-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+.ob-actions-inline { display: flex; justify-content: center; margin-top: 2px; }
+.ob-actions .primary, .ob-actions button { min-height: 46px; padding: 0 24px; border-radius: 14px; font-weight: 550; }
+.ob-begin { min-width: 180px; }
+
+/* Profile form. */
+.ob-form { display: grid; gap: 14px; width: min(400px, 100%); text-align: left; margin-top: 4px; }
+.ob-form > label { display: grid; gap: 6px; font-size: 14px; font-weight: 500; }
+.ob-form input[type="text"], .ob-form input[type="email"] {
+  min-height: 44px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--glass-border); background: var(--wash); color: var(--ink); font-size: 15px;
+}
+.ob-form input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.ob-form .check { display: flex; flex-direction: row; align-items: center; gap: 10px; font-weight: 450; }
+.ob-form .check input { width: 18px; height: 18px; }
+
+.ob-tone { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ob-tone legend { font-size: 14px; font-weight: 500; padding: 0; }
+.ob-tone-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob-chip {
+  min-height: 38px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--glass-border); background: var(--wash); color: var(--ink); font-size: 14px; font-weight: 500;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.ob-chip:hover { border-color: var(--rule-strong); }
+.ob-chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Connect step reuses the real Connector rows; just give them room and a heading rhythm. */
+.ob-connect { max-width: 100%; }
+.ob-connect .ob-lede { max-width: 52ch; }
+.ob-connect-tools { display: grid; gap: 8px; justify-items: center; width: 100%; margin: 4px 0 2px; }
+.ob-connect-tools .muted { font-size: 13px; max-width: 54ch; }
+.ob-group { width: min(480px, 100%); display: grid; gap: 8px; text-align: left; margin-top: 8px; }
+.ob-group .muted { font-size: 13px; }
+.ob-rows { display: grid; gap: 8px; }
+
+/* The one-tap provider accounts at the top of the connect step. */
+.ob-accounts { margin-top: 2px; }
+.ob-account-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-account { min-height: 46px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 12px; font-weight: 550; }
+a.ob-account { text-decoration: none; }
+.ob-account.on { background: var(--wash); border: 1px solid var(--glass-border); color: var(--ink-2); font-weight: 500; }
+
+.ob-tour-step { font-size: 13px; color: var(--ink-2); letter-spacing: .04em; }
+.ob-tour-note { font-size: 13.5px; max-width: 44ch; font-style: italic; }
+
+@keyframes ob-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ob-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 560px) {
+  .ob-body { padding: 24px 18px 22px; border-radius: 22px; }
+  .ob-screen { align-items: start; }
+  .ob-ox { margin-top: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-screen, .ob-body { animation: none; }
+  .ob-ox { transition: none; }
+}
