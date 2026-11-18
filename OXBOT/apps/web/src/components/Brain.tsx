@@ -52,46 +52,93 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     const el = box.current;
     if (!el) return;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const lit = (n: string) => { const h = hover.current ?? state.current.selected; return !h || n === h || Boolean(near.current.get(h)?.has(n)); };
+    const focusOf = () => hover.current ?? state.current.selected;
+    const lit = (n: string) => { const h = focusOf(); return !h || n === h || Boolean(near.current.get(h)?.has(n)); };
+    const onLink = (l: GLink) => { const h = focusOf(); return Boolean(h) && (idOf(l.source) === h || idOf(l.target) === h); };
+    // The dot's drawn radius: small and even, like Obsidian, a touch bigger for busier notes.
+    const radius = (n: GNode) => 1.5 + Math.sqrt(Math.max(1, n.size)) * 1.7;
+
+    // Where the cursor is over the canvas, so the dots can bend away from it (owner, November 17, 2026: "make it
+    // interact with ur cursor like bend around it"). Kept in canvas pixels; turned into graph coordinates each tick.
+    const ptr = { x: 0, y: 0, on: false };
+    const onMove = (e: PointerEvent) => { const r = el.getBoundingClientRect(); ptr.x = e.clientX - r.left; ptr.y = e.clientY - r.top; ptr.on = true; };
+    const onLeave = () => { ptr.on = false; };
+    if (!reduce) { el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave); }
+
     const g = new ForceGraph<GNode, GLink>(el)
       .backgroundColor('rgba(0,0,0,0)')
       .nodeId('id')
       .nodeVal(n => n.size)
-      .nodeRelSize(3)
-      .cooldownTicks(reduce ? 0 : 160)
-      .warmupTicks(reduce ? 200 : 30)
-      .linkWidth(l => { const h = hover.current ?? state.current.selected; return h && (idOf(l.source) === h || idOf(l.target) === h) ? 1.6 : 0.8; })
-      .linkColor(l => { const h = hover.current ?? state.current.selected; const on = h && (idOf(l.source) === h || idOf(l.target) === h); return alpha(state.current.ink, h ? (on ? 0.6 : 0.08) : 0.22); })
+      .nodeRelSize(2)
+      // Never cool down, so the web keeps breathing and reacts to the cursor; velocity damping keeps it calm, not drifting.
+      .cooldownTicks(reduce ? 0 : Infinity)
+      .warmupTicks(reduce ? 220 : 40)
+      .d3AlphaDecay(reduce ? 0.0228 : 0)
+      .d3VelocityDecay(0.5)
+      .linkCurvature(0.12)
+      .linkWidth(l => onLink(l) ? 1.8 : 0.7)
+      .linkColor(l => { const h = focusOf(); return alpha(state.current.ink, h ? (onLink(l) ? 0.55 : 0.07) : 0.18); })
+      // The note in focus sends a few sparks down its own threads, so the web looks alive.
+      .linkDirectionalParticles(l => !reduce && onLink(l) ? 2 : 0)
+      .linkDirectionalParticleWidth(1.8)
+      .linkDirectionalParticleSpeed(0.006)
+      .linkDirectionalParticleColor(() => alpha(state.current.ink, 0.75))
       .nodeCanvasObject((n, ctx, scale) => {
         const s = state.current;
         const match = Boolean(s.query) && n.title.toLowerCase().includes(s.query);
-        const r = Math.sqrt(Math.max(1, n.size)) * 3;
-        const strength = s.query ? (match ? 1 : 0.18) : lit(n.id) ? (n.kind === 'missing' ? 0.35 : n.kind === 'note' ? 0.85 : 1) : 0.18;
+        const on = s.query ? match : lit(n.id);
+        const strength = s.query ? (match ? 1 : 0.13) : on ? (n.kind === 'missing' ? 0.3 : n.kind === 'note' ? 0.9 : 1) : 0.16;
+        const focused = focusOf() === n.id;
+        const r = radius(n);
+        // A soft halo on the live dots: the glow is the Obsidian look.
+        if (on && !reduce) { ctx.shadowColor = alpha(s.ink, Math.min(1, strength)); ctx.shadowBlur = (focused ? 2.4 : match ? 2.2 : 1.3) * r; }
         ctx.beginPath();
         ctx.arc(n.x!, n.y!, r, 0, 2 * Math.PI);
         // Files are rings hanging off their note; links to notes not written yet are faint rings.
-        if (n.kind === 'file' || n.kind === 'missing') { ctx.lineWidth = 1.2 / Math.max(scale, 0.6); ctx.strokeStyle = alpha(s.ink, strength); ctx.stroke(); }
+        if (n.kind === 'file' || n.kind === 'missing') { ctx.lineWidth = 1.1 / Math.max(scale, 0.6); ctx.strokeStyle = alpha(s.ink, strength); ctx.stroke(); }
         else { ctx.fillStyle = alpha(s.ink, strength); ctx.fill(); }
-        if (n.id === s.selected) { ctx.beginPath(); ctx.arc(n.x!, n.y!, r + 4 / scale, 0, 2 * Math.PI); ctx.lineWidth = 1.5 / scale; ctx.strokeStyle = alpha(s.ink, 0.9); ctx.stroke(); }
+        ctx.shadowBlur = 0;
+        if (focused || n.id === s.selected) { ctx.beginPath(); ctx.arc(n.x!, n.y!, r + 4 / scale, 0, 2 * Math.PI); ctx.lineWidth = 1.4 / scale; ctx.strokeStyle = alpha(s.ink, 0.85); ctx.stroke(); }
         // Labels stay 13 px on screen at any zoom; small dots get theirs when zoomed in, near the one in focus, or found.
-        const h = hover.current ?? s.selected;
+        const h = focusOf();
         if (!(n.kind === 'hub' || scale > 1.6 || match || (h && lit(n.id)))) return;
         const size = (n.kind === 'hub' ? 14 : 13) / scale;
         ctx.font = `${n.kind === 'hub' ? 600 : 450} ${size}px ${s.font}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillStyle = alpha(s.ink, Math.max(strength, 0.5));
+        ctx.fillStyle = alpha(s.ink, Math.max(strength, 0.55));
         ctx.fillText(n.title, n.x!, n.y! + r + 3 / scale);
       })
-      .nodePointerAreaPaint((n, color, ctx) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x!, n.y!, Math.sqrt(Math.max(1, n.size)) * 3 + 3, 0, 2 * Math.PI); ctx.fill(); })
+      .nodePointerAreaPaint((n, color, ctx) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x!, n.y!, radius(n) + 4, 0, 2 * Math.PI); ctx.fill(); })
       .onNodeHover(n => { hover.current = n?.id ?? null; el.style.cursor = n ? 'pointer' : ''; })
       .onNodeClick(n => pick.current(n));
-    (g.d3Force('charge') as unknown as { strength?: (v: number) => void } | undefined)?.strength?.(-140);
+    (g.d3Force('charge') as unknown as { strength?: (v: number) => void } | undefined)?.strength?.(-150);
+
+    // The cursor force: dots inside a small radius are pushed straight away from the pointer; the other forces ease them
+    // back the moment it moves on, so the web bends around the cursor. Added to velocity directly, so it works even
+    // when the layout has otherwise settled.
+    if (!reduce) {
+      let simNodes: GNode[] = [];
+      const cursor = ((): (() => void) & { initialize?: (nodes: GNode[]) => void } => {
+        const force = () => {
+          if (!ptr.on) return;
+          const p = g.screen2GraphCoords(ptr.x, ptr.y);
+          const R = 48;
+          for (const n of simNodes) {
+            const dx = (n.x ?? 0) - p.x, dy = (n.y ?? 0) - p.y, d2 = dx * dx + dy * dy;
+            if (d2 > 0.0001 && d2 < R * R) { const d = Math.sqrt(d2), push = (1 - d / R) ** 2 * 2.2; const v = n as GNode & { vx: number; vy: number }; v.vx += (dx / d) * push; v.vy += (dy / d) * push; }
+          }
+        };
+        force.initialize = (nodes: GNode[]) => { simNodes = nodes; };
+        return force;
+      })();
+      g.d3Force('cursor', cursor as unknown as Parameters<typeof g.d3Force>[1]);
+    }
     fg.current = g;
     const size = () => g.width(el.clientWidth).height(el.clientHeight);
     size();
     const watch = new ResizeObserver(size);
     watch.observe(el);
-    return () => { watch.disconnect(); g._destructor(); fg.current = null; };
+    return () => { watch.disconnect(); el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave); g._destructor(); fg.current = null; };
   }, []);
 
   // New data keeps the dots already placed where they were.
@@ -102,7 +149,8 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     const nodes = graph.nodes.map(n => { const was = old.get(n.id); return was ? Object.assign(was, n) : { ...n }; });
     const first = old.size === 0;
     g.graphData({ nodes, links: graph.links.map(l => ({ ...l })) });
-    if (first) g.onEngineStop(() => { g.zoomToFit(400, 60); g.onEngineStop(() => undefined); });
+    // The web keeps simulating, so there is no "engine stop" to wait for: give it a beat to spread, then frame it.
+    if (first) { const t = setTimeout(() => g.zoomToFit(500, 60), matchMedia('(prefers-reduced-motion: reduce)').matches ? 60 : 900); return () => clearTimeout(t); }
   }, [graph]);
 
   // Picking a dot brings it to the middle.
