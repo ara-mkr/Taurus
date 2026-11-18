@@ -4,6 +4,7 @@
 // and NotchService.updateScreen (Copyright (C) 2026 Vorssaint), with the Electron notch's settings. See NOTICE.
 
 import AppKit
+import Combine
 import SwiftUI
 
 // MARK: - Displays
@@ -142,7 +143,8 @@ final class IslandWindow {
         withAnimation(.easeIn(duration: 0.16)) { state.buttons = 0 }
         state.open = false
         state.pinned = false
-        if state.page != .music && state.page != .agents { state.page = .ox }
+        // Pages that hold the camera or the keyboard don't come back on their own.
+        if [.ask, .camera, .notes, .all].contains(state.page) { state.page = .ox }
         panel.acceptsKey = false
         if panel.isKeyWindow { panel.resignKey() }
     }
@@ -152,10 +154,12 @@ final class IslandWindow {
         focusIfAsking()
     }
 
+    private var typing: Bool { state.page == .ask || state.page == .notes }
     private func focusIfAsking() {
-        panel.acceptsKey = state.open && state.page == .ask
+        panel.acceptsKey = state.open && typing
         if panel.acceptsKey { panel.makeKey() } else if panel.isKeyWindow { panel.resignKey() }
     }
+    func focusKeyboard() { if state.open { panel.acceptsKey = true; panel.makeKey() } }
 
     /// A panel rectangle (top-left origin) in screen coordinates.
     private func screen(_ r: CGRect) -> CGRect {
@@ -169,10 +173,12 @@ final class IslandWindow {
         let s = hub.settings
         if state.open {
             let body = g.body(CGSize(width: g.openWidth, height: g.openHeight(state.page, hub)))
-            let reach = screen(body.insetBy(dx: -(Metrics.gutter - 4), dy: 0).insetBy(dx: -6, dy: -8))
+            var area = body.insetBy(dx: -(Metrics.gutter - 4), dy: 0).insetBy(dx: -6, dy: -8)
+            area.size.height += Metrics.buttonHeight + Metrics.buttonGap   // the bottom row
+            let reach = screen(area)
             let inside = reach.contains(mouse)
             panel.ignoresMouseEvents = !inside
-            let typing = state.page == .ask && panel.isKeyWindow
+            let typing = self.typing && panel.isKeyWindow
             if inside || state.pinned || typing || state.askBusy { closeWork?.cancel(); closeWork = nil }
             else if closeWork == nil {
                 let work = DispatchWorkItem { [weak self] in self?.shut() }
@@ -225,6 +231,7 @@ final class NotchController: NSObject, NSApplicationDelegate {
         link.start()
         nowPlaying.start()
         agents.start()
+        loadNotes()
         rebuild()
         // Displays come and go (a monitor plugged in, the lid closed): rebuild after they settle, as Vorssaint does.
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -269,8 +276,9 @@ final class NotchController: NSObject, NSApplicationDelegate {
         }
     }
 
-    private static let none = Actions(open: { _ in }, close: {}, page: { _ in }, pin: {}, dashboard: {}, save: { _ in },
-                                      music: { _ in }, ask: {}, cancelTimer: { _ in }, answerRing: { _ in })
+    private static let none = Actions(open: { _ in }, close: {}, page: { _ in }, pin: {}, dashboard: { _ in }, save: { _ in },
+                                      music: { _ in }, ask: {}, cancelTimer: { _ in }, answerRing: { _ in }, startTimer: { _ in },
+                                      drop: { _ in }, addFiles: {}, removeFile: { _ in }, askAbout: { _ in }, focusKeyboard: {})
 
     private func actions(for w: IslandWindow) -> Actions {
         Actions(
@@ -278,12 +286,53 @@ final class NotchController: NSObject, NSApplicationDelegate {
             close: { [weak w] in w?.shut() },
             page: { [weak w] page in w?.show(page) },
             pin: { [weak w] in w?.state.pinned.toggle() },
-            dashboard: { [weak self] in self?.openDashboard() },
+            dashboard: { [weak self] page in self?.openDashboard(page) },
             save: { [weak self] s in self?.save(s) },
             music: { [weak self] command in self?.music(command) },
             ask: { [weak self, weak w] in if let w { self?.ask(w) } },
             cancelTimer: { [weak self] id in self?.link.cancelTimer(id) },
-            answerRing: { [weak self] id in self?.link.answerRing(id) })
+            answerRing: { [weak self] id in self?.link.answerRing(id) },
+            startTimer: { [weak self] minutes in self?.link.startTimer(minutes) },
+            drop: { [weak self, weak w] urls in self?.shelve(urls); w?.open(.files) },
+            addFiles: { [weak self] in self?.chooseFiles() },
+            removeFile: { [weak self] url in self?.hub.shelf.removeAll { $0 == url } },
+            askAbout: { [weak w] url in w?.state.askFiles = [url]; w?.show(.ask) },
+            focusKeyboard: { [weak w] in w?.focusKeyboard() })
+    }
+
+    // MARK: Files and notes
+
+    private func shelve(_ urls: [URL]) {
+        for url in urls where url.isFileURL && !hub.shelf.contains(url) { hub.shelf.append(url) }
+        if hub.shelf.count > 24 { hub.shelf.removeFirst(hub.shelf.count - 24) }
+    }
+
+    /// The system's own file picker; nothing is read until a file is opened or given to Ox.
+    private func chooseFiles() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        NSApp.activate(ignoringOtherApps: true)
+        if panel.runModal() == .OK { shelve(panel.urls) }
+    }
+
+    private var notesFile: URL { options.home.appendingPathComponent("notch-notes.txt") }
+    private var notesWork: DispatchWorkItem?
+    private var notesWatch: AnyCancellable?
+    private func loadNotes() {
+        hub.notes = (try? String(contentsOf: notesFile, encoding: .utf8)) ?? ""
+        notesWatch = hub.$notes.dropFirst().sink { [weak self] text in
+            guard let self else { return }
+            self.notesWork?.cancel()
+            let file = self.notesFile, home = self.options.home
+            let work = DispatchWorkItem {
+                try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                try? Data(String(text.prefix(200_000)).utf8).write(to: file, options: .atomic)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+            }
+            self.notesWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+        }
     }
 
     private func music(_ command: String) {
@@ -298,14 +347,14 @@ final class NotchController: NSObject, NSApplicationDelegate {
         let s = w.state
         guard !s.askBusy, !s.askText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         s.askBusy = true; s.askError = nil; s.askAnswer = nil
-        let text = s.askText
+        let text = s.askText, files = s.askFiles
         Task { [weak self] in
             guard let self else { return }
-            let result = await self.link.ask(text)
+            let result = await self.link.ask(text, attachments: files)
             await MainActor.run {
                 s.askBusy = false
                 switch result {
-                case .success(let answer): s.askAnswer = answer; s.askText = ""
+                case .success(let answer): s.askAnswer = answer; s.askText = ""; s.askFiles = []
                 case .failure(let e): s.askError = e.message
                 }
             }
@@ -329,11 +378,11 @@ final class NotchController: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
     }
 
-    private func openDashboard() {
-        if options.managed { tellDesktopApp(["do": "dashboard"]); return }
+    private func openDashboard(_ page: String?) {
+        if options.managed { tellDesktopApp(["do": "dashboard", "page": page ?? ""]); return }
         var c = URLComponents(url: options.server, resolvingAgainstBaseURL: false)
         // OXBOT's page lives at localhost, where its sign-in redirects point.
-        c?.host = "localhost"; c?.path = "/"
+        c?.host = "localhost"; c?.path = "/"; c?.fragment = page
         if let url = c?.url { NSWorkspace.shared.open(url) }
     }
 

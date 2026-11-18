@@ -182,11 +182,28 @@ final class ServerLink {
     }
 
     /// Asked in the notch counts as spoken, like the Electron notch: every notch shows Ox thinking, then his answer.
-    func ask(_ text: String) async -> Result<String, AskError> {
+    /// Files from the shelf go with the question the way Ask's attachments do (apps/server/src/index.ts `/api/ask`):
+    /// a text file's words as `files`, one PNG, JPEG or WebP picture as `image`. Only files the owner gave Ox are read.
+    func ask(_ text: String, attachments: [URL] = []) async -> Result<String, AskError> {
         let question = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
         guard !question.isEmpty else { return .failure(AskError("Ask something.")) }
+        var files: [[String: String]] = [], image: String?
+        for url in attachments {
+            let kind = ["png": "png", "jpg": "jpeg", "jpeg": "jpeg", "webp": "webp"][url.pathExtension.lowercased()]
+            guard let data = try? Data(contentsOf: url) else { return .failure(AskError("Couldn’t read \(url.lastPathComponent).")) }
+            if let kind, image == nil, data.count <= 4_000_000 {
+                image = "data:image/\(kind);base64,\(data.base64EncodedString())"
+            } else if data.count <= 400_000, let words = String(data: data, encoding: .utf8) {
+                files.append(["name": url.lastPathComponent, "text": words])
+            } else {
+                return .failure(AskError("Ox reads text files under 400 KB and one PNG, JPEG or WebP picture under 4 MB."))
+            }
+        }
         let next = turns + [["role": "user", "text": question]]
-        let (status, body) = await post("/api/ask", ["turns": next, "via": "talk"], timeout: 90)
+        var request: [String: Any] = ["turns": next, "via": "talk"]
+        if !files.isEmpty { request["files"] = files }
+        if let image { request["image"] = image }
+        let (status, body) = await post("/api/ask", request, timeout: 90)
         guard status == 200, let answer = body["text"] as? String else {
             return .failure(AskError(body["error"] as? String ?? (status == 0 ? "OXBOT isn’t answering. Is it still running?" : "OXBOT said \(status).")))
         }
@@ -197,6 +214,11 @@ final class ServerLink {
     /// OXBOT's own Spotify player: "pause", "resume", "next", "previous".
     func music(_ control: String) { Task { await post("/api/music", ["do": control]) } }
     func cancelTimer(_ id: String) { Task { await post("/api/timers/cancel", ["id": id]) } }
+    /// The words you would say; OXBOT's instant commands start it without the AI.
+    func startTimer(_ minutes: Int) {
+        let m = max(1, min(600, minutes))
+        Task { await post("/api/ask", ["turns": [["role": "user", "text": "set a timer for \(m) minute\(m == 1 ? "" : "s")"]], "via": "ask"]) }
+    }
     func answerRing(_ id: String) {
         guard id.range(of: "^[a-f0-9-]+$", options: .regularExpression) != nil else { return }
         Task { await post("/api/ring/\(id)/ack") }

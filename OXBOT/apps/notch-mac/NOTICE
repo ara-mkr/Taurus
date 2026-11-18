@@ -9,10 +9,15 @@ Ported (rewritten and trimmed, not copied whole):
   (MediaRemote read through /usr/bin/perl; play/pause/next/previous only)
 - Services/AgentUsage (ClaudeReader, CodexReader, AgentLogParser) -> Agents.swift (open turns, tokens today, Codex limits)
 - Services/Notch/NotchWindowHost.swift NotchPanel, NotchService display choice and camera width,
-  NotchSupport.swift screenIndex and NotchQuickAccessLayout -> Controller.swift, IslandView.swift
+  NotchSupport.swift screenIndex, NotchSize, NotchCameraFit, NotchCapsuleFit and NotchQuickAccessLayout,
+  UI/Settings/NotchSettings.swift and NotchAgentsSettings.swift -> Controller.swift, IslandView.swift, Model.swift
+- Services/AgentUsage/AgentOpenCodeReader.swift, Harness/CopilotReader.swift -> Agents.swift
+- UI/Notch/NotchAgentComponents.swift AgentMarks, NotchAgentStrip.swift readouts -> Marks.swift, IslandView.swift
+- Sections: camera (CameraPreviewService), files shelf, timer, scratchpad, system, sections grid -> Tools.swift
 
 Not used: Vorssaint's mascot, name, icons, strings, artwork or any other asset. Ox comes from OXBOT's
-design/logo/ox-mascot.svg. Dropped features: brightness, screenshots/recording, clipboard, files shelf, calendar,
-lyrics, queue, mixer, lock screen, notifications, prices, update checks.
+design/logo/ox-mascot.svg; agent marks are read at run time from the makers' installed apps. Not ported:
+brightness, screenshots/recording, clipboard history, notifications, calendar, downloads, lyrics, queue, mixer,
+lock screen, prices, update checks.
 
 OXBOT builds are personal. If OXBOT is ever distributed with this notch, OXBOT must be GPL-3.0 (see ../../LICENSE-DECISION.md).

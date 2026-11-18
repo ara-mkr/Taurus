@@ -22,12 +22,20 @@ struct Actions {
     var close: () -> Void
     var page: (Page) -> Void
     var pin: () -> Void
-    var dashboard: () -> Void
+    /// Brings OXBOT's window forward, on a page ("notch" is Settings > Notch) or where it was.
+    var dashboard: (String?) -> Void
     var save: (NotchSettings) -> Void
     var music: (String) -> Void
     var ask: () -> Void
     var cancelTimer: (String) -> Void
     var answerRing: (String) -> Void
+    var startTimer: (Int) -> Void
+    var drop: ([URL]) -> Void
+    var addFiles: () -> Void
+    var removeFile: (URL) -> Void
+    var askAbout: (URL) -> Void
+    /// Lets the island take typing (Ask, Notes) without bringing any app forward.
+    var focusKeyboard: () -> Void
 }
 
 // MARK: - Geometry
@@ -79,7 +87,8 @@ struct Geometry {
         case .spacious: openWidth = 560; maxHeight = 400
         case .custom: openWidth = CGFloat(n.customWidth); maxHeight = CGFloat(n.customHeight)
         }
-        panel = CGSize(width: openWidth + 2 * Metrics.gutter + 24, height: maxHeight + 64)
+        // Room below for the bottom row of side buttons.
+        panel = CGSize(width: openWidth + 2 * Metrics.gutter + 24, height: maxHeight + 64 + Metrics.buttonHeight + Metrics.buttonGap)
     }
 
     var header: CGFloat { notched ? max(top, 30) : 34 }
@@ -93,7 +102,12 @@ struct Geometry {
         case .music: natural = 128
         case .agents: natural = 8 + CGFloat(max(1, hub.trackedAgents.count)) * Metrics.agentRow + (hub.plans.isEmpty ? 0 : 36)
         case .ask: natural = 156
-        case .settings: natural = .greatestFiniteMagnitude
+        case .camera: natural = 300
+        case .files: natural = 100 + CGFloat(min(6, hub.shelf.count)) * 38
+        case .timers: natural = 60 + CGFloat(max(1, hub.timers.count)) * 40
+        case .notes: natural = 220
+        case .system: natural = 130
+        case .all: natural = 120
         }
         return min(natural, maxContent)
     }
@@ -204,6 +218,8 @@ final class IslandState: ObservableObject {
     @Published var askBusy = false
     @Published var askAnswer: String?
     @Published var askError: String?
+    /// Files from the shelf going with the next question.
+    @Published var askFiles: [URL] = []
     init(display: NotchDisplay) { self.display = display }
     func geometry(_ s: NotchSettings) -> Geometry { Geometry(display: display, settings: s) }
 }
@@ -282,6 +298,15 @@ struct IslandView: View {
             .frame(width: size.width + 2 * flare, height: size.height)
             .contentShape(shape)
             .onTapGesture { if !state.open { actions.open(nil) } }
+            // Files dropped on Ox go on the shelf (Vorssaint's file drop on the island).
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                for provider in providers {
+                    _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                        if let url, url.isFileURL { DispatchQueue.main.async { actions.drop([url]) } }
+                    }
+                }
+                return !providers.isEmpty
+            }
             .opacity(size.width < 1 ? 0 : 1)
             .position(x: g.panel.width / 2, y: g.gap + size.height / 2)
         }
@@ -410,7 +435,12 @@ struct OpenContent: View {
                 case .music: MusicPage(hub: hub, actions: actions)
                 case .agents: AgentsPage(hub: hub)
                 case .ask: AskPage(state: state, actions: actions)
-                case .settings: SettingsPage(hub: hub, actions: actions)
+                case .camera: CameraPage()
+                case .files: FilesPage(hub: hub, actions: actions)
+                case .timers: TimersPage(hub: hub, actions: actions)
+                case .notes: NotesPage(hub: hub, actions: actions)
+                case .system: SystemPage()
+                case .all: AllPage(actions: actions)
                 }
             }
             .padding(.horizontal, 22)
@@ -529,7 +559,7 @@ struct OxPage: View {
             Spacer(minLength: 0)
             HStack {
                 Spacer()
-                Button("Settings") { actions.page(.settings) }.buttonStyle(.plain).font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.secondary)
+                Button("Settings") { actions.dashboard("notch") }.buttonStyle(.plain).font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.secondary)
             }
         }
     }
@@ -663,132 +693,21 @@ struct AskPage: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(0.08)))
+            ForEach(state.askFiles, id: \.self) { url in
+                HStack {
+                    Text("With \(url.lastPathComponent)").font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    Button("Remove") { state.askFiles.removeAll { $0 == url } }.buttonStyle(.plain)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.secondary)
+                }
+            }
             if state.askBusy { Text("Thinking.").font(.system(size: 15)).foregroundStyle(Ink.secondary) }
             if let e = state.askError { Text(e).font(.system(size: 15)).foregroundStyle(Ink.signal).lineLimit(2) }
             if let a = state.askAnswer {
                 ScrollView { Text(a).font(.system(size: 15)).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled) }
             }
         }
-        .onAppear { DispatchQueue.main.async { focused = true } }
-    }
-}
-
-/// Vorssaint's Settings > Notch and Settings > Agents, in the island, in its order. Every change applies at once.
-struct SettingsPage: View {
-    @ObservedObject var hub: Hub
-    let actions: Actions
-    typealias N = NotchSettings.Native
-
-    private func change(_ edit: (inout NotchSettings) -> Void) {
-        var s = hub.settings
-        edit(&s)
-        actions.save(s)
-    }
-
-    private func row<T: Equatable>(_ label: String, _ options: [(String, T)], _ value: T, _ set: @escaping (inout NotchSettings, T) -> Void) -> some View {
-        HStack {
-            Text(label).font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(1)
-            Spacer(minLength: 12)
-            HStack(spacing: 2) {
-                ForEach(Array(options.enumerated()), id: \.offset) { _, o in
-                    let on = o.1 == value
-                    Button { change { set(&$0, o.1) } } label: {
-                        Text(o.0).font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(on ? Ink.primary : Ink.secondary)
-                            .padding(.horizontal, 9).padding(.vertical, 3)
-                            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.white.opacity(on ? 0.16 : 0)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(2)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(0.06)))
-        }
-    }
-
-    private func onOff(_ label: String, _ value: Bool, _ set: @escaping (inout NotchSettings, Bool) -> Void) -> some View {
-        row(label, [("On", true), ("Off", false)], value, set)
-    }
-
-    private func slider(_ label: String, _ value: Double, _ range: ClosedRange<Double>, step: Double, unit: String = " pt",
-                        _ set: @escaping (inout NotchSettings, Double) -> Void) -> some View {
-        HStack(spacing: 10) {
-            Text(label).font(.system(size: 13)).foregroundStyle(Ink.secondary).lineLimit(1)
-            Spacer(minLength: 12)
-            Slider(value: Binding(get: { value }, set: { v in change { set(&$0, (v / step).rounded() * step) } }), in: range, step: step)
-                .frame(width: 180).tint(Ink.primary)
-            Text(step < 1 ? String(format: "%.1f\(unit)", value) : "\(Int(value))\(unit)")
-                .font(.system(size: 13, weight: .semibold)).monospacedDigit().frame(width: 64, alignment: .trailing)
-        }
-    }
-
-    private func heading(_ title: String) -> some View {
-        Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Ink.tertiary).padding(.top, 6)
-    }
-
-    var body: some View {
-        let s = hub.settings, n = s.native
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 9) {
-                heading("Notch")
-                row("Screens", [("Automatic", NotchSettings.Display.automatic), ("Built-in", .builtin), ("Main", .main), ("All", .all)], s.display) { $0.display = $1 }
-                row("Opens on", [("Hover", true), ("Click", false)], s.openOnHover) { $0.openOnHover = $1 }
-                slider("Open after", Double(s.hoverDelay) / 1000, 0.1...1.0, step: 0.05, unit: " s") { $0.hoverDelay = Int(($1 * 1000).rounded()) }
-                slider("Close after", Double(s.closeDelay) / 1000, 0.1...2.0, step: 0.05, unit: " s") { $0.closeDelay = Int(($1 * 1000).rounded()) }
-                row("Size", [("Compact", N.Size.compact), ("Spacious", .spacious), ("Custom", .custom)], n.size) { $0.native.size = $1 }
-                if n.size == .custom {
-                    slider("Width", n.customWidth, N.widthRange, step: 10) { $0.native.customWidth = $1 }
-                    slider("Maximum height", n.customHeight, N.heightRange, step: 10) { $0.native.customHeight = $1 }
-                }
-                row("Background", [("Black", false), ("Glass", true)], n.glass) { $0.native.glass = $1 }
-                onOff("Outline", n.outline) { $0.native.outline = $1 }
-                row("Ox sits", [("Left", true), ("Right", false)], s.mascotLeft) { $0.mascotLeft = $1 }
-                row("While nothing is happening", [("Ox", true), ("Nothing", false)], s.idleOx) { $0.idleOx = $1 }
-                row("Screens without a notch", [("Capsule", 0), ("Notch shape", 1), ("Nothing", 2)],
-                    !s.pillWithoutNotch ? 2 : n.shape == .notch ? 1 : 0) { s, v in
-                    s.pillWithoutNotch = v != 2
-                    if v != 2 { s.native.shape = v == 1 ? .notch : .capsule }
-                }
-                if s.pillWithoutNotch && n.shape == .capsule {
-                    slider("Capsule width", n.capsuleWidth, N.capsuleWidthRange, step: 1) { $0.native.capsuleWidth = $1 }
-                    slider("Capsule height", n.capsuleHeight, N.capsuleHeightRange, step: 1) { $0.native.capsuleHeight = $1 }
-                    slider("Capsule from top", n.capsuleDrop, N.capsuleDropRange, step: 1) { $0.native.capsuleDrop = $1 }
-                }
-                slider("Camera fit, width", n.cameraWidth, N.cameraWidthRange, step: 1) { $0.native.cameraWidth = $1 }
-                slider("Camera fit, height", n.cameraHeight, N.cameraHeightRange, step: 0.5) { $0.native.cameraHeight = $1 }
-                row("Over full-screen apps", [("Show", true), ("Hide", false)], s.overFullScreen) { $0.overFullScreen = $1 }
-                row("In screenshots and sharing", [("Show", true), ("Hide", false)], s.inCaptures) { $0.inCaptures = $1 }
-
-                Rule().padding(.vertical, 4)
-                heading("What it shows")
-                onOff("Ox’s answers", s.showAnswer) { $0.showAnswer = $1 }
-                onOff("Now playing", s.showMusic) { $0.showMusic = $1 }
-                onOff("Timers", s.showTimers) { $0.showTimers = $1 }
-                onOff("Ask", s.showAsk) { $0.showAsk = $1 }
-
-                Rule().padding(.vertical, 4)
-                heading("Agents")
-                ForEach(Provider.allCases) { p in
-                    HStack(spacing: 8) {
-                        AgentMark(provider: p, size: 13, nameIfMissing: false)
-                        onOff(p.name, n.agents.contains(p)) { s, on in if on { s.native.agents.insert(p) } else { s.native.agents.remove(p) } }
-                    }
-                }
-                onOff("Working agent in the closed notch", n.live) { $0.native.live = $1 }
-                row("Beside its mark", [("Time", N.Readout.elapsed), ("Tokens", .tokens), ("Limit", .limit)], n.readout) { $0.native.readout = $1 }
-                row("Limits as", [("Left", N.LimitDisplay.remaining), ("Used", .used)], n.limitDisplay) { $0.native.limitDisplay = $1 }
-                row("Limit to show", [("Most used", N.LimitFocus.mostUsed), ("5-hour", .session), ("Week", .weekly)], n.limitFocus) { $0.native.limitFocus = $1 }
-                onOff("Tell me when an agent finishes", n.finishAlert) { $0.native.finishAlert = $1 }
-                if n.finishAlert {
-                    row("After a turn of", [("Any length", 0), ("1 min", 1), ("5 min", 5), ("15 min", 15)], n.finishMinimum) { $0.native.finishMinimum = $1 }
-                }
-                onOff("Tell me when a plan is nearly used", n.limitAlert) { $0.native.limitAlert = $1 }
-                if n.limitAlert {
-                    row("At", [("75%", 75), ("90%", 90), ("95%", 95)], n.limitThreshold) { $0.native.limitThreshold = $1 }
-                }
-            }
-            .padding(.bottom, 8)
-        }
+        .onAppear { actions.focusKeyboard(); DispatchQueue.main.async { focused = true } }
     }
 }
 
@@ -811,8 +730,14 @@ struct SideButtons: View {
          Item(title: "Agents", selected: state.page == .agents, action: { actions.page(.agents) })]
     }
     private var right: [Item] {
+        [Item(title: "Camera", selected: state.page == .camera, action: { actions.page(.camera) }),
+         Item(title: "Files", selected: state.page == .files, action: { actions.page(.files) }),
+         Item(title: "All", selected: state.page == .all, action: { actions.page(.all) })]
+    }
+    /// Vorssaint's bottom side: a row under the island.
+    private var bottom: [Item] {
         (hub.settings.showAsk ? [Item(title: "Ask", selected: state.page == .ask, action: { actions.page(.ask) })] : [])
-        + [Item(title: "OXBOT", selected: false, action: actions.dashboard),
+        + [Item(title: "OXBOT", selected: false, action: { actions.dashboard(nil) }),
            Item(title: state.pinned ? "Unpin" : "Pin", selected: state.pinned, action: actions.pin)]
     }
 
@@ -820,12 +745,19 @@ struct SideButtons: View {
         let size = CGSize(width: geometry.openWidth, height: geometry.openHeight(state.page, hub))
         let island = geometry.body(size)
         let p = state.buttons
+        let widths = bottom.map { Self.width($0.title) }
+        let span = widths.reduce(0, +) + CGFloat(max(0, widths.count - 1)) * Metrics.buttonGap
         ZStack(alignment: .topLeading) {
             ForEach(Array(left.enumerated()), id: \.offset) { i, item in
                 bubble(item).position(center(i, item, edge: island.minX, top: island.minY, left: true, progress: p))
             }
             ForEach(Array(right.enumerated()), id: \.offset) { i, item in
                 bubble(item).position(center(i, item, edge: island.maxX, top: island.minY, left: false, progress: p))
+            }
+            ForEach(Array(bottom.enumerated()), id: \.offset) { i, item in
+                let x = island.midX - span / 2 + widths[..<i].reduce(0, +) + CGFloat(i) * Metrics.buttonGap + widths[i] / 2
+                let phase = min(1.1, max(0, p))
+                bubble(item).position(x: x, y: island.maxY + (-14 + phase * (14 + Metrics.buttonGap + Metrics.buttonHeight / 2)))
             }
         }
         .frame(width: geometry.panel.width, height: geometry.panel.height, alignment: .topLeading)

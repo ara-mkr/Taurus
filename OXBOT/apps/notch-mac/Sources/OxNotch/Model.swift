@@ -194,7 +194,24 @@ enum DesktopFile {
 
 // MARK: - What the islands show
 
-enum Page: String, CaseIterable { case ox, music, agents, ask, settings }
+/// The island's pages: Vorssaint's sections that fit OXBOT, and "all", its sections grid.
+enum Page: String, CaseIterable {
+    case ox, music, agents, ask, camera, files, timers, notes, system, all
+    var title: String {
+        switch self {
+        case .ox: return "Ox"
+        case .music: return "Music"
+        case .agents: return "Agents"
+        case .ask: return "Ask"
+        case .camera: return "Camera"
+        case .files: return "Files"
+        case .timers: return "Timers"
+        case .notes: return "Notes"
+        case .system: return "System"
+        case .all: return "All"
+        }
+    }
+}
 
 struct Voice: Equatable {
     enum Phase: String { case listening, thinking, answer, error, idle }
@@ -311,6 +328,10 @@ final class Hub: ObservableObject {
     /// A short notice in the closed island, as Vorssaint's agent alerts: an agent finished, or a plan is nearly used.
     @Published var notice: Notice?
     private var alerted = Set<String>()
+    /// Files dropped on the notch (Vorssaint's shelf): references only, in memory, until removed or OxNotch quits.
+    @Published var shelf: [URL] = []
+    /// The scratchpad, saved owner-only in ~/.oxbot/notch-notes.txt.
+    @Published var notes = ""
 
     struct Notice: Equatable {
         var provider: Provider

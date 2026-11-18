@@ -182,4 +182,24 @@ test.describe('in the desktop app', () => {
       return Boolean(tray);
     });
   });
+
+  // November 17, 2026: the notch's settings live in OXBOT's own window, Settings > Notch, with the native notch's
+  // Vorssaint settings (sizes, agents) beside the shared ones.
+  test('Settings > Notch in OXBOT’s window changes the same settings, the native notch’s too', async () => {
+    const page = app.windows().find(p => p.url().startsWith(`http://localhost:${port}`))!;
+    await page.evaluate(() => { location.hash = 'notch'; });
+    await expect(page.getByRole('heading', { name: 'Notch', level: 1 })).toBeVisible();
+    const saved = () => JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch;
+    await page.getByRole('checkbox', { name: 'Show Ox at the top of the screen' }).check();
+    await expect.poll(() => saved()?.on).toBe(true);
+    await page.getByRole('radio', { name: 'Every screen' }).check();
+    await expect.poll(() => saved()?.display).toBe('all');
+    await page.getByRole('radio', { name: 'Custom' }).check();
+    await expect.poll(() => saved()?.native?.size).toBe('custom');
+    await page.getByRole('checkbox', { name: 'OpenCode' }).uncheck();
+    await expect.poll(() => saved()?.native?.agents).toEqual(['claude', 'codex', 'copilot']);
+    // The Electron notch comes back with the setting, and keeps what it doesn't know as it is.
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter(w => !w.isDestroyed() && w.webContents.getURL().endsWith('notch.html')).length)).toBeGreaterThan(0);
+    expect(saved()).toMatchObject({ open: 'click', native: { size: 'custom' } });
+  });
 });

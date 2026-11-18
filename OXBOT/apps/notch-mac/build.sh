@@ -29,7 +29,18 @@ echo "Compiling the Now Playing adapter (loaded by /usr/bin/perl)…"
 swiftc "${flags[@]}" -emit-library -module-name OxNowPlaying Sources/OxNowPlaying/*.swift -o "$out/libOxNowPlaying.dylib"
 
 echo "Compiling OxNotch…"
-swiftc "${flags[@]}" -module-name OxNotch Sources/OxNotch/*.swift -o "$out/OxNotch"
+# A bare program asking for the camera needs its own Info.plist with a reason, or macOS stops it.
+cat > .build/Info.plist <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>local.oxbot.notch</string>
+  <key>CFBundleName</key><string>Ox</string>
+  <key>NSCameraUsageDescription</key><string>Ox shows your camera as a mirror in the notch, only while the Camera page is open. Nothing is recorded or sent.</string>
+</dict></plist>
+EOF
+swiftc "${flags[@]}" -module-name OxNotch Sources/OxNotch/*.swift -o "$out/OxNotch" \
+    -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker "$PWD/.build/Info.plist"
 
 ls -l "$out/OxNotch" "$out/libOxNowPlaying.dylib"
 echo "Run it on its own with: $PWD/$out/OxNotch"

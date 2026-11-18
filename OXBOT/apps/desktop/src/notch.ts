@@ -55,7 +55,7 @@ export function notchService(o: Options) {
         const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
         try {
           const m = JSON.parse(line) as { do?: string; settings?: unknown };
-          if (m.do === 'dashboard') o.openDashboard();
+          if (m.do === 'dashboard') openOxbot((m as { page?: string }).page === 'notch' ? 'notch' : undefined);
           else if (m.do === 'save') { update(m.settings); tellNative({ settings }); }
         } catch { /* not a request */ }
       }
@@ -140,6 +140,23 @@ export function notchService(o: Options) {
     return settings;
   }
   ipcMain.handle('notch:save', (e, partial: unknown) => (mine(e) ? update(partial) : settings));
+
+  // Settings > Notch in OXBOT's own window (November 17, 2026): only that page, on OXBOT's origin, may read or
+  // change these. The native notch's Settings button opens it.
+  const oxbotPage = (url: string) => {
+    try { const u = new URL(url), l = new URL(o.local); return (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && u.port === l.port && u.protocol === 'http:'; } catch { return false; }
+  };
+  ipcMain.handle('notch:settings', (e, partial?: unknown) => {
+    if (!oxbotPage(e.sender.getURL())) return null;
+    if (partial !== undefined) update(partial);
+    return { ...settings, nativeNotch: Boolean(native) };
+  });
+  function openOxbot(page?: 'notch') {
+    o.openDashboard();
+    if (!page) return;
+    const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && oxbotPage(w.webContents.getURL()));
+    void win?.webContents.executeJavaScript(`location.hash = ${JSON.stringify(page)}`).catch(() => undefined);
+  }
   async function ask(text: string, via: 'talk' | 'ask', remember: boolean): Promise<{ text: string } | { error: string }> {
     const question = text.trim().slice(0, 500);
     if (!question) return { error: 'Ask something.' };
@@ -172,7 +189,8 @@ export function notchService(o: Options) {
     // Opens the notch on the first screen at its settings (from the tray menu).
     showSettings() {
       if (!settings.on) { settings = { ...settings, on: true }; o.save(settings); sync(); }
-      if (native) { tellNative({ open: 'settings' }); return; }
+      // With the native notch, its settings live in OXBOT's own window.
+      if (nativeFile) { openOxbot('notch'); return; }
       const first = windows.values().next().value;
       if (!first) return;
       const go = () => { if (!testing) { first.win.setIgnoreMouseEvents(false); first.win.focus(); } first.win.webContents.send('notch:command', 'settings'); };

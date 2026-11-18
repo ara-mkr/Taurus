@@ -14,4 +14,9 @@ contextBridge.exposeInMainWorld('oxbotDesktop', Object.freeze({
     void ipcRenderer.invoke('swarm-screens').then(cb).catch(() => undefined);
     return () => { ipcRenderer.removeListener('swarm-screens', listener); };
   },
+  // Settings > Notch (November 17, 2026): read and change Ox's notch settings, nothing else.
+  notch: Object.freeze({
+    get: () => ipcRenderer.invoke('notch:settings'),
+    set: (partial: unknown) => ipcRenderer.invoke('notch:settings', partial),
+  }),
 }));
