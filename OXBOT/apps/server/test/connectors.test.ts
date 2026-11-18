@@ -203,15 +203,22 @@ const fixtures: Record<string, Fixture> = {
     fields: { CANVAS_URL: 'https://school.instructure.com', CANVAS_TOKEN: 'canvas-test-token' },
     routes: [
       [/school\.instructure\.com\/api\/v1\/courses\?enrollment_state=active/, (c: Call) => { assert.equal(c.headers.get('authorization'), 'Bearer canvas-test-token'); return [{ id: 11, name: 'Biology 101' }, { id: 12, name: 'Calculus II' }]; }],
-      [/school\.instructure\.com\/api\/v1\/users\/self\/todo/, [{ type: 'submitting', context_name: 'Biology 101', html_url: 'https://school.instructure.com/courses/11/assignments/5#submit', assignment: { id: 5, name: 'Lab report 3', due_at: iso(30 * HOUR), course_id: 11, html_url: 'https://school.instructure.com/courses/11/assignments/5' } }]],
-      [/school\.instructure\.com\/api\/v1\/users\/self\/upcoming_events/, [{ id: 'assignment_6', title: 'Problem set 7', type: 'assignment', html_url: 'https://school.instructure.com/courses/12/assignments/6', assignment: { id: 6, name: 'Problem set 7', due_at: iso(6 * HOUR), course_id: 12 } }, { id: 'event_1', title: 'Office hours', type: 'event', start_at: iso(HOUR) }]],
-      [/school\.instructure\.com\/api\/v1\/users\/self\/missing_submissions/, [{ id: 4, name: 'Reading quiz', due_at: iso(-20 * HOUR), course_id: 11, html_url: 'https://school.instructure.com/courses/11/assignments/4' }]],
+      [/school\.instructure\.com\/api\/v1\/planner\/items\?.*filter=incomplete_items/, [
+        { plannable_type: 'assignment', plannable_id: '6', course_id: 12, html_url: '/courses/12/assignments/6#submit', submissions: { submitted: false, missing: false }, plannable: { id: 6, title: 'Problem set 7', due_at: iso(6 * HOUR) } },
+        { plannable_type: 'assignment', plannable_id: '8', course_id: 12, submissions: { submitted: true }, plannable: { id: 8, title: 'Already handed in', due_at: iso(5 * HOUR) } },
+        { plannable_type: 'assignment', plannable_id: '9', course_id: 12, planner_override: { marked_complete: true }, submissions: false, plannable: { id: 9, title: 'Marked done', due_at: iso(5 * HOUR) } },
+        { plannable_type: 'planner_note', plannable_id: '3', plannable: { title: 'Buy a lab coat', todo_date: iso(HOUR) } },
+        { plannable_type: 'calendar_event', plannable_id: '4', plannable: { title: 'Office hours', start_at: iso(HOUR) } },
+      ]],
+      [/school\.instructure\.com\/api\/v1\/users\/self\/todo/, [{ type: 'submitting', context_name: 'Biology 101', html_url: 'https://school.instructure.com/courses/11/assignments/5#submit', assignment: { id: 5, name: 'Lab report 3', due_at: iso(30 * HOUR), course_id: 11 } }]],
+      [/school\.instructure\.com\/api\/v1\/users\/self\/missing_submissions\?filter\[\]=submittable/, [{ id: 4, name: 'Reading quiz', due_at: iso(-20 * HOUR), course_id: 11, html_url: 'https://school.instructure.com/courses/11/assignments/4' }]],
       [/school\.instructure\.com\/api\/v1\/announcements\?context_codes\[\]=course_11&context_codes\[\]=course_12/, [{ id: 90, title: 'Exam moved', message: '<p>The midterm is now <b>Friday</b>.</p>', posted_at: iso(-2 * HOUR), context_code: 'course_12', html_url: 'https://school.instructure.com/courses/12/discussion_topics/90' }]],
     ],
     check: p => {
       assert.deepEqual(p.needs.map((n: any) => n.title), ['Reading quiz', 'Problem set 7', 'Lab report 3']);
       assert.match(p.needs[0].detail, /^Overdue, was due .* · Biology 101$/);
       assert.equal(p.needs[1].who, 'Calculus II');
+      assert.equal(p.needs[1].url, 'https://school.instructure.com/courses/12/assignments/6#submit');
       assert.match(p.updates[0].detail, /^Calculus II · The midterm is now\s+Friday\s*\.$/);
     },
   },

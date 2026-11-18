@@ -2,17 +2,23 @@ import { isIP } from 'node:net';
 import { DAY, iso, stripTags, type Def, type Pull } from './kit.ts';
 
 // Canvas LMS (Instructure): coursework for students. Read-only, GET only, built from Canvas's documented REST API v1
-// (https://developerdocs.instructure.com/services/canvas) and tested only against mocked responses.
+// (https://canvas.instructure.com/doc/api/) and tested only against mocked responses.
 //
 // Canvas OAuth needs a developer key issued by each school, so OXBOT's one-click sign-in cannot serve it. The student
 // pastes their school's Canvas address and a personal access token they generate themselves (Account → Settings →
-// "New Access Token"). Nothing is ever submitted, posted, marked or changed: the only reads are
-//   GET /api/v1/users/self/todo, /upcoming_events, /missing_submissions, /courses, /announcements.
+// "New Access Token"). Nothing is ever submitted, posted, marked or changed. The only reads are
+//   GET /api/v1/courses, /planner/items, /users/self/todo, /users/self/missing_submissions, /announcements.
+//
+// Why these and not /users/self/upcoming_events: that endpoint ignores its parameters and lists work you have already
+// handed in. The Planner API is what Canvas's own student dashboard uses, and `filter=incomplete_items` leaves out
+// submitted, excused and marked-complete work. /todo and /missing_submissions fill in what the planner window misses.
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- provider payloads are untyped JSON */
 const MAX_ASSIGNMENTS = 10;
 const MAX_ANNOUNCEMENTS = 5;
 const MAX_COURSES = 10; // /announcements accepts at most ten context_codes[] per request.
+const AHEAD_DAYS = 7; // Coming up: the next week.
+const BEHIND_DAYS = 14; // Overdue: the last two weeks, so a term's worth of old misses doesn't bury today.
 
 // "https://school.instructure.com/anything" -> "https://school.instructure.com". Throws a plain sentence when the
 // address is not one OXBOT should send a token to: https only, a real public domain, no credentials, no odd port.
@@ -53,49 +59,75 @@ const optional = <T>(read: Promise<T>, fallback: T): Promise<T> => read.catch(er
 
 const when = (at: string) => new Date(at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const short = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
+const day = (ms: number) => iso(ms).slice(0, 10);
+const asList = (value: unknown): any[] => (Array.isArray(value) ? value : []);
+
+// Planner items that are coursework with a due date. Notes, calendar events, announcements and pages are not.
+const coursework = new Set(['assignment', 'quiz', 'discussion_topic', 'sub_assignment']);
 
 export async function canvasPull(baseField: string | undefined, token: string | undefined, now = Date.now()): Promise<Pull> {
   const base = canvasBase(baseField);
   if (!token?.trim()) throw new Error('Canvas: paste your access token (Canvas → Account → Settings → New Access Token).');
   const t = token.trim();
+  // Canvas hands back paths like "/courses/1/assignments/2"; only ever link to the school's own site.
+  const link = (href: unknown): string | undefined => {
+    if (typeof href !== 'string' || !href) return undefined;
+    try { const url = new URL(href, base); return url.origin === base ? url.href : undefined; } catch { return undefined; }
+  };
 
-  const courses = await get<any[]>(base, t, 'courses?enrollment_state=active&per_page=50');
-  const names = new Map<number, string>(courses.map(c => [c.id, c.name || c.course_code || `Course ${c.id}`]));
-  const courseName = (id?: number, fallback?: string) => (id !== undefined && names.get(id)) || fallback || '';
+  const courses = asList(await get<any[]>(base, t, 'courses?enrollment_state=active&per_page=50'));
+  const names = new Map<number, string>(courses.map(c => [Number(c.id), c.name || c.course_code || `Course ${c.id}`]));
+  const courseName = (id?: unknown, fallback?: string) => (id !== undefined && id !== null && names.get(Number(id))) || fallback || '';
 
   const codes = courses.slice(0, MAX_COURSES).map(c => `context_codes[]=course_${c.id}`).join('&');
-  const [todo, upcoming, missing, notices] = await Promise.all([
+  const planner = `planner/items?start_date=${day(now - BEHIND_DAYS * DAY)}&end_date=${day(now + (AHEAD_DAYS + 1) * DAY)}&filter=incomplete_items&per_page=50`;
+  const [plan, todo, missing, notices] = await Promise.all([
+    optional(get<any[]>(base, t, planner), []),
     optional(get<any[]>(base, t, 'users/self/todo?per_page=30'), []),
-    optional(get<any[]>(base, t, 'users/self/upcoming_events?per_page=30'), []),
-    optional(get<any[]>(base, t, 'users/self/missing_submissions?per_page=30'), []),
-    codes ? optional(get<any[]>(base, t, `announcements?${codes}&active_only=true&start_date=${iso(now - 7 * DAY).slice(0, 10)}&per_page=20`), []) : Promise.resolve([]),
+    optional(get<any[]>(base, t, 'users/self/missing_submissions?filter[]=submittable&filter[]=current_grading_period&per_page=30'), []),
+    codes ? optional(get<any[]>(base, t, `announcements?${codes}&active_only=true&start_date=${day(now - 7 * DAY)}&per_page=20`), []) : Promise.resolve([]),
   ]);
 
-  // The same assignment can arrive from several lists; keep the first, which carries the course name.
+  // The same work can arrive from several lists; keep the first. Planner goes first because it knows what is handed in.
   const seen = new Set<string>();
   const items: { id: string; title: string; course: string; due: string; url?: string; overdue: boolean }[] = [];
-  const add = (assignment: any, course: string, url?: string) => {
-    if (!assignment?.id || !assignment.due_at || seen.has(String(assignment.id))) return;
-    seen.add(String(assignment.id));
-    items.push({ id: String(assignment.id), title: assignment.name || 'Assignment', course, due: assignment.due_at, url: url ?? assignment.html_url, overdue: Date.parse(assignment.due_at) < now });
+  const add = (key: string, title: string | undefined, course: string, dueAt: unknown, url?: string) => {
+    const due = Date.parse(String(dueAt ?? ''));
+    if (Number.isNaN(due) || due > now + AHEAD_DAYS * DAY || due < now - BEHIND_DAYS * DAY) return;
+    const same = `${(title ?? '').trim().toLowerCase()}|${due}`;
+    if (seen.has(key) || seen.has(same)) return;
+    seen.add(key); seen.add(same);
+    items.push({ id: key, title: title || 'Assignment', course, due: new Date(due).toISOString(), url, overdue: due < now });
   };
-  for (const item of todo) if (item.type === 'submitting') add(item.assignment, courseName(item.assignment?.course_id ?? item.course_id, item.context_name), item.html_url);
-  for (const event of upcoming) {
-    if (event.assignment) add(event.assignment, courseName(event.assignment.course_id, event.context_name), event.html_url);
+
+  for (const p of asList(plan)) {
+    const type = String(p.plannable_type ?? '');
+    if (!coursework.has(type) || !p.plannable) continue;
+    const s = p.submissions && typeof p.submissions === 'object' ? p.submissions : {};
+    if (p.planner_override?.marked_complete || p.planner_override?.dismissed || s.submitted || s.excused || s.graded) continue;
+    add(`${type}:${p.plannable_id ?? p.plannable.id}`, p.plannable.title ?? p.plannable.name, courseName(p.course_id, p.context_name), p.plannable.due_at ?? p.plannable_date, link(p.html_url));
   }
-  for (const assignment of missing) add(assignment, courseName(assignment.course_id), assignment.html_url);
+  // To-dos for a teacher or TA ("grading") are other people's work.
+  for (const item of asList(todo)) {
+    const work = item.assignment ?? item.quiz;
+    if (item.type !== 'submitting' || !work) continue;
+    add(`${item.assignment ? 'assignment' : 'quiz'}:${work.id}`, work.name ?? work.title, courseName(work.course_id ?? item.course_id, item.context_name), work.due_at, link(item.html_url ?? work.html_url));
+  }
+  for (const work of asList(missing)) add(`assignment:${work.id}`, work.name, courseName(work.course_id), work.due_at, link(work.html_url));
 
   items.sort((a, b) => Date.parse(a.due) - Date.parse(b.due));
   return {
     needs: items.slice(0, MAX_ASSIGNMENTS).map(i => ({
       id: `canvas:${i.id}`, title: i.title, who: i.course || undefined,
       detail: `${i.overdue ? 'Overdue, was due' : 'Due'} ${when(i.due)}${i.course ? ` · ${i.course}` : ''}`,
-      source: 'Canvas', at: i.due, url: i.url,
+      // The board shows `at` as time since it arrived, so a future due date would read as "now" and sort ahead of
+      // everything. Overdue work keeps its due date (how long it has been late); coming work counts from now.
+      source: 'Canvas', at: i.overdue ? i.due : iso(now), url: i.url,
     })),
-    updates: notices.slice(0, MAX_ANNOUNCEMENTS).map(n => ({
+    updates: asList(notices).slice(0, MAX_ANNOUNCEMENTS).map(n => ({
       id: `canvas-announcement:${n.id}`, title: n.title || 'Announcement',
-      detail: [courseName(Number(String(n.context_code ?? '').replace('course_', '')) || undefined), short(stripTags(n.message ?? ''), 140)].filter(Boolean).join(' · '),
-      source: 'Canvas', at: n.posted_at, url: n.html_url,
+      detail: [courseName(String(n.context_code ?? '').replace('course_', '') || undefined), short(stripTags(n.message ?? ''), 140)].filter(Boolean).join(' · '),
+      source: 'Canvas', at: n.posted_at ?? n.created_at, url: link(n.html_url ?? n.url),
     })),
   };
 }
@@ -103,7 +135,7 @@ export async function canvasPull(baseField: string | undefined, token: string | 
 export const canvasDefs: Def[] = [
   {
     id: 'canvas', name: 'Canvas', group: 'Tasks', mockOnly: true,
-    reads: 'Your assignments that are overdue or coming up, with the course and due date, and the last week of course announcements. Read only: OXBOT never submits or posts anything.',
+    reads: 'Your coursework that is overdue or due in the next week, with the course and due date, and the last week of course announcements. Work you have handed in is left out. Read only: OXBOT never submits or posts anything.',
     fields: [
       { key: 'CANVAS_URL', label: 'Your school’s Canvas address', placeholder: 'https://yourschool.instructure.com' },
       { key: 'CANVAS_TOKEN', label: 'Access token', secret: true },
