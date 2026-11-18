@@ -6,7 +6,7 @@
   "files": ["dist/**/*", "package.json", "!dist/**/*.map"],
   "extraResources": [{ "from": "../web/dist", "to": "web" }],
   "asar": true,
-  "asarUnpack": ["dist/oxbot-hands"],
+  "asarUnpack": ["dist/oxbot-hands", "dist/OxNotch", "dist/libOxNowPlaying.dylib"],
   "npmRebuild": false,
   "nodeGypRebuild": false,
   "publish": null,

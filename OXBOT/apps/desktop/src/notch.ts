@@ -1,5 +1,7 @@
 import { BrowserWindow, ipcMain, screen, type Display, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
-import { join } from 'node:path';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join, sep } from 'node:path';
 import { cleanNotch, geometry, notchScreens, type Geometry, type NotchSettings, type NotchState, type Screen } from './notch-settings';
 
 // Ox in the notch (owner, November 6, 2026). A black pill hugging the MacBook's camera notch, with Ox beside it; on
@@ -31,6 +33,42 @@ export function notchService(o: Options) {
   let connected = false;
   // A few turns, so "and tomorrow?" follows on from the last question asked here.
   let turns: { role: 'user' | 'assistant'; text: string }[] = [];
+
+  // The native notch (November 17, 2026, docs/20-native-notch.md): OxNotch, ported from Vorssaint, once it has been
+  // built (apps/notch-mac/build.sh). It follows OXBOT's local streams itself, over loopback; this process only starts
+  // it, hands it the settings, and opens the dashboard or saves settings when it asks. If it isn't built, tests are
+  // running, OXBOT_NATIVE_NOTCH=0, or it dies on start three times, the Electron notch below draws Ox instead.
+  let nativeFile = mac && !testing && process.env.OXBOT_NATIVE_NOTCH !== '0' ? findNative(o.here) : undefined;
+  let native: ChildProcess | null = null;
+  let nativeFailures = 0, closed = false;
+  const tellNative = (message: unknown) => { if (native?.stdin?.writable) native.stdin.write(`${JSON.stringify(message)}\n`); };
+  function startNative(file: string) {
+    const child = spawn(file, ['--managed', '--server', o.local, '--settings', JSON.stringify(settings)], { stdio: ['pipe', 'pipe', 'inherit'] });
+    native = child;
+    const started = Date.now();
+    let buffer = '';
+    child.stdout?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      buffer += chunk;
+      let end: number;
+      while ((end = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
+        try {
+          const m = JSON.parse(line) as { do?: string; settings?: unknown };
+          if (m.do === 'dashboard') openOxbot((m as { page?: string }).page === 'notch' ? 'notch' : undefined);
+          else if (m.do === 'save') { update(m.settings); tellNative({ settings }); }
+        } catch { /* not a request */ }
+      }
+    });
+    child.on('error', () => undefined);
+    child.on('exit', () => {
+      if (native !== child) return;
+      native = null;
+      if (Date.now() - started < 10_000 && ++nativeFailures >= 3) nativeFile = undefined;
+      if (!closed) setTimeout(sync, 1000);
+    });
+  }
+  function stopNative() { const child = native; native = null; child?.stdin?.end(); child?.kill(); }
 
   const toScreen = (d: Display): Screen => ({ id: d.id, internal: d.internal, primary: d.id === screen.getPrimaryDisplay().id, bounds: d.bounds, workArea: d.workArea });
   const stateFor = (g: Geometry): NotchState => ({ settings, geometry: g, voice, music, timers: [...timers.values()], connected });
@@ -67,6 +105,13 @@ export function notchService(o: Options) {
   }
 
   function sync() {
+    if (closed) return;
+    if (nativeFile) {
+      for (const { win } of windows.values()) if (!win.isDestroyed()) win.destroy();
+      windows.clear();
+      if (!settings.on) stopNative(); else if (!native) startNative(nativeFile); else tellNative({ settings });
+      return;
+    }
     const screens = screen.getAllDisplays().map(toScreen);
     const want = notchScreens(screens, settings);
     for (const [id, { win }] of windows) if (!want.some(s => s.id === id)) { if (!win.isDestroyed()) win.destroy(); windows.delete(id); }
@@ -85,15 +130,33 @@ export function notchService(o: Options) {
   ipcMain.on('notch:hit', (e, on: unknown) => { if (!testing) mine(e)?.setIgnoreMouseEvents(on !== true, { forward: true }); });
   ipcMain.on('notch:focus', e => { const w = mine(e); if (w && !testing) { w.setIgnoreMouseEvents(false); w.focus(); } });
   ipcMain.on('notch:open', e => { if (mine(e)) o.openDashboard(); });
-  ipcMain.handle('notch:save', (e, partial: unknown) => {
-    if (!mine(e)) return settings;
+  // From either notch's own settings page: merged, checked field by field, saved.
+  function update(partial: unknown) {
     const p = (partial && typeof partial === 'object' ? partial : {}) as Partial<NotchSettings>;
     settings = cleanNotch({ ...settings, ...p, show: { ...settings.show, ...(p.show ?? {}) } }, settings);
     o.save(settings);
     sync();
     o.changed();
     return settings;
+  }
+  ipcMain.handle('notch:save', (e, partial: unknown) => (mine(e) ? update(partial) : settings));
+
+  // Settings > Notch in OXBOT's own window (November 17, 2026): only that page, on OXBOT's origin, may read or
+  // change these. The native notch's Settings button opens it.
+  const oxbotPage = (url: string) => {
+    try { const u = new URL(url), l = new URL(o.local); return (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && u.port === l.port && u.protocol === 'http:'; } catch { return false; }
+  };
+  ipcMain.handle('notch:settings', (e, partial?: unknown) => {
+    if (!oxbotPage(e.sender.getURL())) return null;
+    if (partial !== undefined) update(partial);
+    return { ...settings, nativeNotch: Boolean(native) };
   });
+  function openOxbot(page?: 'notch') {
+    o.openDashboard();
+    if (!page) return;
+    const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && oxbotPage(w.webContents.getURL()));
+    void win?.webContents.executeJavaScript(`location.hash = ${JSON.stringify(page)}`).catch(() => undefined);
+  }
   async function ask(text: string, via: 'talk' | 'ask', remember: boolean): Promise<{ text: string } | { error: string }> {
     const question = text.trim().slice(0, 500);
     if (!question) return { error: 'Ask something.' };
@@ -126,6 +189,8 @@ export function notchService(o: Options) {
     // Opens the notch on the first screen at its settings (from the tray menu).
     showSettings() {
       if (!settings.on) { settings = { ...settings, on: true }; o.save(settings); sync(); }
+      // With the native notch, its settings live in OXBOT's own window.
+      if (nativeFile) { openOxbot('notch'); return; }
       const first = windows.values().next().value;
       if (!first) return;
       const go = () => { if (!testing) { first.win.setIgnoreMouseEvents(false); first.win.focus(); } first.win.webContents.send('notch:command', 'settings'); };
@@ -157,7 +222,14 @@ export function notchService(o: Options) {
       } else return;
       tell();
     },
-    closeAll() { for (const { win } of windows.values()) if (!win.isDestroyed()) win.destroy(); windows.clear(); },
+    closeAll() { closed = true; stopNative(); for (const { win } of windows.values()) if (!win.isDestroyed()) win.destroy(); windows.clear(); },
   };
 }
 export type Notch = ReturnType<typeof notchService>;
+
+// OxNotch beside the bundled main process (copied there by scripts/bundle.mjs, outside the asar when packaged), or
+// straight from apps/notch-mac's build when running from source.
+function findNative(here: string) {
+  const unpacked = here.replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
+  return [join(unpacked, 'OxNotch'), join(here, '../../notch-mac/.build/release/OxNotch')].find(file => existsSync(file));
+}

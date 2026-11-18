@@ -2,7 +2,7 @@
 // runs plain JavaScript and never depends on Node's type stripping inside Electron.
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +41,12 @@ if (process.platform === 'darwin') {
     execFileSync('clang', ['-fobjc-arc', '-O2', '-mmacosx-version-min=14.0', '-arch', 'arm64', '-arch', 'x86_64', '-o', join(out, 'oxbot-hands'), join(here, 'hands/main.m'),
       '-framework', 'AppKit', '-framework', 'ApplicationServices', '-framework', 'Carbon', '-framework', 'ScreenCaptureKit'], { stdio: 'inherit' });
   } catch { console.warn('oxbot-hands was not built (no clang?). Helpers in other apps will be unavailable.'); }
+}
+// The native notch (November 17, 2026): copied beside main.mjs when apps/notch-mac/build.sh has built it. Not built
+// here: without it the desktop app uses its Electron notch.
+const notchBuild = join(here, '../notch-mac/.build/release');
+if (process.platform === 'darwin' && existsSync(join(notchBuild, 'OxNotch'))) {
+  for (const name of ['OxNotch', 'libOxNowPlaying.dylib']) if (existsSync(join(notchBuild, name))) copyFileSync(join(notchBuild, name), join(out, name));
 }
 for (const name of ['trayTemplate.png', 'trayTemplate@2x.png', 'tray.png', 'tray@2x.png']) copyFileSync(join(here, 'assets', name), join(out, name));
 console.log('Bundled main, preload and server into apps/desktop/dist');

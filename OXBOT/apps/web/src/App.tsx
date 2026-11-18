@@ -23,6 +23,7 @@ import { CloudDashboard, customizeTaurus, Sky, taurusDefaults, useParted } from 
 import { pickCenter, useTick, type Asked } from './components/OxWidget';
 import { armAlarm, RingScreen, Standby, Unreachable, useRing } from './components/Ringing';
 import { Look, settingsPages, SettingsNav, Tabs, type Appearance } from './components/Settings';
+import { NotchPage } from './components/NotchSettings';
 import { Backdrop, daypart, dayLine, nowDoing, PeopleStrip, Rail, TopBar } from './components/Shell';
 import { readVoice, saveVoice, useVoice, type VoiceSettings } from './components/Voice';
 import { unlockAudio } from './speech';
@@ -290,6 +291,7 @@ export default function App() {
           {page.page === 'schedule' && <Schedule />}
           {page.page === 'scans' && <Scans />}
           {page.page === 'phone' && <Phone />}
+          {page.page === 'notch' && <NotchPage />}
           {page.page === 'actions' && <Actions onChange={update} />}
         </>}
       </div>

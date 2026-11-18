@@ -17,4 +17,9 @@ contextBridge.exposeInMainWorld('oxbotDesktop', Object.freeze({
   // Ox anywhere (November 16, 2026): with "Hey Ox" or the double clap switched on, keep hearing while this window is
   // hidden or behind other apps, so Ox can come to the app in front. Only on or off; no sound or words go this way.
   keepHearing(on: boolean) { ipcRenderer.send('ox-anywhere:hearing', on === true); },
+  // Settings > Notch (November 17, 2026): read and change Ox's notch settings, nothing else.
+  notch: Object.freeze({
+    get: () => ipcRenderer.invoke('notch:settings'),
+    set: (partial: unknown) => ipcRenderer.invoke('notch:settings', partial),
+  }),
 }));
