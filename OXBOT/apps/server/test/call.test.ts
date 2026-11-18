@@ -76,3 +76,24 @@ test('with no screen open and no push, a ring calls straight away and is marked 
   assert.equal(r.state, 'escalated');
   assert.ok(r.channels.includes('phone call'));
 });
+
+test('a Limited trial account that refuses Twiml gets the same words through the echo Twimlet, without Timeout', async () => {
+  const replies = [
+    { status: 400, body: { code: 0, message: 'Invalid or disallowed parameters provided - trial accounts have limited parameter access, upgrade your account to unlock full functionality' } },
+    { status: 201, body: { sid: 'CA-test' } },
+  ];
+  const mock = globalThis.fetch;
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => { reply = replies.shift()!; return mock(input, init); }) as typeof fetch;
+  try {
+    const result = await testCall();
+    assert.equal(calls.length, 2);
+    const [first, second] = calls;
+    assert.ok(first.body.get('Twiml'));
+    assert.equal(second.body.get('Twiml'), null);
+    assert.equal(second.body.get('Timeout'), null);
+    const url = new URL(second.body.get('Url')!);
+    assert.equal(url.origin + url.pathname, 'https://twimlets.com/echo');
+    assert.equal(url.searchParams.get('Twiml'), first.body.get('Twiml'));
+    assert.equal(result.message, 'Called +•••••••4321.');
+  } finally { globalThis.fetch = mock; }
+});

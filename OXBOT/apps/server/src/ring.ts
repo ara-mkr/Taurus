@@ -71,6 +71,14 @@ export const twilioErrors: Record<number, string> = {
   13227: 'Twilio blocks calls to that country until you allow it: Voice, then Settings, then Geo permissions.',
   20429: 'Twilio is busy. OXBOT will try again on the next ring.',
 };
+// Twilio's Limited trial (owner's account, November 18, 2026) refuses the Twiml and Timeout fields on a call with
+// "trial accounts have limited parameter access", but still takes a Url. On that refusal the same TwiML goes again
+// through Twilio's own echo Twimlet, which hands it straight back to Twilio. No other service sees the words.
+export const trialRefused = (status: number, message = '') => status === 400 && /limited parameter access/i.test(message);
+export function viaEcho(form: Record<string, string>) {
+  const { Twiml, Timeout: _timeout, ...rest } = form;
+  return Twiml ? { ...rest, Url: `https://twimlets.com/echo?Twiml=${encodeURIComponent(Twiml)}` } : rest;
+}
 export interface CallResult { at: string; ok: boolean; message: string }
 let lastCall: CallResult | null = null;
 
@@ -84,15 +92,23 @@ async function call(ring: Pick<Ring, 'title' | 'detail'>): Promise<CallResult> {
   if (!to) return done(false, twilioErrors[21211]);
   const words = xml(`${ring.title}. ${ring.detail}`.slice(0, 400));
   const twiml = `<Response><Pause length="1"/><Say>This is OXBOT. ${words}</Say><Pause length="1"/><Say>Again. ${words}</Say></Response>`;
+  const post = (form: Record<string, string>) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(form),
+    signal: AbortSignal.timeout(10_000),
+  });
   try {
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
-      method: 'POST',
-      headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ To: to, From: from, Twiml: twiml, Timeout: '30' }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const form = { To: to, From: from, Twiml: twiml, Timeout: '30' };
+    let response = await post(form);
+    type Failure = { code?: number; message?: string };
+    const failure = async (r: Response): Promise<Failure> => r.ok ? {} : await r.json().catch(() => ({})) as Failure;
+    let body = await failure(response);
+    if (trialRefused(response.status, body.message)) {
+      response = await post(viaEcho(form));
+      body = await failure(response);
+    }
     if (response.ok) return done(true, `Called ${to.slice(0, -4).replace(/\d/g, '•')}${to.slice(-4)}.`);
-    const body = await response.json().catch(() => ({})) as { code?: number; message?: string };
     console.warn('twilio:', response.status, body.code ?? '', (body.message ?? '').slice(0, 200));
     return done(false, (body.code && twilioErrors[body.code]) || `Twilio said: ${body.message ?? `error ${response.status}`}`);
   } catch (error) {

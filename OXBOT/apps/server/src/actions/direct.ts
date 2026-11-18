@@ -1,6 +1,6 @@
 import { isConnected, tokenFor } from '../connectors.ts';
 import { dashboard } from '../dashboard.ts';
-import { phoneNumber, twilioErrors, xml } from '../ring.ts';
+import { phoneNumber, trialRefused, twilioErrors, viaEcho, xml } from '../ring.ts';
 import { api, HttpError, store } from '../store.ts';
 import type { Need } from '../types.ts';
 import { register, type Args, type Spec } from './approvals.ts';
@@ -163,12 +163,17 @@ const number = (value: unknown) => {
 const masked = (n: string) => `${n.slice(0, -4).replace(/\d/g, '•')}${n.slice(-4)}`;
 async function twilio(path: 'Messages' | 'Calls', form: Record<string, string>) {
   const sid = store.secret('TWILIO_ACCOUNT_SID')!.trim(), token = store.secret('TWILIO_AUTH_TOKEN')!.trim();
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/${path}.json`, {
+  const post = (fields: Record<string, string>) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/${path}.json`, {
     method: 'POST', signal: AbortSignal.timeout(12_000),
     headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ From: phoneNumber(store.secret('TWILIO_FROM') ?? ''), ...form }),
+    body: new URLSearchParams({ From: phoneNumber(store.secret('TWILIO_FROM') ?? ''), ...fields }),
   });
-  const data = await response.json().catch(() => ({})) as { sid?: string; code?: number; message?: string };
+  let response = await post(form);
+  let data = await response.json().catch(() => ({})) as { sid?: string; code?: number; message?: string };
+  if (path === 'Calls' && trialRefused(response.status, data.message)) {
+    response = await post(viaEcho(form));
+    data = await response.json().catch(() => ({})) as { sid?: string; code?: number; message?: string };
+  }
   if (!response.ok) throw new HttpError(response.status, (data.code && twilioErrors[data.code]) || `Twilio said: ${data.message ?? response.status}`);
   return data.sid ?? '';
 }
