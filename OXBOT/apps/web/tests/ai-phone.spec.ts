@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mock, shots } from './fixtures';
 
-// The AI page (OXBOT Free and the big labs), the phone tab bar in the home-screen app, and the new backgrounds.
+// The AI page (OXBOT, once OXBOT Free, and the big labs), the phone tab bar in the home-screen app, and the new backgrounds.
 // Every /api/ai answer is mocked: no real key, no OpenRouter.
 const free = [
   { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', name: 'NVIDIA: Nemotron 3 Ultra', context: 1_000_000 },
@@ -10,11 +10,11 @@ const free = [
   { id: 'google/gemma-4-31b-it:free', name: 'Google: Gemma 4 31B', context: 262_144 },
 ];
 const providers = [
-  ['openrouter', 'OXBOT Free', 'OpenRouter', true], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
+  ['openrouter', 'OXBOT', 'OpenRouter', true], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
   ['grok', 'Grok', 'xAI'], ['mistral', 'Mistral', 'Mistral AI'], ['deepseek', 'DeepSeek', 'DeepSeek'], ['ollama', 'Ollama', 'on this Mac'],
 ] as const;
 const info = (signedIn: boolean, chosen = '') => ({
-  using: signedIn ? { id: 'openrouter', name: 'OXBOT Free', model: free[0].id } : null, chosen,
+  using: signedIn ? { id: 'openrouter', name: 'OXBOT', model: free[0].id } : null, chosen,
   providers: providers.map(([id, name, maker, isFree]) => ({ id, name, maker, note: '', keyUrl: 'https://example.com', free: Boolean(isFree), local: id === 'ollama', connected: signedIn && (id === 'openrouter' || id === 'mistral') })),
   free, freeModel: '',
 });
@@ -38,7 +38,7 @@ async function open(page: Page, signedIn: boolean) {
   return posts;
 }
 
-test('with nothing connected, OXBOT Free offers one-click sign-in and says what free models may keep', async ({ page }) => {
+test('with nothing connected, OXBOT offers one-click sign-in and says what free models may keep', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
   await open(page, false);
   await expect(page.getByText('No AI is connected')).toBeVisible();
@@ -54,9 +54,10 @@ test('with nothing connected, OXBOT Free offers one-click sign-in and says what 
 
 test('signed in: pick the free model, and choose which connected AI writes', async ({ page }) => {
   const posts = await open(page, true);
-  await expect(page.getByText(/Writing with/)).toContainText('OXBOT Free');
+  await expect(page.getByText(/Writing with/)).toContainText('OXBOT');
   const model = page.getByLabel('Free model');
-  await expect(model).toHaveValue(free[0].id);
+  // November 17, 2026: by default OXBOT picks the fastest free model for each ask.
+  await expect(model).toHaveValue('');
   await model.selectOption('google/gemma-4-31b-it:free');
   await page.getByRole('radio', { name: 'Mistral (Mistral AI)' }).check();
   await expect.poll(() => posts).toEqual([{ freeModel: 'google/gemma-4-31b-it:free' }, { provider: 'mistral' }]);

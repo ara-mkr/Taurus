@@ -38,7 +38,7 @@ export function Scans() {
 
   return <main id="main" tabIndex={-1} className="settings-page skills-page scans-page">
     <div className="page-head"><h1>Scans</h1></div>
-    <p className="muted">Every few minutes Ox reads what you pick, keeps only what he hasn’t told you before, and posts it below. He catches meetings and deadlines for your calendar and drafts replies to people waiting on you. Replies and calendar changes wait for your OK in Actions. Scans use OXBOT Free, so they cost nothing; when nothing is new, no AI is asked at all.</p>
+    <p className="muted">Every few minutes Ox reads what you pick, keeps only what he hasn’t told you before, and posts it below. He catches meetings and deadlines for your calendar and drafts replies to people waiting on you. Replies and calendar changes wait for your OK in Actions. Scans use OXBOT’s free models, so they cost nothing; when nothing is new, no AI is asked at all.</p>
     {error && <p className="problem" role="alert">{error}</p>}
 
     <section aria-labelledby="scans-h">
@@ -53,7 +53,7 @@ export function Scans() {
         <label>Every<span className="scan-every"><input type="number" min={5} max={1440} step={5} required value={edit.everyMinutes ?? 30} onChange={e => setEdit({ ...edit, everyMinutes: Number(e.target.value) })} /> minutes</span></label>
         <label>What Ox should look for<textarea rows={3} maxLength={1000} value={edit.instruction ?? ''} onChange={e => setEdit({ ...edit, instruction: e.target.value })} placeholder="Anything from investors, and anything due this week" /></label>
         <label>Which AI<select value={edit.ai ?? 'free'} onChange={e => setEdit({ ...edit, ai: e.target.value === 'mine' ? 'mine' : 'free' })}>
-          <option value="free">OXBOT Free (costs nothing)</option>
+          <option value="free">OXBOT (free)</option>
           <option value="mine">The AI you picked for Ask</option>
         </select></label>
         <div className="actions">
@@ -64,7 +64,7 @@ export function Scans() {
       <ul className="row-list">{info?.scans.map(s => <li key={s.id} className="row">
         <div className="row-main">
           <p className="strong">{s.name}</p>
-          <p className="muted">{s.sources.map(x => sourceNames[x]).join(', ')} · every {s.everyMinutes} minutes · {s.ai === 'free' ? 'OXBOT Free' : 'your AI'}</p>
+          <p className="muted">{s.sources.map(x => sourceNames[x]).join(', ')} · every {s.everyMinutes} minutes · {s.ai === 'free' ? 'OXBOT (free)' : 'your AI'}</p>
           {s.lastRunAt && <p className="muted">Last ran {when(s.lastRunAt)}: {s.lastNote}</p>}
           {s.lastError && <p className="problem">{s.lastError}</p>}
         </div>

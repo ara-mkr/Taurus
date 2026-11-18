@@ -74,7 +74,7 @@ A scan has a name, sources (email, calendar, Messages on this Mac, chat), an int
 | ChatGPT plan (Codex 0.146, "Logged in using ChatGPT") | **Failed.** `~/.codex/config.toml` picks `gpt-6.1-sol`, which "is not supported when using Codex with a ChatGPT account". | **Works.** OXBOT tries `gpt-5.6-terra`, `-sol` and `-luna`, which answered on this account, and remembers the first that works (`plan-models.json`). The first answer took 47 s while it found one. After that it is about 13 s or more, because Codex loads the owner's 1,000+ skills and MCP servers at every start. The owner can type a model on the AI page. |
 | Claude API key | Not set on this Mac | Not tested live (no key). The code now streams, keeps one client, and uses `claude-haiku-5-5` for simple turns when no model is set. |
 | ChatGPT API key | Not set on this Mac | Not tested live (no key). The code now streams (Responses API events). |
-| OXBOT Free (OpenRouter) | Signed in, works | Works, streamed |
+| OXBOT (OpenRouter, once "OXBOT Free") | Signed in, works | Works, streamed. The free daily allowance (50) was used up by testing on November 17 |
 
 **On the AI page:**
 - Each plan shows whether its app is signed in, from the app's own status command.
@@ -90,38 +90,81 @@ A scan has a name, sources (email, calendar, Messages on this Mac, chat), an int
 
 ## 5. Speed
 
-Changes:
-- Every provider streams: OpenAI-compatible chat (OpenRouter and the rest), Claude, ChatGPT and Claude Code.
-- `POST /api/ask?stream` answers in lines of JSON: `text`, `reset`, `step`, `done`. The web app shows the words as they come.
-- Tool lines and plans are held back from the screen. Words shown before a tool call are taken back.
-- Typing in the chat bar warms the connection (`/api/ask/warm`, a HEAD to the AI's own address).
-- A simple question gets a short prompt with no board and no tools. On Claude it goes to the fast model.
+### Why the first "after" numbers didn't improve
 
-Time to first visible word. Measured with OXBOT's real `converse()` through the owner's OpenRouter account (Nemotron 3 Ultra free), sample board, two runs each. Before, the first word arrived with the whole answer.
+On November 17 the time to the first word was measured directly on OpenRouter's free models: "what is 15% of 80", streamed.
 
-| Question | Before | After |
+| Free model | Thinking on (default) | Thinking off |
 |---|---|---|
-| "what is 15% of 80" | 1.5–2.7 s | 2.4–3.4 s |
-| "tell me a quick joke" | 1.7–1.8 s | 1.6–2.2 s |
-| "what's on my calendar today" | 4.1–8.9 s (the whole answer) | first words at 3.1–6.1 s; whole answer 8.2–9.1 s |
-| Claude plan, "what is 15% of 80" | no answer (failing) | 3.5–7.3 s |
-| Claude plan, "what's on my calendar today" | no answer (failing) | 6.1–14.6 s |
+| Nemotron 3 Ultra | thinks silently from 0.66 s, first word 2.9 s | first word 0.43 s |
+| Nemotron 3.5 Lightning | used all 200 tokens thinking, no word | first word 0.13 s |
+| Nemotron 3.5 Super VL | first word 0.8 s | – |
+| Gemma 4 31B / 26B | busy (429) | busy (429) |
 
-What the numbers say:
-- Streaming brings the first words of longer answers 2.5–5 s earlier.
-- Checked end to end through the running server and the web app: "explain why leaves change color" on the Claude plan arrived as 67 pieces, the first at 2.1 s, the whole answer at 4.1 s.
-- Short answers on the free tier are as fast as the free model starts. That is 1.5–3.5 s and noisy, so the short prompt doesn't move it.
-- Routing simple turns to OpenRouter's free "Lightning" model was tried and measured: 1.6–20 s, worse. It was reverted.
-- Claude Code starts a new process for every question, which costs a few seconds.
+These free models *think before they write*, and that was almost all of the wait. The short prompt for simple turns never touched it, so the November 16 "after" numbers were the same thinking time with ordinary noise on top. "Lightning" measured slower than Ultra then because, left to itself, it thinks longer.
 
-The Instagram account `infina.ai` was not viewed, so nothing here compares OXBOT to it.
+### What OXBOT does now (`apps/server/src/speed.ts`, `route.ts`)
+
+Every ask is one of three kinds:
+- **Quick asks** (`simpleTurn`): a fact, a joke, a hello; no tools.
+- **Everyday asks**: the board and tools.
+- **Big jobs** (`bigJob`): long asks, plans, research, drafts, work in apps.
+
+On OXBOT's free models:
+- **Quick asks** go to the fastest free model lately, thinking off. It starts as Lightning. Every answer records its first-word time, and the median of the last 8 decides.
+- **Everyday asks** go to Ultra, thinking off. With the full board and tools prompt, Ultra *thinking a little* took 7–12.5 s to its first word, and 0.56–1.0 s *not thinking*. It still wrote correct tool lines: refresh, search mail, live heart rate, all checked. Super VL not thinking was as quick but wrote broken tool lines (`<refresh section="inbox">`), so it's only a fallback. Lightning misread a meeting time.
+- **Big jobs** go to Ultra, thinking as much as it likes.
+- A busy model (429 or 5xx) rests for two minutes, and the next one answers. A model that rejects the thinking setting gets one retry without it.
+- OpenRouter publishes no latency for free endpoints (`latency_last_30m` is null), so OXBOT times its own answers.
+- Meeting times now reach the AI already written in local time ("Tue, Nov 17, 8:30 AM–9:00 AM local time"). A model answering without thinking had misread UTC by hours.
+- When the account's daily free allowance runs out, Ox says so plainly instead of trying every free model. A free OpenRouter account gets **50 free-model asks a day**; $5 of credit raises it to 1,000. The measuring for this work used up the owner's allowance on November 17.
+
+### Who answers what
+
+- **AI page, "Who answers what".**
+  - Presets: All OXBOT, All Claude, All ChatGPT, OXBOT for quick and Claude (or ChatGPT) for big jobs.
+  - A choice per kind of ask.
+  - The free models' measured first-word times.
+- **Or just say it** (`settingsCommand`, run before the AI, with no AI call):
+  - "use Claude for everything"
+  - "use the free ones for quick stuff and ChatGPT for big jobs"
+  - "make it all free"
+  - "switch to ChatGPT"
+  - "turn off scans"
+  - "scan every 10 minutes"
+- A kind of ask has to follow "for", so "use Claude for this long email" stays a request.
+- Naming a plan app that's installed switches it on.
+- **Naming.** "OXBOT Free" is now just "OXBOT". The free-model picker defaults to "Fastest for each ask".
+
+### Time to first visible word
+
+Measured with OXBOT's real `converse()` on the owner's OpenRouter account, on the sample board.
+
+| Question | Before (Nov 16) | Streaming only (Nov 16) | Now (Nov 17), 3 runs |
+|---|---|---|---|
+| "what is 15% of 80" | 1.5–2.7 s | 2.4–3.4 s | **0.19–0.30 s** |
+| "tell me a quick joke" | 1.7–1.8 s | 1.6–2.2 s | **0.25–0.45 s** |
+| "what's on my calendar today" | 4.1–8.9 s (whole answer) | 3.1–6.1 s | **0.58–1.7 s** |
+| everyday ask with one tool (refresh, search mail, heart rate) | – | – | 1.7–3.5 s |
+| "draft a short plan for tomorrow's board meeting" (big job, full thinking) | – | – | 3.9 s |
+| Claude plan, short question | no answer | 3.5–7.3 s | unchanged (Claude Code starts a process each time) |
+
+The local-time fix for meeting times is covered by a test, but it wasn't re-measured live: the day's free allowance had run out.
+
+Other speed work from November 16 that stays:
+- Every provider streams.
+- The chat bar warms the connection while you type.
+- Tool lines are held back from the screen.
+
+The Instagram account `infina.ai` was not viewed.
 
 ## 6. Checks
 
-- Server: `node --test test/*.test.ts`. 291 tests, 290 pass, 1 skipped (that skip was there before). New:
+- Server: `node --test test/*.test.ts`. 298 tests, 297 pass, 1 skipped (that skip was there before). New:
   - `test/scans.test.ts`: mocked Gmail, Calendar and OpenRouter; dedupe; 429 fallback; the calendar card does nothing until approved.
   - `test/messages.test.ts`: fixture `chat.db`.
   - `test/agent-loop.test.ts`: plan, ok/false, repeat guard, nudge, simple turns, streaming holdback.
+  - `test/route.test.ts`: settings by saying them, the fastest-model order, thinking per kind of ask, busy-model handover, routing a big job, the daily-limit message, local meeting times.
 - Web: typecheck and lint pass.
 - Playwright, `--workers=1`, on port 5183, because another session's dev server held 5173: 70 passed, 19 skipped, 2 failed, 3 didn't run.
   - `connections.spec.ts` "search and filters…" (the Music filter shows 11 apps): this fails the same way on the untouched first commit, so it was already broken.

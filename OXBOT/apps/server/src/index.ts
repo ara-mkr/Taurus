@@ -16,8 +16,9 @@ import { imageParts, seesImages, current as currentAi } from './ai.ts';
 import { voice, voiceUrl } from './voice.ts';
 import { composioApps, composioCatalog, readers as composioReaders } from './connectors/composio.ts';
 import { aiCard, board, generateBoard, prefs, savePrefs } from './boards.ts';
-import { aiInfo, ask as askAi, openRouterFinish, openRouterSignIn, providers as aiProviders, warmAi, type Turn } from './ai.ts';
+import { aiInfo, providerForBrand, ask as askAi, openRouterFinish, openRouterSignIn, providers as aiProviders, warmAi, type Turn } from './ai.ts';
 import { planStatus } from './subscriptions.ts';
+import { saveRoute, type Brand } from './route.ts';
 import { feed, removeScan, runScan, saveScan, scans as scanList, scanSources, startScans } from './scans.ts';
 import { MESSAGES_SWITCH, messagesStatus } from './messages.ts';
 import { aiProvider, dashboard } from './dashboard.ts';
@@ -253,7 +254,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  // AI: which one writes, OXBOT Free's model, and one-click OpenRouter sign-in (from this Mac only: the callback is localhost).
+  // AI: which one writes, OXBOT's free model, and one-click OpenRouter sign-in (from this Mac only: the callback is localhost).
   if (method === 'GET' && path === '/api/ai') return send(res, 200, await aiInfo());
   if (method === 'POST' && path === '/api/ai') {
     const next = await json<{ provider?: string; freeModel?: string }>(req);
@@ -272,7 +273,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     try {
       await openRouterFinish(url.searchParams.get('state') ?? '', url.searchParams.get('code') ?? '');
       await dashboard(true);
-      res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#ai"><title>Connected</title>OXBOT Free is on.`);
+      res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#ai"><title>Connected</title>OXBOT is on.`);
     } catch (error) { res.end(page('Not connected', (error as Error).message.replace(/[<>&]/g, ''))); }
     return;
   }
@@ -305,6 +306,19 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   // Open the connection to the AI while the owner types (November 16, 2026). Sends nothing about him.
   if (method === 'POST' && path === '/api/ask/warm') return send(res, 200, { ai: await warmAi() });
+  // Who answers each kind of ask (November 17, 2026): a preset ("all OXBOT", "all Claude", "mixed") or one row at a time.
+  if (method === 'POST' && path === '/api/ai/route') {
+    const { route, preset } = await json<{ route?: Record<string, string>; preset?: string }>(req);
+    if (preset) {
+      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'] };
+      if (!brands[preset]) return send(res, 400, { error: 'No such preset.' });
+      const picked = brands[preset].map(b => providerForBrand(b));
+      const failed = picked.find(p => 'error' in p);
+      if (failed && 'error' in failed) return send(res, 409, { error: failed.error });
+      saveRoute({ simple: (picked[0] as { id: string }).id, medium: (picked[1] as { id: string }).id, hard: (picked[2] as { id: string }).id });
+    } else saveRoute(route ?? {});
+    return send(res, 200, await aiInfo());
+  }
   // Is each plan app signed in, and does it answer? (November 16, 2026: "make sign in for claude and gpt actually usable")
   if (method === 'GET' && path === '/api/ai/plans') {
     const fresh = url.searchParams.has('fresh');

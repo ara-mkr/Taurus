@@ -41,7 +41,8 @@ test('nothing is connected by default, and asking says how to connect one', asyn
   const listed = connectorInfo().filter(c => c.group === 'AI');
   assert.equal(listed.length, ai.providers.length);
   assert.ok(listed.every(c => !c.connected));
-  assert.ok(listed.some(c => c.name === 'OXBOT Free (OpenRouter)'));
+  // Called just OXBOT since November 17, 2026 (the owner: "its not oxbot free js oxbot").
+  assert.ok(listed.some(c => c.name === 'OXBOT (OpenRouter)'));
 });
 
 test('OXBOT Free lists only free text models, Nemotron 3 Ultra first', async () => {
@@ -79,11 +80,11 @@ test('Sign in with OpenRouter is PKCE with S256, comes back to this Mac, and sav
   await assert.rejects(ai.openRouterFinish(start.searchParams.get('state')!, 'code-from-openrouter'), /expired/, 'a state is single use');
 });
 
-test('OXBOT Free asks the chosen free model with your key', async () => {
+test('OXBOT asks the chosen free model with your key', async () => {
   store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'google/gemma-4-31b-it:free' });
   routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, () => reply('<think>planning</think>Your 10:00 with Dana is next.')]);
   const answer = await ai.ask('You are OXBOT.', [{ role: 'user', text: 'What is next?' }]);
-  assert.deepEqual(answer, { provider: 'OXBOT Free', text: 'Your 10:00 with Dana is next.' });
+  assert.deepEqual(answer, { provider: 'OXBOT', text: 'Your 10:00 with Dana is next.', model: 'google/gemma-4-31b-it:free' });
   const [call] = calls;
   assert.equal(call.method, 'POST');
   assert.equal(call.headers.get('Authorization'), 'Bearer sk-or-test-key');

@@ -120,11 +120,22 @@ export function rulesBrief(d: Pick<Dashboard, 'needs' | 'schedule' | 'body' | 's
 export const aiProvider = (): string | undefined => currentAI()?.name;
 export const askAI = (system: string, turns: AskTurn[], quick = false) => askWith(system, turns, quick);
 
+const localWhen = (start: string, end: string, allDay?: boolean) => {
+  const s = new Date(start), e = new Date(end);
+  if (Number.isNaN(s.getTime())) return start;
+  const day = s.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  if (allDay) return `${day}, all day`;
+  const time = (x: Date) => x.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${day}, ${time(s)}${Number.isNaN(e.getTime()) ? '' : `–${time(e)}`} local time`;
+};
+
 export function context(d: Dashboard) {
   return JSON.stringify({
     now: new Date().toString(),
     needs: d.needs.map(({ id, title, who, from, detail, source, at: when, vip, url }) => ({ id, title, who, from, detail, source, at: when, vip, url })),
-    schedule: d.schedule.map(({ title, start, end, location, source }) => ({ title, start, end, location, source })),
+    // Each meeting's local day and time, written out (November 17, 2026): a model answering without thinking first
+    // misread UTC times by hours ("1:30 PM" for an 8:30 AM meeting).
+    schedule: d.schedule.map(({ title, start, end, location, source, allDay }) => ({ title, when: localWhen(start, end, allDay), start, end, location, source })),
     inbox: d.inbox, body: d.body, numbers: d.numbers,
     updates: (d.updates ?? []).map(({ title, detail, source, at: when }) => ({ title, detail, source, at: when })),
     sampleSections: (Object.keys(d.sections) as Section[]).filter(s => !d.sections[s].live),

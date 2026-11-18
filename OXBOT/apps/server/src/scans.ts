@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { begin, note } from './activity.ts';
 import { propose } from './actions/index.ts';
 import { cleanEvents } from './actions/calendar.ts';
-import { ask } from './ai.ts';
+import { ask, FREE_DAY_LIMIT } from './ai.ts';
 import { pullAll } from './connectors.ts';
 import { messagesOn, readMessages } from './messages.ts';
 import { send } from './ring.ts';
@@ -25,7 +25,7 @@ export type ScanSource = 'email' | 'calendar' | 'messages' | 'chat';
 export const scanSources: ScanSource[] = ['email', 'calendar', 'messages', 'chat'];
 export interface Scan {
   id: string; name: string; sources: ScanSource[]; everyMinutes: number; instruction: string; on: boolean;
-  // 'free': OXBOT Free on OpenRouter (the default). 'mine': whichever AI writes Ask.
+  // 'free': OXBOT's free models on OpenRouter (the default). 'mine': whichever AI writes Ask.
   ai: 'free' | 'mine';
   lastRunAt?: string; lastNote?: string; lastError?: string;
 }
@@ -193,7 +193,7 @@ async function think(scan: Scan, payload: string): Promise<{ found: Found; model
   const system = instructions(scan);
   const key = store.secret('OPENROUTER_API_KEY');
   if (scan.ai === 'free') {
-    if (!key) throw new Error('Scans use OXBOT Free. Sign in with OpenRouter on the AI page first (it’s free).');
+    if (!key) throw new Error('Scans use OXBOT’s free models. Sign in with OpenRouter on the AI page first (it’s free).');
     let last = '';
     for (const model of await scanModels()) {
       try {
@@ -210,6 +210,8 @@ async function think(scan: Scan, payload: string): Promise<{ found: Found; model
         last = `${model} didn’t report`;
       } catch (e) {
         last = (e as Error).message;
+        // The day's free asks are used up: no free model will answer until tomorrow.
+        if (e instanceof HttpError && e.status === 429 && /per-day|per day|daily/i.test(e.message)) throw new Error(FREE_DAY_LIMIT);
         // Busy (429) or down: the next free model. Anything else (a bad key) stops here.
         if (!(e instanceof HttpError) || ![408, 429, 500, 502, 503, 504].includes(e.status)) throw e;
       }

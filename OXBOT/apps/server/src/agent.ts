@@ -14,6 +14,10 @@ import { instant } from './instant.ts';
 import { bodyNow, fresh, searchMail } from './live.ts';
 import { memoryText, remember } from './memory.ts';
 import { messagesOn, readMessages } from './messages.ts';
+import { getRoute, saveRoute, settingsCommand, tierNames } from './route.ts';
+import { DEFAULT_SCAN, saveScan } from './scans.ts';
+import { providerForBrand } from './ai.ts';
+import type { Tier } from './speed.ts';
 import { announcesAction, RepeatGuard } from './repeat-guard.ts';
 import { control, controls, play, type Control } from './music.ts';
 import { store } from './store.ts';
@@ -304,7 +308,7 @@ export function simpleTurn(turns: Turn[]): boolean {
   if (!last || last.role !== 'user' || last.image) return false;
   const t = last.text.trim();
   if (!t || t.length > 160 || t.split(/\s+/).length > 25 || needsData.test(t) || /attached file/i.test(t)) return false;
-  return /^(what is|what's|whats|what does|calculate|define|translate|convert|explain|how do (i|you)|why|tell me a joke|give me a joke|hi|hey|hello|thanks|thank you)\b/i.test(t);
+  return /^(what is|what's|whats|what does|calculate|define|translate|convert|explain|how do (i|you)|why|(tell|give) me (a |another )?((quick|short|good|funny|dad|bad) )?(joke|pun|fun fact|riddle)|hi|hey|hello|thanks|thank you)\b/i.test(t);
 }
 
 // Streams a reply's words while holding back anything that may be a tool line, a plan or the <need-tools/> mark.
@@ -337,6 +341,36 @@ export class Holdback {
   }
 }
 
+// A big job thinks hardest (November 17, 2026): long asks, planning, research, writing and reviewing. Everything else
+// that needs the board or tools is an everyday ask; simpleTurn above finds the quick ones.
+const bigWords = /\b(plan|research|compare|analy[sz]e|strategy|report|proposal|essay|step by step|think (it )?through|figure out|break (it )?down|pros and cons|draft|review|debug|rewrite|summari[sz]e (the|my|this) (week|month|quarter))\b/i;
+export function bigJob(turns: Turn[]): boolean {
+  const t = turns.filter(x => x.role === 'user').at(-1)?.text ?? '';
+  return t.split(/\s+/).length > 45 || bigWords.test(t) || /attached file/i.test(t);
+}
+
+// Settings the owner changes by saying so: who answers what, and the main scan.
+export function applySettings(text: string): string | null {
+  const c = settingsCommand(text);
+  if (!c) return null;
+  if (c.scans) {
+    const s = saveScan({ id: DEFAULT_SCAN.id, ...(c.scans.on !== undefined ? { on: c.scans.on } : {}), ...(c.scans.every ? { everyMinutes: c.scans.every } : {}) });
+    note('tool', `Changed the main scan: ${s.on ? `on, every ${s.everyMinutes} minutes` : 'off'}`, { by: 'ox' });
+    return c.scans.every ? `Done. I’ll scan every ${s.everyMinutes} minutes${s.on ? '' : ' once you switch scans on'}.` : s.on ? `Scans are on. I’ll check every ${s.everyMinutes} minutes.` : 'Scans are off.';
+  }
+  const route = { ...getRoute() };
+  const said: string[] = [];
+  for (const part of c.route ?? []) {
+    const who = providerForBrand(part.brand);
+    if ('error' in who) return who.error;
+    for (const t of part.tiers) route[t] = who.id;
+    said.push(part.tiers.length === 3 ? `${who.name} answers everything` : `${who.name} takes ${part.tiers.map(t => tierNames[t].toLowerCase()).join(' and ')}`);
+  }
+  saveRoute(route);
+  note('tool', `Changed who answers: ${said.join('; ')}`, { by: 'ox' });
+  return `Done. ${said.join('; ')}.`;
+}
+
 export async function converse(turns: Turn[], via: Via, options: ConverseOptions = {}): Promise<{ provider: string; text: string; proposals: Proposal[] }> {
   // Instant commands (November 4, 2026) answer without the AI: music, timers, reminders, focus, memory, opening apps.
   const last = turns.at(-1);
@@ -351,6 +385,10 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
     if (stopPhrase(last.text)) return { provider: '', text: swarmBusy() ? (stopSwarm(), 'Calling them back.') : 'No helpers are out.', proposals: [] };
     const job = swarmPhrase(last.text);
     if (job) return { provider: '', text: await swarmReply(job, via, last.text.trim().slice(0, 200)), proposals: [] };
+    // "Use Claude for big jobs", "make it all free", "turn off scans" (November 17, 2026): settings change the moment
+    // the owner says so, without the AI.
+    const changed = applySettings(last.text);
+    if (changed) return { provider: '', text: changed, proposals: [] };
     const quick = await instant(last.text, via);
     if (quick) return { provider: '', text: quick.text, proposals: [] };
   }
@@ -361,7 +399,7 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
   // A simple turn: no board, no tools, the fast model. Only if it asks for tools does the full prompt follow.
   if (simpleTurn(turns)) {
     const hold = new Holdback(options.onText);
-    const reply = await ask(`${voice}\n\nThis reply has no tools and no data. If answering needs the owner's own data (their day, mail, messages, health, home, files) or anything live, or they want something done, reply with only <need-tools/>.`, turns, via !== 'ask', { onText: d => hold.feed(d), simple: true });
+    const reply = await ask(`${voice}\n\nThis reply has no tools and no data. If answering needs the owner's own data (their day, mail, messages, health, home, files) or anything live, or they want something done, reply with only <need-tools/>.`, turns, via !== 'ask', { onText: d => hold.feed(d), tier: 'simple' });
     const text = clean(reply.text);
     if (!/<need-tools|<tool>/.test(reply.text) && text) return { provider: reply.provider, text, proposals: [] };
     if (hold.streamed) options.onReset?.();
@@ -376,13 +414,14 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
   const made: Proposal[] = [];
   const asked = turns.filter(t => t.role === 'user').at(-1)?.text ?? '';
   const guard = new RepeatGuard();
+  let tier: Tier = bigJob(turns) ? 'hard' : 'medium';
   const local = Boolean(currentAi()?.local);
   let provider = '', text = '';
   // Working in an app takes more steps than reading: up to 16 then.
   let limit = MAX_STEPS, calls = 0, nudges = 0, callsAtNudge = -1, corrective = 0, failedLast = false;
   for (let step = 0; step < limit; step++) {
     const hold = new Holdback(options.onText);
-    const reply = await ask(system, convo, via !== 'ask', { onText: delta => hold.feed(delta) });
+    const reply = await ask(system, convo, via !== 'ask', { onText: delta => hold.feed(delta), tier });
     provider = reply.provider;
     const found = toolCalls(reply.text);
     const plan = reply.text.match(planPattern)?.[1]?.replace(/\s+/g, ' ').trim();
@@ -408,7 +447,8 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
     if (hold.streamed) options.onReset?.();
     calls += found.length;
     if (calls > MAX_TOOL_CALLS) { text = text || `I stopped after ${MAX_TOOL_CALLS} steps without finishing. What ran already ran; ask me for what’s left.`; break; }
-    if (found.some(c => c.name.startsWith('app_'))) limit = MAX_ROUNDS_APPS;
+    // Working in an app is a big job: more steps, and the model that thinks hardest.
+    if (found.some(c => c.name.startsWith('app_'))) { limit = MAX_ROUNDS_APPS; tier = 'hard'; }
     for (const c of found) options.onStep?.(describe(c));
     const results = await Promise.all(found.map(async c => {
       const refused = guard.refuses(c.name, c.args);

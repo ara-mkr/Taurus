@@ -97,6 +97,7 @@ test('a simple question gets a short prompt with no tools or board; one that nee
   assert.equal(simpleTurn([{ role: 'user', text: 'what is 15% of 80' }]), true);
   assert.equal(simpleTurn([{ role: 'user', text: 'what is on my calendar' }]), false);
   assert.equal(simpleTurn([{ role: 'user', text: 'tell Sam I am running late' }]), false);
+  assert.equal(simpleTurn([{ role: 'user', text: 'tell me a quick joke' }]), true);
   script = [() => '12.'];
   assert.equal((await converse([{ role: 'user', text: 'what is 15% of 80' }], 'ask')).text, '12.');
   assert.equal(seen.length, 1);
