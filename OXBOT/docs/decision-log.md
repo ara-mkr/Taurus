@@ -348,3 +348,10 @@ The owner: "make the main preset of how it speaks like jarvis tho like hes kinda
 - **Songs:** the Spotify search and the speaker lookup run at the same time.
 - **"Open notes" without Mac control:** says at once how to allow it, instead of asking the AI (19 s).
 - **Not changed:** the AI provider is OXBOT Free (OpenRouter's free models), which took 3.7 to 7 s for a short answer here. Groq or Cerebras would be much faster; that is the owner's choice and needs their key.
+
+## November 18, 2026: Canvas LMS connector (read only)
+
+Owner's request, relayed by the main session: a Canvas LMS (Instructure) connector so college students get coursework in OXBOT. It is a new read-only connector inside the already-authorized envelope; no write scopes.
+
+- **Token and address, not OAuth:** Canvas OAuth needs a developer key issued by each school, which the sign-in service cannot hold. The student pastes their Canvas address and a personal access token they generate in Canvas. Group Tasks, `mockOnly` until the owner tries it with a real token.
+- **Guards:** GET only, https only, public domains only (no localhost, private or IP addresses), no redirects followed, token never in an error message, results capped. See `docs/12-connections.md`.

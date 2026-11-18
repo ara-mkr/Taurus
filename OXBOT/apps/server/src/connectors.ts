@@ -12,6 +12,7 @@ import { numbersBodyDefs } from './connectors/numbers-body.ts';
 import { filesFeedsDefs } from './connectors/files-feeds.ts';
 import { composioDefs } from './connectors/composio.ts';
 import { moreDefs } from './connectors/more.ts';
+import { canvasDefs } from './connectors/canvas.ts';
 export type { Pull };
 
 const entities: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
@@ -337,7 +338,7 @@ const coreDefs: Def[] = [
   },
 ];
 // The connectors added October 31, 2026 (read-only, tested only against mocks) follow the ones above.
-const defs: Def[] = [...coreDefs, ...workDefs, ...numbersBodyDefs, ...filesFeedsDefs, ...moreDefs, ...composioDefs];
+const defs: Def[] = [...coreDefs, ...workDefs, ...numbersBodyDefs, ...filesFeedsDefs, ...moreDefs, ...canvasDefs, ...composioDefs];
 // For tests: every definition, with its pull function.
 export const connectorDefs = (): readonly Def[] => defs;
 
