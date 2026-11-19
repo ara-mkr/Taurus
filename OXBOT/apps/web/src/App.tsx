@@ -129,6 +129,23 @@ export default function App() {
     document.documentElement.dataset.ambient = String(prefs?.ambient ?? true);
     document.documentElement.dataset.large = String(prefs?.profile?.large ?? false);
   }, [prefs?.tint, prefs?.ambient, prefs?.profile?.large]);
+  // Resting (owner, November 18, 2026: OXBOT open in the background made the Mac crawl): 20 seconds without the pointer
+  // or keys, or the window out of focus, pauses the slow background motion where it is; any touch brings it back.
+  useEffect(() => {
+    const root = document.documentElement;
+    let timer = 0;
+    const rest = () => { root.dataset.resting = 'true'; };
+    const wake = () => {
+      if (root.dataset.resting) delete root.dataset.resting;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(rest, 20_000);
+    };
+    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'focus'] as const;
+    for (const e of events) window.addEventListener(e, wake, { passive: true });
+    window.addEventListener('blur', rest);
+    wake();
+    return () => { window.clearTimeout(timer); for (const e of events) window.removeEventListener(e, wake); window.removeEventListener('blur', rest); };
+  }, []);
   // The light follows the time of day: warm at dawn and dusk, cool at night.
   const part = prefs?.background?.daylight === false ? '' : daypart(new Date(now).getHours());
   useEffect(() => { if (part) document.documentElement.dataset.daypart = part; else delete document.documentElement.dataset.daypart; }, [part]);

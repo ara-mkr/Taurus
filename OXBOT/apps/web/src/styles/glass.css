@@ -79,6 +79,8 @@ body { background: var(--bg); min-height: 100dvh; }
 @keyframes drift-b { to { transform: translate(-16vw, 10vh) scale(.92); } }
 @keyframes drift-c { to { transform: translate(-12vw, -14vh) scale(1.1); } }
 :root[data-ambient="false"] .backdrop span { animation: none; }
+/* Paused, not stopped, while OXBOT rests (App.tsx): no jump when it wakes. */
+:root[data-resting] .backdrop span, :root[data-resting] .cloud, :root[data-resting] .sky-stars { animation-play-state: paused; }
 
 .glass, .rail-panel, .ox-status, .profile-menu, .composer-bar, .chat-panel, .dock, .people-strip button, .subnav, .ox-bubble, .card, .glass-button, .builder, .sheet, .approval-tray, main.ask, main.connections, main.phone, main.settings-page {
   background: var(--glass);

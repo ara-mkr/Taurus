@@ -160,8 +160,10 @@ export function Swarm() {
   }, [swarm, busy]);
 
   // The motion: a spring per cursor, a curve through a waypoint on long trips, and a fold into Ox at the end.
+  // A finished swarm whose panel has gone stops drawing too, instead of running until OXBOT restarts.
+  const drawn = swarm && hidden !== swarm.id ? swarm.id : null;
   useEffect(() => {
-    if (!swarm) return;
+    if (!drawn) return;
     let frame = 0, last = performance.now();
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const tick = (t: number) => {
@@ -310,7 +312,7 @@ export function Swarm() {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [swarm?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- one loop per swarm; it reads the latest state from a ref
+  }, [drawn]); // eslint-disable-line react-hooks/exhaustive-deps -- one loop per swarm; it reads the latest state from a ref
 
   const stop = async () => {
     setStopping(true); setError('');

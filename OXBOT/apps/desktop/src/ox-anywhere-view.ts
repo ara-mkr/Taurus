@@ -13,7 +13,9 @@ const runner = document.getElementById('runner')!;
 const bubble = document.getElementById('bubble')!;
 runner.innerHTML = oxMarkup();
 const svg = runner.querySelector('svg')!;
-const face = oxFace(svg, { expression: 'listening', reduce });
+// Asleep while the window waits hidden: a listening Ox moved his horns 60 times a second in a window nobody could see
+// (owner, November 18, 2026). Summoning wakes him.
+const face = oxFace(svg, { expression: 'sleep', reduce });
 const ease = { out: 'cubic-bezier(0.23, 1, 0.32, 1)', inOut: 'cubic-bezier(0.77, 0, 0.175, 1)' };
 
 let phase = '';
@@ -61,7 +63,7 @@ function dismiss() {
   travel = reduce
     ? runner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-out', fill: 'both' })
     : runner.animate([{ transform: 'translateX(0)', opacity: 1 }, { opacity: 1, offset: 0.75 }, { transform: 'translateX(220px)', opacity: 0 }], { duration: CHARGE_OUT_MS, easing: ease.inOut, fill: 'both' });
-  void face.play('charge-out', 1);
+  void face.play('charge-out', 1).then(() => { if (document.body.dataset.state === 'out') expression('sleep'); });
   phase = '';
 }
 

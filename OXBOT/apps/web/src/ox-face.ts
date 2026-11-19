@@ -135,14 +135,25 @@ function stepSpring(s: Spring, dt: number, k: number, zeta: number) {
 }
 
 // ---------- One ticker for every face on the page ----------
-const faces = new Set<{ step(dt: number, now: number): void }>();
-let raf = 0, last = 0;
+const faces = new Set<{ step(dt: number, now: number): void; calm(): boolean }>();
+// A calm Ox (idle or asleep: only a slow breath and the odd blink) moves 20 times a second, not 60. Every write
+// repaints him and the glass around him, in every window he is in (owner, November 18, 2026: OXBOT ran the Mac hot).
+const CALM_MS = 50;
+// Between calm ticks it waits on a timer rather than asking for every frame, so the window has nothing to draw.
+let raf = 0, wait = 0, last = 0;
 function loop(t: number) {
+  raf = 0;
   const dt = last ? Math.min(0.05, Math.max(0, (t - last) / 1000)) : 0;
   last = t;
   for (const f of faces) f.step(dt, t);
-  raf = faces.size ? requestAnimationFrame(loop) : 0;
-  if (!raf) last = 0;
+  if (!faces.size) { last = 0; return; }
+  if ([...faces].every(f => f.calm())) wait = window.setTimeout(() => { wait = 0; if (!raf) raf = requestAnimationFrame(loop); }, CALM_MS);
+  else raf = requestAnimationFrame(loop);
+}
+// Anything that moves him starts the next frame now instead of after the calm wait.
+function wake() {
+  if (wait) { window.clearTimeout(wait); wait = 0; }
+  if (!raf && faces.size) raf = requestAnimationFrame(loop);
 }
 
 export interface Face {
@@ -189,6 +200,7 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
   }
 
   const self = {
+    calm: () => !active && talkLevel === 0 && (expression === 'idle' || expression === 'sleep') && Math.abs(gx.to - gx.x) < 0.5 && Math.abs(gy.to - gy.x) < 0.5,
     step(dt: number, now: number) {
       // Stiffer while talking, so the eyes keep up with the voice.
       const k = expression === 'talking' ? 900 : 320;
@@ -233,7 +245,7 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
 
   aim();
   faces.add(self);
-  if (!raf) raf = requestAnimationFrame(loop);
+  wake();
 
   const face: Face = {
     get expression() { return expression; },
@@ -242,18 +254,18 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
       const was = expression;
       expression = next;
       since = performance.now();
-      aim();
+      aim(); wake();
       if (next === 'happy' && was !== 'happy') void face.play('hop');
     },
-    look(dx, dy = 0) { gazeAt = dx === null || !Number.isFinite(dx) ? null : { dx, dy: Number.isFinite(dy) ? dy : 0 }; },
+    look(dx, dy = 0) { gazeAt = dx === null || !Number.isFinite(dx) ? null : { dx, dy: Number.isFinite(dy) ? dy : 0 }; wake(); },
     play(name, dir = 1) {
       if (active) { const done = active.done; active = null; done(); }
       if (reduce && name !== 'nod') return Promise.resolve();
       const def = reduce ? REDUCED_NOD : gestures(dir < 0 ? -1 : 1)[name];
       svg.dataset.gesture = name;
-      return new Promise<void>(resolve => { active = { def, start: performance.now(), done: resolve }; });
+      return new Promise<void>(resolve => { active = { def, start: performance.now(), done: resolve }; wake(); });
     },
-    talk(level) { talkLevel = Math.max(0, Math.min(1, level || 0)); if (expression === 'talking') aim(); },
+    talk(level) { talkLevel = Math.max(0, Math.min(1, level || 0)); if (expression === 'talking') aim(); wake(); },
     destroy() { faces.delete(self); if (active) { const done = active.done; active = null; done(); } },
   };
   return face;
