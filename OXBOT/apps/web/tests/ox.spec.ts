@@ -202,9 +202,14 @@ test('“Hey Ox” wakes him only at the start of a phrase and the rest goes to 
   await page.waitForTimeout(200);
   expect(asked).toEqual([]);
   await expect(page.locator('.ox-buddy svg')).not.toHaveAttribute('data-mood', 'listening');
-  await say(page, 'hey box', false);
-  await expect(page.locator('.ox-buddy svg')).toHaveAttribute('data-mood', 'listening');
+  // November 19, 2026: a sound-alike without "ox" no longer wakes him.
   await say(page, 'hey box what is next');
+  await page.waitForTimeout(200);
+  expect(asked).toEqual([]);
+  await expect(page.locator('.ox-buddy svg')).not.toHaveAttribute('data-mood', 'listening');
+  await say(page, 'hey ox', false);
+  await expect(page.locator('.ox-buddy svg')).toHaveAttribute('data-mood', 'listening');
+  await say(page, 'hey ox what is next');
   await expect(page.locator('.ox-bubble')).toContainText(answer);
   expect(asked).toEqual(['what is next']);
   await page.getByRole('button', { name: 'Close' }).click();

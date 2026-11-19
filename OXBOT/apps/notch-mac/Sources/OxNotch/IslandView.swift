@@ -145,10 +145,8 @@ enum Strip: Equatable {
     static func of(_ hub: Hub) -> Strip {
         if hub.ring != nil { return .ring }
         if let n = hub.notice { return .notice(n) }
-        if let v = hub.voice {
-            if v.phase == .listening { return .voice(.listening) }
-            if v.phase == .thinking, Date().timeIntervalSince(v.at) < 180 { return .voice(.thinking) }
-        }
+        // Listening and thinking out loud are shown by Ox at the bottom of the screen, not here (owner, November 19,
+        // 2026: "why does it also say listening the ox is alr chilling at the bottom").
         if hub.settings.native.live, let w = hub.workingAgents.first { return .agent(w.provider, w.work.since) }
         if let t = hub.track, t.playing { return .music }
         if hub.settings.showTimers, let t = hub.timers.first(where: { $0.endsAt > Date() }) { return .timer(t.endsAt) }

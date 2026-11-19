@@ -5,7 +5,7 @@ import { join, sep } from 'node:path';
 import { cleanNotch, geometry, notchScreens, type Geometry, type NotchSettings, type NotchState, type Screen } from './notch-settings';
 
 // Ox in the notch (owner, November 6, 2026). A black pill hugging the MacBook's camera notch, with Ox beside it; on
-// hover or click it opens into a small assistant: Ox listening, thinking and his last answer, what's playing, timers,
+// hover or click it opens into a small assistant: what's new, his last answer, what's playing, timers,
 // and a box to ask him something. On a screen without a notch it is a small pill at the top centre.
 //
 // Each chosen screen gets one transparent window above the menu bar, on every Space. Clicks fall through it except
@@ -30,6 +30,7 @@ export function notchService(o: Options) {
   let voice: Voice = null;
   let music: NotchState['music'] = null;
   const timers = new Map<string, NotchState['timers'][number]>();
+  let news: NotchState['news'] = null;
   let connected = false;
   // A few turns, so "and tomorrow?" follows on from the last question asked here.
   let turns: { role: 'user' | 'assistant'; text: string }[] = [];
@@ -71,7 +72,12 @@ export function notchService(o: Options) {
   function stopNative() { const child = native; native = null; child?.stdin?.end(); child?.kill(); }
 
   const toScreen = (d: Display): Screen => ({ id: d.id, internal: d.internal, primary: d.id === screen.getPrimaryDisplay().id, bounds: d.bounds, workArea: d.workArea });
-  const stateFor = (g: Geometry): NotchState => ({ settings, geometry: g, voice, music, timers: [...timers.values()], connected });
+  const stateFor = (g: Geometry): NotchState => ({ settings, geometry: g, voice, music, timers: [...timers.values()], news, connected });
+  // News that is already old (a reminder replayed when the stream reconnects) is not news.
+  const fresh = (at: unknown) => typeof at !== 'string' || !Number.isFinite(Date.parse(at)) || Date.now() - Date.parse(at) < 60_000;
+  const tellNews = (id: string, title: string, text: string) => {
+    news = { id: String(id).slice(0, 80), title: String(title || 'Ox').slice(0, 80), text: String(text ?? '').slice(0, 600), at: new Date().toISOString() };
+  };
   function tell() {
     for (const { win, geometry: g } of windows.values()) if (!win.isDestroyed() && !win.webContents.isLoading()) win.webContents.send('notch:state', stateFor(g));
   }
@@ -211,14 +217,38 @@ export function notchService(o: Options) {
           music = m?.track ? { playing: Boolean(m.playing), title: String(m.track.title ?? ''), artist: String(m.track.artist ?? '') } : null;
         } else if (d.kind === 'timer') {
           const t = d.timer as { label?: string; endsAt?: string; focus?: boolean };
-          if (d.done) timers.delete(String(d.id)); else timers.set(String(d.id), { id: String(d.id), label: String(t?.label ?? 'Timer'), endsAt: String(t?.endsAt ?? ''), focus: Boolean(t?.focus) });
-        } else if (d.kind === 'mac' || d.kind === 'open' || d.kind === 'note') {
+          if (d.done) { timers.delete(String(d.id)); if (fresh(d.at)) tellNews(`timer-${d.id}`, t?.focus ? 'Focus done' : 'Timer done', String(t?.label ?? 'Time’s up.')); }
+          else timers.set(String(d.id), { id: String(d.id), label: String(t?.label ?? 'Timer'), endsAt: String(t?.endsAt ?? ''), focus: Boolean(t?.focus) });
+        } else if (d.kind === 'reminder') {
+          if (!d.due || !fresh(d.at)) return;
+          tellNews(String(d.id), 'Reminder', String((d.reminder as { text?: string })?.text ?? ''));
+        } else if (d.kind === 'reminders' || d.kind === 'memory') {
+          // A list you asked to see.
+          const items = (d.kind === 'reminders' ? d.reminders : d.memories) as { text?: string }[] | undefined;
+          tellNews(String(d.id), d.kind === 'reminders' ? 'Reminders' : 'What I remember', (items ?? []).slice(0, 8).map(i => `• ${String(i?.text ?? '')}`).join('\n') || 'Nothing yet.');
+        } else if (d.kind === 'note') {
+          // A scheduled task or a job finished, or something that didn't work.
+          tellNews(String(d.id), String(d.title ?? 'Done'), String(d.text ?? ''));
+        } else if (d.kind === 'mac' || d.kind === 'open') {
           // What an instant command did ("Opening Notes."), when it didn't come with a spoken answer of its own.
           if (!voice || Date.now() - Date.parse(voice.at) > 3000) voice = { phase: 'answer', said: typeof d.said === 'string' ? d.said : undefined, text: String(d.kind === 'open' ? `Opening ${d.name}.` : d.text ?? d.title ?? ''), at: new Date().toISOString() };
         } else return;
       } else if (name === 'window-closed') {
         const id = String(d.id);
         if (id === 'music') music = null; else if (!timers.delete(id)) return;
+      } else if (name === 'feed') {
+        // What a scan found: a message that needs a reply, a plan for the calendar, an update.
+        if (!fresh(d.at)) return;
+        const title = d.kind === 'reply' ? 'Needs a reply' : d.kind === 'calendar' ? 'For your calendar' : typeof d.source === 'string' && d.source ? d.source : 'Update';
+        tellNews(String(d.id), title, String(d.text ?? ''));
+      } else if (name === 'approval') {
+        if (d.state !== 'pending') return;
+        tellNews(`approval-${d.id}`, 'Waiting for your OK', String(d.title ?? ''));
+      } else if (name === 'swarm') {
+        // Ox's helpers finished a job.
+        if (d.state !== 'done' && d.state !== 'failed') return;
+        if (news?.id === `swarm-${d.id}`) return;
+        tellNews(`swarm-${d.id}`, d.state === 'done' ? 'Done' : 'That didn’t work', String(d.answer ?? d.job ?? ''));
       } else return;
       tell();
     },

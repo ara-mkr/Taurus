@@ -79,14 +79,17 @@ test('phrases are cut by loudness: a pause ends one, a click is ignored', async 
   expect(result.pcm).toBe(8);
 });
 
-test('the Mac’s own mishearings of “Ox” still wake him', async ({ page }) => {
+// November 19, 2026: "anything with ox in it", and nothing without it.
+test('the Mac’s run-together forms of “Ox” wake him, and sound-alikes without “ox” do not', async ({ page }) => {
   await page.goto('/');
   const got = await page.evaluate(async () => {
     const path = '/src/components/Voice.tsx';
     const { afterWake } = await import(/* @vite-ignore */ path) as typeof import('../src/components/Voice');
-    return ['Yoox, what’s next?', '6. Ochs set a timer for 5 minutes.', 'I ox.', 'Iox, open notes', 'Yo-Ox, open notes', 'Hey, Ox, open my notes app.', 'Oxford is lovely', 'I think so'].map(afterWake);
+    return ['Yoox, what’s next?', 'I ox.', 'Iox, open notes', 'Yo-Ox, open notes', 'Hey, Ox, open my notes app.', 'Oxbot, pause', 'Hey ox bot next song',
+      '6. Ochs set a timer for 5 minutes.', 'Hey box what is next', 'Box.', 'Ax', 'Okay, ox in a box', 'Oxford is lovely', 'I think so', 'Oh.'].map(afterWake);
   });
-  expect(got).toEqual(['what’s next?', 'set a timer for 5 minutes.', '', 'open notes', 'open notes', 'open my notes app.', null, null]);
+  expect(got).toEqual(['what’s next?', '', 'open notes', 'open notes', 'open my notes app.', 'pause', 'next song',
+    null, null, null, null, 'in a box', null, null, null]);
 });
 
 // Ox anywhere (November 16, 2026; docs/21-ox-anywhere.md): with "Hey Ox" or the clap on, the desktop window asks to keep

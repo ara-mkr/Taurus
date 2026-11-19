@@ -128,21 +128,29 @@ test.describe('in the desktop app', () => {
     await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'false');
   });
 
-  test('when you talk to Ox in OXBOT, the notch shows him listening, then his answer, and closes again', async () => {
+  // November 19, 2026: "the notch should automatically go up why does it also say listening the ox is alr chilling at
+  // the bottom so only make the tab expand when ... u get a lil notifcation ... or u js ask to see ur todo list".
+  test('talking to Ox leaves the notch shut; a list you ask for opens it for a moment, then it goes up again', async () => {
     const post = (path: string, body: unknown) => fetch(`${local}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify(body) });
     expect((await post('/api/voice/presence', { phase: 'listening' })).status).toBe(200);
-    await expect(notch.locator('#notch')).toHaveAttribute('data-phase', 'listening');
-    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'true');
-    await expect(notch.locator('.answer')).toHaveText('Listening.');
-    const box = (await notch.locator('#notch').boundingBox())!;
-    await shot('notch-listening', { x: box.x + box.width / 2 - 330, y: 0, width: 660, height: 300 });
+    await notch.waitForTimeout(600);
+    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'false');
+    await expect(notch.locator('#notch')).toHaveAttribute('data-phase', 'idle');
+    await expect(notch.getByText('Listening')).toHaveCount(0);
+    // A plain spoken answer doesn't open it either.
     await post('/api/ask', { turns: [{ role: 'user', text: 'set a 2 minute tea timer' }], via: 'talk' });
-    await expect(notch.locator('.answer')).toContainText('2 minutes for tea');
-    await expect(notch.locator('.said')).toHaveText('“set a 2 minute tea timer”');
-    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'false', { timeout: 9_000 });
+    await notch.waitForTimeout(600);
+    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'false');
     // Closed, the countdown sits beside the camera.
     await expect(notch.locator('#right .status')).toHaveText(/^[12]:\d\d$/);
+    const box = (await notch.locator('#notch').boundingBox())!;
     await shot('notch-timer-closed', { x: box.x + box.width / 2 - 220, y: 0, width: 440, height: 80 });
+    // Asking to see a list pops it open with the list, and it goes up again by itself.
+    await post('/api/ask', { turns: [{ role: 'user', text: 'show my reminders' }], via: 'talk' });
+    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'true');
+    await expect(notch.locator('.said')).toHaveText('Reminders');
+    await shot('notch-news', { x: box.x + box.width / 2 - 330, y: 0, width: 660, height: 300 });
+    await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'false', { timeout: 9_000 });
     expect((await post('/api/voice/presence', { phase: 'shouting' })).status).toBe(400);
   });
 

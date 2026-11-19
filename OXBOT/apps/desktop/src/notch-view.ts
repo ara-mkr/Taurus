@@ -18,7 +18,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let state: NotchState | null = null;
 let open = false, view: 'main' | 'settings' = 'main', inside = false, asking = false, problem = '';
-let hoverTimer = 0, closeTimer = 0, lastAnswerAt = '';
+let hoverTimer = 0, closeTimer = 0, lastAnswerAt = '', lastNewsAt = '';
 // Each part is redrawn only when what it shows has changed: nothing is swapped out under a click or a drag, and Ox's
 // listening animation isn't restarted every second.
 const drawn = new Map<string, string>();
@@ -50,21 +50,24 @@ function ox() {
 
 const clock = (ms: number) => { const s = Math.max(0, Math.round(ms / 1000)), m = Math.floor(s / 60); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`; };
 const recent = (at?: string, ms = 12_000) => Boolean(at) && Date.now() - Date.parse(at!) < ms;
-function phase(): 'listening' | 'thinking' | 'answer' | 'error' | 'idle' {
+// Listening and thinking out loud belong to Ox at the bottom of the screen, not the notch (owner, November 19, 2026:
+// "why does it also say listening the ox is alr chilling at the bottom"). The notch thinks only for a question typed
+// into it.
+function phase(): 'thinking' | 'answer' | 'error' | 'idle' {
   const v = state?.voice;
   if (asking) return 'thinking';
-  if (!v) return 'idle';
-  if (v.phase === 'listening' || v.phase === 'thinking') return recent(v.at, 90_000) ? v.phase : 'idle';
-  if (v.phase === 'answer' || v.phase === 'error') return recent(v.at) ? v.phase : 'idle';
+  if (v && (v.phase === 'answer' || v.phase === 'error') && recent(v.at)) return v.phase;
   return 'idle';
 }
+// What's new, while it still is.
+const news = () => { const n = state?.news; return n && recent(n.at, 120_000) ? n : null; };
+// An answer that is a list ("show me my to-do list") is worth popping open for; a plain spoken answer is not.
+const listy = (text?: string) => (text ?? '').split('\n').filter(line => /^\s*(?:[-•*]|\d+[.)])\s+\S/.test(line)).length >= 2;
 const timers = () => (state?.timers ?? []).filter(t => Date.parse(t.endsAt) > Date.now() - 60_000).sort((a, b) => Date.parse(a.endsAt) - Date.parse(b.endsAt));
 // The short word beside the camera.
 function status(): string {
   if (state && !state.connected) return '';
-  const p = phase();
-  if (p === 'listening') return 'Listening';
-  if (p === 'thinking') return 'Thinking';
+  if (phase() === 'thinking') return 'Thinking';
   const t = timers()[0];
   if (t && state?.settings.show.timers) return clock(Date.parse(t.endsAt) - Date.now());
   if (state?.music?.playing && state.settings.show.music) return 'Playing';
@@ -105,14 +108,18 @@ main.append(answerBox, musicBox, timerBox, askForm, foot);
 const settingsBox = h('div');
 
 function drawAnswer() {
-  const s = state!.settings, v = state!.voice, p = phase();
-  if (!changed('answer', state!.connected, problem, p, s.show, v)) return;
+  const s = state!.settings, v = state!.voice, p = phase(), n = news();
+  // The news, unless an answer came after it.
+  const newsFirst = n && !(s.show.answer && v?.text && (v.phase === 'answer' || v.phase === 'error') && Date.parse(v.at) > Date.parse(n.at));
+  if (!changed('answer', state!.connected, problem, p, s.show, v, newsFirst ? n : null)) return;
   const kids: Node[] = [];
   if (!state!.connected) kids.push(h('p', { className: 'answer problem', textContent: 'OXBOT isn’t running. Open it and Ox is back.' }));
   else if (problem) kids.push(h('p', { className: 'answer problem', textContent: problem }));
-  else if (p === 'listening') kids.push(h('p', { className: 'answer quiet', textContent: 'Listening.' }));
-  else if (p === 'thinking') { if (v?.said) kids.push(h('p', { className: 'said', textContent: `“${v.said}”` })); kids.push(h('p', { className: 'answer quiet', textContent: 'Thinking.' })); }
-  else if (s.show.answer && v?.text && (v.phase === 'answer' || v.phase === 'error')) {
+  else if (p === 'thinking') kids.push(h('p', { className: 'answer quiet', textContent: 'Thinking.' }));
+  else if (n && newsFirst) {
+    kids.push(h('p', { className: 'said', textContent: n.title }));
+    if (n.text) kids.push(h('p', { className: 'answer news', textContent: n.text }));
+  } else if (s.show.answer && v?.text && (v.phase === 'answer' || v.phase === 'error')) {
     if (v.said) kids.push(h('p', { className: 'said', textContent: `“${v.said}”` }));
     kids.push(h('p', { className: `answer ${v.phase === 'error' ? 'problem' : ''}`, textContent: v.text }));
   } else kids.push(h('p', { className: 'answer quiet', textContent: s.show.ask ? 'Ask me anything, or say “Hey Ox” in OXBOT.' : 'Say “Hey Ox” in OXBOT.' }));
@@ -283,13 +290,17 @@ async function save(partial: Partial<NotchSettings>) {
 bridge.onState(next => {
   const before = state;
   state = next;
-  // A new answer opens the notch for a few seconds so you see it, like a Live Activity.
-  const v = next.voice;
-  const fresh = v && (v.phase === 'answer' || v.phase === 'listening') && v.at !== lastAnswerAt && recent(v.at, 4000) && next.settings.show.answer;
+  // News, or an answer that is a list, opens the notch for a few seconds so you see it, like a Live Activity. Ox
+  // listening, thinking or answering in words never does: he is at the bottom of the screen for that.
+  const v = next.voice, n = next.news;
+  const newNews = Boolean(n && n.at !== lastNewsAt && recent(n.at, 4000));
+  const newList = Boolean(v && v.phase === 'answer' && v.at !== lastAnswerAt && recent(v.at, 4000) && next.settings.show.answer && listy(v.text));
   if (v) lastAnswerAt = v.at;
-  if (fresh && before && !open) { setOpen(true); peeked = true; } else draw();
-  // Opened by itself: it goes again a few seconds after the answer, unless you've moved onto it.
-  if (fresh && peeked && v.phase === 'answer') { window.clearTimeout(closeTimer); closeTimer = window.setTimeout(() => { if (!inside && !keepOpen()) setOpen(false); }, reduce ? 6000 : 5000); }
+  if (n) lastNewsAt = n.at;
+  const pop = Boolean(before) && (newNews || newList);
+  if (pop && !open) { setOpen(true); peeked = true; } else draw();
+  // Opened by itself: it goes up again a few seconds later, unless you've moved onto it.
+  if (pop && peeked) { window.clearTimeout(closeTimer); closeTimer = window.setTimeout(() => { if (!inside && !keepOpen()) setOpen(false); }, reduce ? 6000 : 5000); }
 });
 let peeked = false;
 document.addEventListener('mousemove', () => { if (inside) peeked = false; });

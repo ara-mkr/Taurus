@@ -31,8 +31,10 @@ export function saveVoice(v: VoiceSettings) { try { localStorage.setItem(key, JS
 // "Hey Ox", "Yo Ox", "Hi Ox", "Hello Ox", "Okay Ox", "Ox", "OXBOT" and the usual mishearings, only at the start of
 // a phrase (owner, November 6, 2026: "say like yo ox, hi ox, OX, oxbot, anything like that not just hey ox").
 // Returns what was said after the wake word, or null when the phrase did not start with one.
-// Mishearings from Moonshine on the Mac (November 7, 2026) too: "Yoox", "Ochs", "I ox", "Iox", "Yo-Ox".
-const wakeWord = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up|i)[\s,]+(?:there[\s,]+)?(?:ox\s*bot|ox\s*bought|ox|ochs|box|ocks|oks|ax|oxe?n)|(?:hey|hi|yo|i)ox|ox\s*bot|ox\s*bought|ox|ochs)(?![a-z])[\s,.!?]*/;
+// Run-together forms from Moonshine on the Mac (November 7, 2026) too: "Yoox", "I ox", "Iox", "Yo-Ox". The name always
+// has "ox" in it (owner, November 19, 2026: "only come when ... i call his name which is anything with ox in it"), so
+// sound-alikes such as "box", "ax" and "Ochs", which noise and other talk turn into, no longer wake him.
+const wakeWord = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up|i)[\s,]+(?:there[\s,]+)?|(?:hey|hi|yo|i)(?=ox))?ox(?:\s*bot|\s*bought|en)?(?![a-z])[\s,.!?]*/;
 const hellos = ['Hey.', 'Yo.', 'Talk to me.', 'What’s up?', 'Here. Go.'];
 const words = (t: string) => t.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
 const sameWords = (a: string, b: string) => { const x = words(a), y = words(b); return Boolean(x) && (x === y || y.includes(x)); };

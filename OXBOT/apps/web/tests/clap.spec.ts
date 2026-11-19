@@ -37,8 +37,27 @@ test('talking, music and a long bang never count', () => {
   expect(play(clapDetector(), [{ at: 1000, ms: 300, level: 0.8 }, clap(1500)], 3000)).toEqual([]);
 });
 
-test('after a double, a third clap straight away does not start it again', () => {
-  expect(play(clapDetector(), [clap(1000), clap(1300), clap(1600), clap(1900)], 3000)).toHaveLength(1);
+// November 19, 2026: "it pops in anytime some noise is made".
+test('three or more sharp sounds in a row are a run of noise, not a double', () => {
+  expect(play(clapDetector(), [clap(1000), clap(1300), clap(1600), clap(1900)], 3000)).toEqual([]);
+  expect(play(clapDetector(), [clap(1000), clap(1300), clap(1600)], 3000)).toEqual([]);
+});
+
+test('typing never counts, and a double clap after the typing stops still does', () => {
+  const typing = Array.from({ length: 20 }, (_, i) => ({ at: 1000 + i * 180, ms: 24, level: 0.4 }));
+  expect(play(clapDetector(), typing, 5000)).toEqual([]);
+  const fired = play(clapDetector(), [...typing, clap(6000), clap(6350)], 8000);
+  expect(fired).toHaveLength(1);
+  expect(fired[0]).toBeGreaterThan(6350);
+});
+
+test('a sound straight before the first clap, or two very different sounds, do nothing', () => {
+  expect(play(clapDetector(), [{ at: 800, ms: 24, level: 0.4 }, clap(1000), clap(1350)], 3000)).toEqual([]);
+  expect(play(clapDetector(), [clap(1000, 0.9), clap(1350, 0.15)], 3000)).toEqual([]);
+});
+
+test('a second double a moment later starts it again', () => {
+  expect(play(clapDetector(), [clap(1000), clap(1330), clap(4000), clap(4330)], 6000)).toHaveLength(2);
 });
 
 test('a noisy room needs a louder clap', () => {

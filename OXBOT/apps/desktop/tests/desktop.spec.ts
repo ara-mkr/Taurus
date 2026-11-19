@@ -26,7 +26,7 @@ const windowState = () => app.evaluate(({ BrowserWindow }) => {
   return w ? { visible: w.isVisible(), focused: w.isFocused(), onTop: w.isAlwaysOnTop(), full: process.platform === 'darwin' ? w.isSimpleFullScreen() : w.isFullScreen(), everySpace: w.isVisibleOnAllWorkspaces(), destroyed: w.isDestroyed() } : null;
 });
 const hide = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach(w => w.hide()));
-const windowUrl = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().endsWith('notch.html'))?.webContents.getURL());
+const windowUrl = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().startsWith('http'))?.webContents.getURL());
 const opened = () => app.evaluate(() => (globalThis as { opened?: string[] }).opened ?? []);
 
 test.describe.configure({ mode: 'serial' });
@@ -79,8 +79,8 @@ test('an external link opens in the default browser, not in the window', async (
   });
   await expect.poll(opened).toContain('https://example.com/report');
   expect((await opened()).length).toBe(before + 1);
-  // Ox in the notch (November 6, 2026) is a window of its own; the link opened nothing else.
-  expect(app.windows().filter(p => !p.url().endsWith('notch.html')).length).toBe(1);
+  // Ox in the notch and Ox anywhere are windows of their own (local files); the link opened no other page.
+  expect(app.windows().filter(p => p.url().startsWith('http')).length).toBe(1);
   await expect(page).toHaveURL(`${origin}/`);
 });
 
@@ -112,8 +112,8 @@ test('Talk listens on this Mac and says plainly when macOS blocks the microphone
 
 test('a ring takes over the screen from a hidden window, and "I\'m on it" gives it back', async () => {
   const before = { x: 120, y: 90, width: 1100, height: 760 };
-  await app.evaluate(({ BrowserWindow }, b) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().endsWith('notch.html'))!.setBounds(b), before);
-  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().endsWith('notch.html'))!.getBounds())).toEqual(before);
+  await app.evaluate(({ BrowserWindow }, b) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().startsWith('http'))!.setBounds(b), before);
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().startsWith('http'))!.getBounds())).toEqual(before);
   await hide();
   expect((await windowState())?.visible).toBe(false);
   const response = await fetch(`${local}/api/ring`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: '{}' });
@@ -123,7 +123,7 @@ test('a ring takes over the screen from a hidden window, and "I\'m on it" gives 
   await expect(page.getByRole('alertdialog')).toContainText('Test ring');
   await page.getByRole('button', { name: 'I’m on it' }).click();
   await expect.poll(windowState).toMatchObject({ onTop: false, full: false, everySpace: false });
-  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().endsWith('notch.html'))!.getBounds())).toEqual(before);
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().startsWith('http'))!.getBounds())).toEqual(before);
   expect(ring.id).toBeTruthy();
 });
 

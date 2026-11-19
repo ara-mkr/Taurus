@@ -107,5 +107,8 @@ export interface NotchState {
   voice: { phase: 'listening' | 'thinking' | 'answer' | 'error' | 'idle'; said?: string; text?: string; at: string } | null;
   music: { playing: boolean; title: string; artist: string } | null;
   timers: { id: string; label: string; endsAt: string; focus?: boolean }[];
+  // Something new worth a look (November 19, 2026): a message a scan found, a card waiting for your OK, a timer or
+  // reminder going off, a task finished, a list you asked to see. The notch opens for a few seconds to show it.
+  news: { id: string; title: string; text: string; at: string } | null;
   connected: boolean;
 }
