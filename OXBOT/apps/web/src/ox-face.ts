@@ -141,19 +141,33 @@ const faces = new Set<{ step(dt: number, now: number): void; calm(): boolean }>(
 const CALM_MS = 50;
 // Between calm ticks it waits on a timer rather than asking for every frame, so the window has nothing to draw.
 let raf = 0, wait = 0, last = 0;
+// While the page rests (<html data-resting>: no input for a while, the window in the background, or the floating Ox put
+// away) a calm Ox holds still instead of breathing. Each breath redraws every frosted panel in the window, which kept the
+// graphics process near a whole core with nobody looking (owner, November 19, 2026). The time spent resting is taken
+// out of his breathing clock, so the breath picks up where it stopped instead of jumping.
+let resting = false, restedAt = 0, skipped = 0;
 function loop(t: number) {
   raf = 0;
   const dt = last ? Math.min(0.05, Math.max(0, (t - last) / 1000)) : 0;
   last = t;
   for (const f of faces) f.step(dt, t);
   if (!faces.size) { last = 0; return; }
-  if ([...faces].every(f => f.calm())) wait = window.setTimeout(() => { wait = 0; if (!raf) raf = requestAnimationFrame(loop); }, CALM_MS);
-  else raf = requestAnimationFrame(loop);
+  if ([...faces].every(f => f.calm())) {
+    if (resting) { last = 0; restedAt = performance.now(); return; }
+    wait = window.setTimeout(() => { wait = 0; if (!raf) raf = requestAnimationFrame(loop); }, CALM_MS);
+  } else raf = requestAnimationFrame(loop);
 }
 // Anything that moves him starts the next frame now instead of after the calm wait.
 function wake() {
   if (wait) { window.clearTimeout(wait); wait = 0; }
+  if (restedAt) { skipped += performance.now() - restedAt; restedAt = 0; }
   if (!raf && faces.size) raf = requestAnimationFrame(loop);
+}
+if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+  const root = document.documentElement;
+  const check = () => { const next = root.hasAttribute('data-resting'); if (next !== resting) { resting = next; if (!resting) wake(); } };
+  new MutationObserver(check).observe(root, { attributes: true, attributeFilter: ['data-resting'] });
+  check();
 }
 
 export interface Face {
@@ -183,8 +197,8 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
   const gx = spring(0), gy = spring(0);
   let gazeAt: { dx: number; dy: number } | null = null;
   let talkLevel = 0;
-  let since = performance.now();
-  let blinkAt = since + 1800 + Math.random() * 2400, again = false;
+  let since = performance.now() - skipped;
+  let blinkAt = performance.now() + 1800 + Math.random() * 2400, again = false;
   let active: { def: GestureDef; start: number; done: () => void } | null = null;
   const written = new Map<SVGElement, string>();
   const write = (el: SVGElement | null, value: string) => { if (el && written.get(el) !== value) { written.set(el, value); el.style.transform = value; } };
@@ -212,7 +226,7 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
       gy.to = gazeAt ? (52 * gazeAt.dy / d) * gaze : 0;
       stepSpring(gx, dt, 140, 0.82); stepSpring(gy, dt, 140, 0.82);
 
-      const o: Offset = reduce ? {} : LOOPS[expression]?.((now - since) / 1000) ?? {};
+      const o: Offset = reduce ? {} : LOOPS[expression]?.((now - skipped - since) / 1000) ?? {};
       let g: Offset = {};
       if (active) {
         const p = Math.min(1, (now - active.start) / active.def.ms);
@@ -253,7 +267,7 @@ export function oxFace(svg: SVGSVGElement, options: { expression?: Expression; r
       if (next === expression) return;
       const was = expression;
       expression = next;
-      since = performance.now();
+      since = performance.now() - skipped;
       aim(); wake();
       if (next === 'happy' && was !== 'happy') void face.play('hop');
     },

@@ -157,7 +157,8 @@ test.describe('in the desktop app', () => {
     await notch.getByRole('group', { name: 'Opens' }).getByRole('button', { name: 'On click' }).click();
     await notch.getByRole('group', { name: 'Ox sits' }).getByRole('button', { name: 'Right' }).click();
     await notch.getByRole('group', { name: 'Now playing' }).getByRole('button', { name: 'Off' }).click();
-    const saved = () => JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch;
+    // Until the first change lands there is no desktop.json yet; that reads as nothing saved, and the poll keeps waiting.
+    const saved = () => { try { return JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch; } catch { return undefined; } };
     await expect.poll(() => saved()?.open).toBe('click');
     expect(saved()).toMatchObject({ mascotSide: 'right', show: { music: false, answer: true } });
     await notch.getByRole('button', { name: 'Done' }).click();
@@ -187,9 +188,13 @@ test.describe('in the desktop app', () => {
   // Vorssaint settings (sizes, agents) beside the shared ones.
   test('Settings > Notch in OXBOT’s window changes the same settings, the native notch’s too', async () => {
     const page = app.windows().find(p => p.url().startsWith(`http://localhost:${port}`))!;
+    // Past the first-run welcome, which covers the window until it's done.
+    await page.evaluate(() => localStorage.setItem('oxbot-onboarded', '1'));
+    await page.reload();
     await page.evaluate(() => { location.hash = 'notch'; });
     await expect(page.getByRole('heading', { name: 'Notch', level: 1 })).toBeVisible();
-    const saved = () => JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch;
+    // Until the first change lands there is no desktop.json yet; that reads as nothing saved, and the poll keeps waiting.
+    const saved = () => { try { return JSON.parse(readFileSync(join(home, 'desktop.json'), 'utf8')).notch; } catch { return undefined; } };
     await page.getByRole('checkbox', { name: 'Enable Dynamic Island' }).check();
     await expect.poll(() => saved()?.on).toBe(true);
     await page.getByRole('radio', { name: 'All displays' }).check();

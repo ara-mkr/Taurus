@@ -136,7 +136,12 @@ function Panel({ p, i, ctx, editing, first, last, dragging, change, remove, move
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return;
-    const check = () => el.querySelectorAll<HTMLElement>('.card-body').forEach(b => { if (b.scrollHeight > b.clientHeight + 1) b.tabIndex = 0; else b.removeAttribute('tabindex'); });
+    // Writes only on a change: this runs after every render, and each write made the page restyle.
+    const check = () => el.querySelectorAll<HTMLElement>('.card-body').forEach(b => {
+      const scrolls = b.scrollHeight > b.clientHeight + 1;
+      if (scrolls && b.getAttribute('tabindex') !== '0') b.tabIndex = 0;
+      else if (!scrolls && b.hasAttribute('tabindex')) b.removeAttribute('tabindex');
+    });
     const watch = new ResizeObserver(check);
     watch.observe(el); el.querySelectorAll('.card-body').forEach(b => watch.observe(b));
     check();

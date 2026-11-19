@@ -42,6 +42,10 @@ test.beforeAll(async () => {
   app = await electron.launch({ args: [main], env });
   page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
+  // Past the first-run welcome, which covers the window until it's done (the web tests start past it the same way).
+  await page.evaluate(() => localStorage.setItem('oxbot-onboarded', '1'));
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
   // Every link that leaves the app goes through shell.openExternal; record instead of opening a browser.
   await app.evaluate(({ shell }) => {
     const g = globalThis as { opened?: string[] };
