@@ -8,7 +8,7 @@ import { Qr } from './Qr';
 const groups: [Group, string][] = [
   ['Mail', 'Mail'], ['Calendar', 'Calendar and meetings'], ['Chat', 'Chat'], ['Tasks', 'Tasks and projects'], ['Code', 'Code and incidents'],
   ['Files', 'Docs and files'], ['Sales', 'Sales and support'], ['Money', 'Money'], ['Numbers', 'Company numbers'], ['Body', 'Health'],
-  ['Media', 'Music'], ['Feeds', 'News, feeds and weather'], ['Hub', 'Hundreds more apps, through Composio'], ['AI', 'AI'], ['Phone', 'Ringing'],
+  ['Media', 'Media'], ['Feeds', 'News, feeds and weather'], ['Hub', 'Hundreds more apps, through Composio'], ['AI', 'AI'], ['Phone', 'Ringing'],
 ];
 // Shorter names for the filter row.
 const filterNames: Partial<Record<Group, string>> = { Calendar: 'Calendar', Tasks: 'Tasks', Code: 'Code', Files: 'Files', Sales: 'Sales', Numbers: 'Numbers', Feeds: 'News and feeds', Hub: 'Composio' };

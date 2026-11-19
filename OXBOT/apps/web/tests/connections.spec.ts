@@ -40,7 +40,7 @@ test('every connector is a tile with its mark, name and one line, in plain group
   await open(page);
   await expect(page.getByText(`0 of ${connectors.length} connected`)).toBeVisible();
   const headings = await page.locator('main.connections section > h2').allInnerTexts();
-  expect(headings).toEqual(['Mail', 'Calendar and meetings', 'Chat', 'Tasks and projects', 'Code and incidents', 'Docs and files', 'Sales and support', 'Money', 'Company numbers', 'Health', 'Music', 'News, feeds and weather', 'Hundreds more apps, through Composio', 'AI', 'Ringing']);
+  expect(headings).toEqual(['Mail', 'Calendar and meetings', 'Chat', 'Tasks and projects', 'Code and incidents', 'Docs and files', 'Sales and support', 'Money', 'Company numbers', 'Health', 'Media', 'News, feeds and weather', 'Hundreds more apps, through Composio', 'AI', 'Ringing']);
   await expect(page.locator('.app-tile')).toHaveCount(connectors.length);
   await expect(page.locator('.app-tile .app-logo')).toHaveCount(connectors.length);
   for (const state of await page.locator('.app-state').allInnerTexts()) expect(state).not.toMatch(/Connected|attention/);
@@ -76,8 +76,10 @@ test('search and filters narrow the tiles, and a public feed turns on with one s
   await expect(page.getByText('Nothing matches “nothing like this”.')).toBeVisible();
   await find.fill('');
   const show = page.getByRole('toolbar', { name: 'Show' });
-  await show.getByRole('button', { name: /^Music/ }).click();
-  await expect(page.locator('.app-name')).toHaveText(['Spotify']);
+  // Media holds music, video and social apps (Spotify, YouTube, Bluesky, Plex...), not music alone.
+  await show.getByRole('button', { name: /^Media/ }).click();
+  await expect(page.locator('.app-name').filter({ hasText: /^Spotify$/ })).toHaveCount(1);
+  await expect(page.locator('.app-name').filter({ hasText: /^Gmail$/ })).toHaveCount(0);
   await show.getByRole('button', { name: /^Connected/ }).click();
   await expect(page.getByText(/Nothing connected yet/)).toBeVisible();
   await show.getByRole('button', { name: /^All/ }).click();
@@ -88,14 +90,14 @@ test('search and filters narrow the tiles, and a public feed turns on with one s
 
   let saved: Record<string, string> | undefined;
   await page.route('**/api/connectors/hacker-news/fields', r => { saved = r.request().postDataJSON().values; return r.fulfill({ json: { connectors: connectors.map(c => c.id === 'hacker-news' ? { ...c, connected: true, ready: true } : c) } }); });
-  await page.locator('.app-tile', { hasText: 'Hacker News' }).click();
-  const sheet = page.getByRole('dialog', { name: 'Hacker News' });
+  await page.locator('.app-tile', { has: page.locator('.app-name', { hasText: /^Hacker News$/ }) }).click();
+  const sheet = page.getByRole('dialog', { name: 'Hacker News', exact: true });
   await sheet.getByRole('button', { name: 'Turn on' }).click();
   await expect(sheet.locator('.connector-status')).toHaveText('Connected');
   expect(saved).toEqual({ HACKER_NEWS_ON: '1' });
   await expect(sheet.getByRole('button', { name: 'Turn off' })).toBeVisible();
   await sheet.getByRole('button', { name: 'Done' }).click();
-  await expect(page.locator('.app-tile', { hasText: 'Hacker News' }).locator('.app-state')).toHaveText('Connected');
+  await expect(page.locator('.app-tile', { has: page.locator('.app-name', { hasText: /^Hacker News$/ }) }).locator('.app-state')).toHaveText('Connected');
 });
 
 test('a QR code opens one app on the phone, and says plainly when the phone can’t reach the Mac', async ({ page }) => {
