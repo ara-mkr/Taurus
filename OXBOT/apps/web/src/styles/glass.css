@@ -69,10 +69,12 @@ body { background: var(--bg); min-height: 100dvh; }
 
 /* The light field the glass floats over. */
 .backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.backdrop span { position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%; filter: blur(100px); opacity: .9; will-change: transform; }
-.backdrop span:nth-child(1) { top: -24vmax; left: -14vmax; background: var(--glow-a); animation: drift-a 52s ease-in-out infinite alternate; }
-.backdrop span:nth-child(2) { top: 18vh; right: -22vmax; background: var(--glow-b); animation: drift-b 64s ease-in-out infinite alternate; }
-.backdrop span:nth-child(3) { bottom: -30vmax; left: 22vw; background: var(--glow-c); animation: drift-c 72s ease-in-out infinite alternate; }
+/* Soft edges come from the gradient itself, not filter: blur(100px): a live blur on three screen-sized circles, moving
+   under 20-odd glass panels, kept the GPU near 100% with nothing happening (owner, November 18, 2026). */
+.backdrop span { position: absolute; width: 80vmax; height: 80vmax; border-radius: 50%; opacity: .9; will-change: transform; }
+.backdrop span:nth-child(1) { top: -33vmax; left: -23vmax; background: radial-gradient(closest-side, var(--glow-a), color-mix(in srgb, var(--glow-a) 45%, transparent) 55%, transparent); animation: drift-a 52s ease-in-out infinite alternate; }
+.backdrop span:nth-child(2) { top: calc(18vh - 9vmax); right: -31vmax; background: radial-gradient(closest-side, var(--glow-b), color-mix(in srgb, var(--glow-b) 45%, transparent) 55%, transparent); animation: drift-b 64s ease-in-out infinite alternate; }
+.backdrop span:nth-child(3) { bottom: -39vmax; left: calc(22vw - 9vmax); background: radial-gradient(closest-side, var(--glow-c), color-mix(in srgb, var(--glow-c) 45%, transparent) 55%, transparent); animation: drift-c 72s ease-in-out infinite alternate; }
 @keyframes drift-a { to { transform: translate(18vw, 14vh) scale(1.12); } }
 @keyframes drift-b { to { transform: translate(-16vw, 10vh) scale(.92); } }
 @keyframes drift-c { to { transform: translate(-12vw, -14vh) scale(1.1); } }

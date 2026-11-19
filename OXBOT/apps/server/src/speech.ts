@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { note } from './activity.ts';
@@ -37,6 +39,18 @@ let model: Promise<Engine> | undefined;
 const state: SpeechState = { status: 'off', progress: 0 };
 const files = new Map<string, { loaded: number; total: number }>();
 const cache = new Map<string, Buffer>();
+// Short lines are kept on disk as well (November 18, 2026: the owner's Mac choked at every launch while Ox re-made
+// the same greetings on the CPU), so each one is made once ever instead of once per start, without the model loaded.
+const diskDir = () => join(store.dir, 'speech-cache');
+const diskFile = (key: string) => join(diskDir(), `${createHash('sha1').update(key).digest('hex')}.wav`);
+function fromDisk(key: string) { try { return readFileSync(diskFile(key)); } catch { return undefined; } }
+function toDisk(key: string, wav: Buffer) {
+  try { mkdirSync(diskDir(), { recursive: true }); writeFileSync(diskFile(key), wav); } catch { /* a full disk only costs speed */ }
+}
+const greetingKey = (text: string) => `${DEFAULT_VOICE}|1|${speakable(text).slice(0, MAX_TEXT)}`;
+const greetingsMissing = () => allGreetings.filter(text => !existsSync(diskFile(greetingKey(text))));
+// Downloaded once already: the model loads the first time Ox has something new to say, not at every start.
+const downloaded = () => existsSync(join(store.dir, 'models', MODEL));
 let queue: Promise<unknown> = Promise.resolve();
 
 export function useEngine(make?: () => Promise<Engine>) {
@@ -97,7 +111,11 @@ export function prepare(): Promise<Engine> {
   return model;
 }
 
-export const speechState = (): SpeechState => ({ ...state, on: store.doc<{ on?: boolean }>('speech.json', {}).on === true, voices: VOICES });
+export function speechState(): SpeechState {
+  const on = store.doc<{ on?: boolean }>('speech.json', {}).on === true;
+  // On and downloaded but not loaded yet counts as ready: the first new sentence loads it.
+  return { ...state, status: on && state.status === 'off' && !override && downloaded() ? 'ready' : state.status, on, voices: VOICES };
+}
 
 // Words, not markdown: no links, ids, bullets or symbols read out loud.
 export function speakable(text: string) {
@@ -122,13 +140,15 @@ export async function speak(input: { text?: unknown; voice?: unknown; speed?: un
   const key = `${voice}|${speed}|${text}`;
   const hit = cache.get(key);
   if (hit) { cache.delete(key); cache.set(key, hit); return hit; }
-  if (state.status !== 'ready' && state.status !== 'loading') throw new HttpError(409, 'Ox’s voice isn’t on yet. Turn it on in Settings, Look, Voice.');
+  const saved = text.length <= 160 ? fromDisk(key) : undefined;
+  if (saved) { cache.set(key, saved); while (cache.size > 90) cache.delete(cache.keys().next().value!); return saved; }
+  if (state.status !== 'ready' && state.status !== 'loading' && !speechState().on) throw new HttpError(409, 'Ox’s voice isn’t on yet. Turn it on in Settings, Look, Voice.');
   const engine = await prepare();
   // One sentence at a time: the CPU is shared, and the next sentence waits right behind this one.
   const job = queue.then(async () => Buffer.from((await engine.generate(text, { voice, speed })).toWav()));
   queue = job.catch(() => undefined);
   const wav = await job;
-  if (text.length <= 160) { cache.set(key, wav); while (cache.size > 90) cache.delete(cache.keys().next().value!); }
+  if (text.length <= 160) { cache.set(key, wav); toDisk(key, wav); while (cache.size > 90) cache.delete(cache.keys().next().value!); }
   return wav;
 }
 
@@ -138,7 +158,7 @@ export async function speak(input: { text?: unknown; voice?: unknown; speed?: un
 async function warmGreetings() {
   const rest = (ms: number) => new Promise(r => setTimeout(r, ms));
   await rest(20_000);
-  for (const text of allGreetings) {
+  for (const text of greetingsMissing()) {
     try { await speak({ text }); } catch { return; }
     await rest(400);
   }
@@ -146,7 +166,7 @@ async function warmGreetings() {
 
 // Turned on once in Settings: the choice is remembered, and the model loads again when the server starts.
 export function startSpeech() {
-  if (speechState().on) void prepare().catch(() => undefined);
+  if (speechState().on && (!downloaded() || greetingsMissing().length)) void prepare().catch(() => undefined);
 }
 export function setSpeech(on: boolean) {
   store.saveDoc('speech.json', { on });

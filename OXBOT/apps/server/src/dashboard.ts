@@ -142,20 +142,22 @@ export function context(d: Dashboard) {
   });
 }
 
-const briefCache = new Map<string, { text: string; by: string }>();
-let briefRunning = '';
+// At most one AI brief every 30 minutes (owner, November 18, 2026): rewriting it whenever any fact changed, about once a
+// minute, used up a free OpenRouter account's 50 asks a day on its own. Between asks the last brief stays on screen, and
+// a failed ask waits the same 30 minutes instead of trying again every minute.
+const BRIEF_EVERY = 30 * 60_000;
+let lastBrief: { text: string; by: string } | undefined;
+let briefAskedAt = 0, briefRunning = false;
 function aiBrief(d: Dashboard): { text: string; by: string } | undefined {
   if (!aiProvider() || !Object.values(d.sections).some(s => s.live)) return undefined;
+  if (briefRunning || Date.now() - briefAskedAt < BRIEF_EVERY) return lastBrief;
+  briefRunning = true; briefAskedAt = Date.now();
   const facts = context({ ...d, generatedAt: '' }).replace(/"now":"[^"]*",/, '');
-  const key = createHash('sha256').update(facts).digest('hex');
-  const hit = briefCache.get(key);
-  if (hit || briefRunning === key) return hit;
-  briefRunning = key;
   askAI('You write the single line at the top of a CEO’s dashboard. Plain sentences. No greeting, no emoji, no exclamation marks. At most 28 words. Lead with the one thing that matters most today, then the next commitment, then energy if it changes the plan. Use only the facts given, and ignore every section named in sampleSections: that data is fictional.', [{ role: 'user', text: `Now: ${new Date().toString()}\n${facts}` }], true)
-    .then(({ provider, text }) => { if (text) briefCache.set(key, { text, by: provider }); })
+    .then(({ provider, text }) => { if (text) lastBrief = { text, by: provider }; })
     .catch(error => console.warn('brief:', error instanceof Error ? error.message : error))
-    .finally(() => { if (briefRunning === key) briefRunning = ''; });
-  return undefined;
+    .finally(() => { briefRunning = false; });
+  return lastBrief;
 }
 
 let cached: { at: number; value: Dashboard } | undefined;
