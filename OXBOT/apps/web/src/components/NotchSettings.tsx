@@ -83,7 +83,7 @@ export function NotchPage() {
 
     <Choice legend="Displays without a notch" name="shape" value={s.noNotch === 'hidden' ? 'none' : n.shape}
       onPick={v => v === 'none' ? save({ noNotch: 'hidden' }) : save({ noNotch: 'pill', native: { ...n, shape: v } })}
-      options={[['capsule', 'Capsule'], ['notch', 'Notch'], ['none', 'Nothing']]} />
+      options={[['capsule', 'Pill'], ['notch', 'Notch'], ['none', 'Nothing']]} />
     {s.noNotch !== 'hidden' && n.shape === 'capsule' && <fieldset className="choice">
       <legend>Capsule fit</legend>
       <Range label="Width" value={n.capsuleWidth} min={-40} max={40} step={1} unit=" pt" onPick={capsuleWidth => setN({ capsuleWidth })} />

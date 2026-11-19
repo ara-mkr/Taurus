@@ -122,7 +122,8 @@ function drawAnswer() {
   } else if (s.show.answer && v?.text && (v.phase === 'answer' || v.phase === 'error')) {
     if (v.said) kids.push(h('p', { className: 'said', textContent: `“${v.said}”` }));
     kids.push(h('p', { className: `answer ${v.phase === 'error' ? 'problem' : ''}`, textContent: v.text }));
-  } else kids.push(h('p', { className: 'answer quiet', textContent: s.show.ask ? 'Ask me anything, or say “Hey Ox” in OXBOT.' : 'Say “Hey Ox” in OXBOT.' }));
+  }
+  // Nothing to say: no filler line, just the Ask box.
   answerBox.replaceChildren(...kids);
 }
 function drawMusic() {
@@ -196,7 +197,9 @@ function drawSettings() {
     onOff('Ask box', s.show.ask, show('ask')),
     h('p', { className: 'group', textContent: 'Fit' }),
     slider('Notch width', s.fitWidth, 150, 260, 2, 'pt', v => ({ fitWidth: v })),
-    seg('Screens without a notch', s.noNotch, [['pill', 'Small pill'], ['hidden', 'Nothing']], v => ({ noNotch: v })),
+    seg('Screens without a notch', s.noNotch === 'hidden' ? 'none' : (s.native as { shape?: string } | undefined)?.shape === 'notch' ? 'notch' : 'pill',
+      [['pill', 'Pill'], ['notch', 'Notch'], ['none', 'Nothing']],
+      v => (v === 'none' ? { noNotch: 'hidden' } : { noNotch: 'pill', native: { ...(s.native ?? {}), shape: v === 'notch' ? 'notch' : 'capsule' } })),
     slider('Distance from top', s.dropFromTop, 0, 24, 1, 'pt', v => ({ dropFromTop: v })));
   settingsBox.replaceChildren(list, h('div', { className: 'foot' },
     h('span', { className: 'status', textContent: 'Saved as you change them.' }),
@@ -212,6 +215,9 @@ function draw() {
   root.setProperty('--drop', `${g.drop}px`);
   root.setProperty('--open-w', `${{ compact: 440, comfortable: 520, spacious: 620 }[s.size]}px`);
   notch.classList.toggle('no-notch', !g.notch);
+  // A real notch is always drawn as one; a screen without one follows Settings > Notch (Pill or Notch), the same
+  // setting the native notch reads.
+  notch.dataset.shape = !g.notch && (s.native as { shape?: string } | undefined)?.shape !== 'notch' ? 'pill' : 'notch';
   notch.dataset.open = String(open);
   notch.dataset.phase = phase();
   askForm.hidden = !s.show.ask;
@@ -219,7 +225,7 @@ function draw() {
   else { drawAnswer(); drawMusic(); drawTimers(); if (panel.firstChild !== main) panel.replaceChildren(main); }
   bar();
   // As tall as what it holds.
-  if (open) root.setProperty('--open-h', `${Math.min(innerHeight - g.drop - 16, g.notchHeight + panel.scrollHeight)}px`);
+  if (open) root.setProperty('--open-h', `${Math.min(innerHeight - 16, g.notchHeight + panel.scrollHeight)}px`);
 }
 
 // ---------- Opening, closing and letting the mouse in ----------

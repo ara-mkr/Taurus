@@ -61,10 +61,10 @@ test.describe('Ox anywhere, in the desktop app', () => {
     const s = await state();
     // Above everything, on every Space, never takes focus; clicks fall through (setIgnoreMouseEvents in the service).
     expect(s).toMatchObject({ onTop: true, everySpace: true, focusable: false, shown: true });
-    // At the bottom right of the screen with the mouse.
+    // He lands beside the mouse, then walks to the bottom right of the screen with the mouse (November 19, 2026);
+    // under test the walk takes no time.
     const d = await app.evaluate(({ screen }) => screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea);
-    expect(s.bounds!.x + s.bounds!.width).toBe(d.x + d.width - 20);
-    expect(s.bounds!.y + s.bounds!.height).toBe(d.y + d.height - 20);
+    await expect.poll(async () => { const b = (await state()).bounds!; return [b.x + b.width, b.y + b.height]; }).toEqual([d.x + d.width - 20, d.y + d.height - 20]);
     await expect(ox.locator('#bubble')).toHaveText('Listening.');
     await ox.waitForTimeout(800);
     await shot('1-appear-listening');

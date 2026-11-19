@@ -5,8 +5,8 @@ import { CHARGE_OUT_MS } from '../../web/src/ox-face';
 // Ox anywhere (owner, November 16, 2026: "when u say ox on a random app open on screen the ox mascot should appear and
 // look like its looking at what ur looking at and nods when understood, it should reply fast"; docs/21-ox-anywhere.md).
 //
-// When "Hey Ox" or a double clap opens the microphone while another app is in front, Ox charges in at the bottom right
-// of the screen you're using (the one with the mouse), in a transparent window that clicks fall through. His eyes
+// When "Hey Ox" or a double clap opens the microphone while another app is in front, Ox charges in beside the mouse on
+// the screen you're using, then walks to its bottom right, in a transparent window that clicks fall through. His eyes
 // follow the mouse. When OXBOT accepts the question he nods, thinks, and his answer appears beside him the moment the
 // local server has it. He leaves by himself a few seconds after, or on Esc.
 //
@@ -56,9 +56,32 @@ export function oxAnywhere(o: Options) {
     return Boolean(m && !m.isDestroyed() && m.isVisible() && m.isFocused());
   }
 
+  // He comes in beside the mouse on the screen you're using, then walks off to that screen's bottom corner (owner,
+  // November 19, 2026: "if u have multiple screens it should pop up to wherever u are kinda at near ur cursor but then
+  // moves to the side on that monitor"). He is drawn at the bottom right of his window (ox-anywhere.html).
+  const OX_AT = { x: SIZE.width - 22 - 124, y: SIZE.height - 16 - 120 };
+  let walk: NodeJS.Timeout | undefined, toSide: NodeJS.Timeout | undefined;
+  let displayId = -1;
+  const clamp = (v: number, lo: number, hi: number) => Math.round(Math.max(lo, Math.min(hi, v)));
   function place(w: BrowserWindow) {
-    const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
-    w.setBounds({ x: Math.round(d.x + d.width - SIZE.width - MARGIN), y: Math.round(d.y + d.height - SIZE.height - MARGIN), ...SIZE });
+    clearInterval(walk); clearTimeout(toSide);
+    const c = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(c), d = display.workArea;
+    displayId = display.id;
+    const side = { x: Math.round(d.x + d.width - SIZE.width - MARGIN), y: Math.round(d.y + d.height - SIZE.height - MARGIN) };
+    const near = { x: clamp(c.x + 28 - OX_AT.x, d.x, d.x + d.width - SIZE.width), y: clamp(c.y + 28 - OX_AT.y, d.y, d.y + d.height - SIZE.height) };
+    w.setBounds({ ...near, ...SIZE });
+    // After he has landed, an eased walk to the corner, a frame at a time.
+    toSide = setTimeout(() => {
+      const from = near, start = Date.now(), ms = testing ? 0 : 650;
+      const step = () => {
+        if (!shown || w.isDestroyed()) { clearInterval(walk); return; }
+        const t = ms ? Math.min(1, (Date.now() - start) / ms) : 1, e = 1 - (1 - t) ** 3;
+        w.setBounds({ x: Math.round(from.x + (side.x - from.x) * e), y: Math.round(from.y + (side.y - from.y) * e), ...SIZE });
+        if (t >= 1) clearInterval(walk);
+      };
+      walk = setInterval(step, 16); step();
+    }, testing ? 0 : 1_100);
   }
 
   function follow() {
@@ -83,12 +106,14 @@ export function oxAnywhere(o: Options) {
   function summon() {
     clearTimeout(leaving);
     const w = win && !win.isDestroyed() ? win : make();
-    if (shown) return;
-    place(w);
+    // Already here: he only moves if you've gone to another screen.
+    if (shown) { if (screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).id !== displayId) place(w); return; }
     shown = true;
+    place(w);
     lastPoint = { x: NaN, y: NaN };
     send({ kind: 'summon' });
-    void ready.then(() => { if (shown && !w.isDestroyed()) w.showInactive(); });
+    // Placed again once showing: macOS can put a hidden window back on the screen it was made on.
+    void ready.then(() => { if (shown && !w.isDestroyed()) { const b = w.getBounds(); w.showInactive(); w.setBounds(b); } });
     follow();
     escape(true);
   }
@@ -97,7 +122,7 @@ export function oxAnywhere(o: Options) {
     clearTimeout(idle);
     if (!shown) return;
     shown = false; phase = 'idle';
-    clearInterval(gaze);
+    clearInterval(gaze); clearInterval(walk); clearTimeout(toSide);
     escape(false);
     send({ kind: 'dismiss' });
     clearTimeout(leaving);
@@ -148,7 +173,7 @@ export function oxAnywhere(o: Options) {
       else leaveIn(Math.min(18_000, 5_000 + text.length * 45));
     },
     dismiss,
-    closeAll() { clearInterval(gaze); clearTimeout(idle); clearTimeout(leaving); escape(false); if (win && !win.isDestroyed()) win.destroy(); win = null; shown = false; },
+    closeAll() { clearInterval(gaze); clearInterval(walk); clearTimeout(toSide); clearTimeout(idle); clearTimeout(leaving); escape(false); if (win && !win.isDestroyed()) win.destroy(); win = null; shown = false; },
   };
   // Loaded ahead, hidden, so "Hey Ox" brings him up at once instead of waiting for a page to load.
   setTimeout(() => { if (!win) make(); }, 3_000);

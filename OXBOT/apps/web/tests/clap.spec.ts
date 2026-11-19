@@ -37,6 +37,20 @@ test('talking, music and a long bang never count', () => {
   expect(play(clapDetector(), [{ at: 1000, ms: 300, level: 0.8 }, clap(1500)], 3000)).toEqual([]);
 });
 
+// A real clap on a MacBook: a crack, then the room ringing for a few dozen milliseconds, which dips and comes back
+// above the line (November 19, 2026: "its not responding to two claps").
+const ringing = (at: number, peak = 0.6) => [
+  { at, ms: 12, level: peak }, { at: at + 12, ms: 12, level: peak * 0.3 }, { at: at + 24, ms: 12, level: peak * 0.24 },
+  { at: at + 36, ms: 12, level: peak * 0.1 }, { at: at + 48, ms: 24, level: peak * 0.21 }, { at: at + 72, ms: 36, level: peak * 0.08 },
+];
+test('real claps that ring on in the room still count', () => {
+  const fired = play(clapDetector(), [...ringing(1000), ...ringing(1340, 0.45)], 3000);
+  expect(fired).toHaveLength(1);
+  expect(play(clapDetector(), [...ringing(1000, 0.9), ...ringing(1300, 0.3)], 3000)).toHaveLength(1);
+  // Three ringing claps are still a run.
+  expect(play(clapDetector(), [...ringing(1000), ...ringing(1300), ...ringing(1600)], 3000)).toEqual([]);
+});
+
 // November 19, 2026: "it pops in anytime some noise is made".
 test('three or more sharp sounds in a row are a run of noise, not a double', () => {
   expect(play(clapDetector(), [clap(1000), clap(1300), clap(1600), clap(1900)], 3000)).toEqual([]);

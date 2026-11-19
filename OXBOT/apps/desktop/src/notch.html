@@ -13,16 +13,19 @@
   button, input { font: inherit; color: inherit; }
 
   /* The pill: black like the camera housing, hugging the top edge, with the small inward curves where it meets it. */
-  .notch { position: absolute; top: var(--drop); left: 50%; transform: translateX(-50%); width: calc(var(--nw) + var(--wing) * 2); height: var(--nh);
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: calc(var(--nw) + var(--wing) * 2); height: var(--nh);
     background: #000; border-radius: 0 0 calc(var(--nh) * .42) calc(var(--nh) * .42);
-    transition: width .42s var(--spring), height .42s var(--spring), border-radius .42s var(--spring), box-shadow .3s ease; }
+    transition: top .42s var(--spring), width .42s var(--spring), height .42s var(--spring), border-radius .42s var(--spring), box-shadow .3s ease; }
   .notch::before, .notch::after { content: ""; position: absolute; top: 0; width: 10px; height: 10px; pointer-events: none; }
   .notch::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 9.5px, #000 10px); }
   .notch::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 9.5px, #000 10px); }
-  .notch.no-notch { border-radius: calc(var(--nh) / 2); }
-  .notch.no-notch::before, .notch.no-notch::after { display: none; }
-  .notch[data-open="true"] { width: var(--open-w); height: var(--open-h, 260px); border-radius: 0 0 30px 30px; box-shadow: 0 22px 60px -18px rgba(0, 0, 0, .7); }
-  .notch.no-notch[data-open="true"] { border-radius: 26px; }
+  /* On a screen without a notch it can be a pill (Settings > Notch). Closed, a capsule, as far from the top as set;
+     open, it attaches flush to the top like the notch: flat along the top edge, only the bottom corners rounded
+     (owner, November 19, 2026: "the edge hitting the top is flat and flush theres no curve there only fileted bottom
+     sides"). */
+  .notch[data-shape="pill"] { top: var(--drop); border-radius: calc(var(--nh) / 2); }
+  .notch[data-shape="pill"]::before, .notch[data-shape="pill"]::after { display: none; }
+  .notch[data-open="true"], .notch[data-shape="pill"][data-open="true"] { top: 0; width: var(--open-w); height: var(--open-h, 260px); border-radius: 0 0 30px 30px; box-shadow: 0 22px 60px -18px rgba(0, 0, 0, .7); }
 
   /* The strip beside the camera: Ox on one side, what he is doing on the other. */
   .bar { position: absolute; top: 0; left: 0; right: 0; height: var(--nh); display: grid; grid-template-columns: minmax(0, 1fr) var(--nw) minmax(0, 1fr); align-items: center; }

@@ -13,13 +13,16 @@ import { useEffect, useRef } from 'react';
 export interface Detector { feed(level: number, at: number): boolean }
 const QUIET_BEFORE_MS = 400;
 const QUIET_AFTER_MS = 350;
+// A real clap rings on in the room for a moment after its crack (owner, November 19, 2026: "its not responding to two
+// claps"): loud readings this soon after a clap began are that same clap, not another sound.
+const RING_MS = 170;
 export function clapDetector(options: { min?: number; over?: number } = {}): Detector {
   const min = options.min ?? 0.12, over = options.over ?? 7;
   let floor = 0.01;
   let burst: { at: number; peak: number; alone: boolean } | null = null;
   let first: { at: number; peak: number } | null = null;
   // A double heard, waiting to be sure nothing follows it; when the last sound ended; when to listen again.
-  let confirm: number | null = null, ended = -Infinity, rest = -Infinity;
+  let confirm: number | null = null, ended = -Infinity, rest = -Infinity, clapAt = -Infinity;
   return {
     feed(level, at) {
       // A burst that has gone quiet again within 140 ms is one clap; one still loud after that is a voice or a bang.
@@ -27,13 +30,16 @@ export function clapDetector(options: { min?: number; over?: number } = {}): Det
         if (level < burst.peak * 0.35) {
           const b = burst; burst = null; ended = at;
           if (at - b.at > 140) { first = null; return false; }
+          clapAt = b.at;
           const gap = first ? b.at - first.at : 0;
-          if (first && gap >= 150 && gap <= 750 && Math.max(b.peak, first.peak) <= 3 * Math.min(b.peak, first.peak)) { first = null; confirm = at + QUIET_AFTER_MS; }
+          if (first && gap >= 150 && gap <= 750 && Math.max(b.peak, first.peak) <= 4 * Math.min(b.peak, first.peak)) { first = null; confirm = at + QUIET_AFTER_MS; }
           else first = b.alone ? { at: b.at, peak: b.peak } : null;
         } else if (at - burst.at > 140) { burst = null; first = null; ended = at; rest = Math.max(rest, at + 250); }
         else burst.peak = Math.max(burst.peak, level);
         return false;
       }
+      // The clap still ringing.
+      if (at - clapAt < RING_MS) { if (level > Math.max(min, floor * over)) ended = at; return false; }
       if (level > Math.max(min, floor * over)) {
         // More straight after a double makes it a run of sounds, not two claps.
         if (confirm !== null) { confirm = null; first = null; rest = at + 600; }

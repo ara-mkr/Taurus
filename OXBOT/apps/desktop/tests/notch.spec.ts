@@ -95,6 +95,14 @@ test.describe('in the desktop app', () => {
     expect(box.y).toBe(0);
     await expect(notch.locator('#left svg.ox')).toBeVisible();
     await shot('notch-closed', { x: w.bounds.width / 2 - 220, y: 0, width: 440, height: 80 });
+    // A screen without a notch shows a pill unless Settings > Notch says Notch (November 19, 2026).
+    if (!(await notch.locator('#notch').evaluate(e => e.classList.contains('no-notch')))) return;
+    await expect(notch.locator('#notch')).toHaveAttribute('data-shape', 'pill');
+    await notch.evaluate(() => (window as unknown as { oxNotch: { save(p: unknown): Promise<unknown> } }).oxNotch.save({ native: { shape: 'notch' } }));
+    await expect(notch.locator('#notch')).toHaveAttribute('data-shape', 'notch');
+    await shot('notch-closed-notch-shape', { x: w.bounds.width / 2 - 220, y: 0, width: 440, height: 80 });
+    await notch.evaluate(() => (window as unknown as { oxNotch: { save(p: unknown): Promise<unknown> } }).oxNotch.save({ native: { shape: 'capsule' } }));
+    await expect(notch.locator('#notch')).toHaveAttribute('data-shape', 'pill');
   });
 
   test('the page can reach nothing but its own narrow bridge', async () => {
@@ -108,7 +116,12 @@ test.describe('in the desktop app', () => {
     const box = (await notch.locator('#notch').boundingBox())!;
     await notch.mouse.move(box.x + box.width / 2, 10);
     await expect(notch.locator('#notch')).toHaveAttribute('data-open', 'true');
-    await expect(notch.getByText('Ask me anything')).toBeVisible();
+    // November 19, 2026: no filler line, and open it sits flush on the top edge, square on top, rounded below.
+    await expect(notch.getByText('Ask me anything')).toHaveCount(0);
+    await notch.waitForTimeout(500);
+    const corners = await notch.locator('#notch').evaluate(e => { const c = getComputedStyle(e); return { top: c.top, tl: c.borderTopLeftRadius, tr: c.borderTopRightRadius, bl: c.borderBottomLeftRadius }; });
+    expect(corners).toMatchObject({ top: '0px', tl: '0px', tr: '0px' });
+    expect(corners.bl).not.toBe('0px');
     await expect(notch.getByRole('textbox', { name: 'Ask Ox' })).toBeVisible();
     await notch.waitForTimeout(500);
     await shot('notch-open', { x: box.x + box.width / 2 - 330, y: 0, width: 660, height: 320 });
