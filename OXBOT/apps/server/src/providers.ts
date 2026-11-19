@@ -69,9 +69,10 @@ export async function tokenRequest(app: App, clientId: string, clientSecret: str
     signal: AbortSignal.timeout(12_000),
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`${app.name} token ${response.status}: ${text.slice(0, 200)}`);
+  // Said plainly on the board, never as the provider's raw JSON (owner, November 19, 2026: "don't make it look vibe coded").
+  if (!response.ok) throw new Error(/invalid_grant|expired|revoked/i.test(text) || response.status === 401 ? `${app.name} sign-in expired.` : `${app.name} sign-in failed (${response.status}).`);
   const raw = JSON.parse(text);
   const data = (app.unwrap ? raw[app.unwrap] : raw) as { access_token: string; refresh_token?: string; expires_in?: number; scope?: string } | undefined;
-  if (!data?.access_token) throw new Error(`${app.name} token: ${text.slice(0, 200)}`);
+  if (!data?.access_token) throw new Error(`${app.name} sign-in didn’t return access.`);
   return { access_token: data.access_token, refresh_token: data.refresh_token, scope: data.scope, expires_at: data.expires_in ? Date.now() + data.expires_in * 1000 : undefined };
 }

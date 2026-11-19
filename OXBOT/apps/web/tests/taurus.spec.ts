@@ -18,8 +18,9 @@ test('OXBOT opens to Taurus: one screen, Ox between two columns that meet the to
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await expect(page.locator('[data-ox-center]')).toBeVisible();
-  // November 6, 2026: Taurus is a switch in the side bar, on when home is Taurus.
-  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('switch', { name: /Taurus/ })).toHaveAttribute('aria-checked', 'true');
+  // November 19, 2026: no Taurus switch in the side bar; Home is Taurus when Settings says Dashboard.
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('switch')).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('button', { name: 'Talk to Ox' })).toBeVisible();
   for (const name of ['Priority', 'To do', 'Health', 'Up next', 'House']) await expect(page.getByRole('article', { name })).toBeVisible();
   await expect(page.locator('.sky .cloud')).toHaveCount(10);
@@ -113,8 +114,10 @@ test('Customize, from the rail, resizes, moves, adds and removes panels, and it 
   expect(axe.violations.map(v => v.id)).toEqual([]);
   await settings.getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.cloud-settings')).toHaveCount(0);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' }).click();
-  await expect(page.locator('main.board')).toBeVisible();
+  // Home doesn't turn Taurus off (owner, November 19, 2026): it is Taurus.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(page.locator('[data-ox-center]')).toBeVisible();
+  await expect(page.locator('main.board')).toHaveCount(0);
 });
 
 test('drag a panel onto another without Customize, and the order is saved', async ({ page }) => {

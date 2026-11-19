@@ -33,7 +33,7 @@ test('the board: drag a widget without Edit, and double-click the background for
   await expect(page.getByRole('dialog', { name: 'Add to Home' })).toBeVisible();
 });
 
-test('navigation audit: Settings, Ask and House keep Taurus\'s sky; the board keeps its own light; the logo goes home', async ({ page }) => {
+test('navigation audit: Settings, Ask and House keep home\'s sky; Home follows the view picked in Settings; the logo goes home', async ({ page }) => {
   await mock(page);
   await page.route('**/api/prefs', r => r.fulfill({ json: r.request().method() === 'POST' ? r.request().postDataJSON() : opensToTaurus }));
   await page.route('**/api/home', r => r.fulfill({ json: home }));
@@ -47,11 +47,17 @@ test('navigation audit: Settings, Ask and House keep Taurus\'s sky; the board ke
   await expect(page.locator('.backdrop')).toHaveCount(0);
   await rail.getByRole('button', { name: 'Browser' }).click();
   await expect(page.locator('.sky')).toHaveCount(1);
-  // On the board, the board's light; Settings from there keeps it.
-  await rail.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page.locator('.backdrop')).toHaveCount(1);
+  // Home is Taurus: going Home never turns it off (owner, November 19, 2026).
+  await expect(rail.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '#taurus');
+  await expect(rail.getByRole('switch')).toHaveCount(0);
+  // Tiles, picked in Settings, Personalize: Home becomes the board, with the board's light; Settings keeps it.
+  await page.goto('/#look');
+  await page.getByRole('group', { name: 'Home' }).getByLabel(/Tiles/).check();
+  await expect(rail.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '#b/home');
   await expect(rail.getByRole('link', { name: 'OXBOT' })).toHaveAttribute('href', '#b/home');
-  await page.goto('/#settings');
+  await expect(page.locator('.backdrop')).toHaveCount(1);
+  await rail.getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(page.locator('main.board')).toBeVisible();
   await expect(page.locator('.backdrop')).toHaveCount(1);
   // Dusk is a low warm gold now, not the salmon wash that read as pink.
   await page.evaluate(() => { document.documentElement.dataset.daypart = 'dusk'; });

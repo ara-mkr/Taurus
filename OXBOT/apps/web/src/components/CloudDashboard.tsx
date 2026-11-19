@@ -323,10 +323,6 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
           <fieldset><legend>Under Ox</legend>
             <label className="check"><input type="checkbox" checked={t.facts} onChange={e => setT(x => ({ ...x, facts: e.target.checked }))} />Today in one line</label>
           </fieldset>
-          <fieldset><legend>OXBOT opens to</legend>
-            <label className="check"><input type="radio" name="t-start" checked={t.start === 'taurus'} onChange={() => setT(x => ({ ...x, start: 'taurus' }))} />Taurus</label>
-            <label className="check"><input type="radio" name="t-start" checked={t.start === 'board'} onChange={() => setT(x => ({ ...x, start: 'board' }))} />The board</label>
-          </fieldset>
           <p className="cloud-settings-note">Drag panels to move them. Double-click or right-click the sky for more. <button type="button" className="text-button" onClick={() => setT(() => ({ ...taurusDefaults(), start: t.start }))}>Reset Taurus</button></p>
         </div>
       </section> : !widget && t.facts && facts.length > 0 && <p className="cloud-facts">{facts.join('  ·  ')}</p>}

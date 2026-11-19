@@ -39,12 +39,14 @@ function readPage(): Page {
   // Taurus (November 5, 2026) is where OXBOT opens, unless you picked the board instead.
   if (hash === 'taurus' || hash === 'sky') return { kind: 'taurus' };
   // The last choice is remembered on this device too, so the right page shows before preferences arrive.
-  if (hash === '') { try { if (localStorage.getItem('oxbot-start') === 'board') return { kind: 'board' }; } catch { /* storage blocked */ } return { kind: 'taurus', implicit: true }; }
+  if (hash === '') return readStart() === 'board' ? { kind: 'board' } : { kind: 'taurus', implicit: true };
   // #connections/<id> opens one app's sheet; a QR code from the Mac lands the phone there.
   if (hash.startsWith('connections/')) return { kind: 'settings', page: 'connections' };
   if (hash in settingsPages) return { kind: 'settings', page: hash as keyof typeof settingsPages };
   return { kind: 'board' };
 }
+
+function readStart(): 'taurus' | 'board' | undefined { try { const v = localStorage.getItem('oxbot-start'); return v === 'board' || v === 'taurus' ? v : undefined; } catch { return undefined; } }
 
 const readAppearance = (): Appearance => { try { const v = localStorage.getItem('oxbot-appearance'); return v === 'light' || v === 'auto' ? v : 'dark'; } catch { return 'dark'; } };
 
@@ -71,10 +73,9 @@ export default function App() {
   const startOn = prefs?.taurus?.start;
   useEffect(() => { if (startOn) try { localStorage.setItem('oxbot-start', startOn); } catch { /* storage blocked: the server's choice still applies */ } }, [startOn]);
   const page = useMemo<Page>(() => opened.kind === 'taurus' && opened.implicit && startOn === 'board' ? { kind: 'board' } : opened, [opened, startOn]);
-  // Where you live: Taurus or the board, whichever you were on last. Settings, Ask and House keep its background, so
-  // opening Settings from Taurus no longer swaps the sky for the board's tinted light (November 5, 2026 audit).
-  const [homeView, setHomeView] = useState<'taurus' | 'board'>(() => readPage().kind === 'board' ? 'board' : 'taurus');
-  if ((page.kind === 'taurus' || page.kind === 'board') && page.kind !== homeView) setHomeView(page.kind);
+  // Home: Taurus (the dashboard) or the board's tiles, chosen in Settings, Personalize (owner, November 19, 2026). Going
+  // to another page never changes it. Settings, Ask and House keep home's background (November 5, 2026 audit).
+  const homeView: 'taurus' | 'board' = (startOn ?? readStart()) === 'board' ? 'board' : 'taurus';
   const [error, setError] = useState('');
   // True when the server didn't answer at all, as opposed to answering with an error.
   const [unreachable, setUnreachable] = useState(false);
@@ -247,15 +248,6 @@ export default function App() {
     catch (e) { setSaveError((e as Error).message); }
   }
 
-  // The Taurus switch: home becomes Taurus or the board, and OXBOT remembers which (owner, November 6, 2026).
-  const taurusOn = homeView === 'taurus';
-  const toggleTaurus = () => {
-    const next = taurusOn ? 'board' : 'taurus';
-    setPrefs(p => ({ ...p, taurus: { ...(p.taurus ?? taurusDefaults()), start: next } }));
-    try { localStorage.setItem('oxbot-start', next); } catch { /* storage blocked: the server copy still saves */ }
-    setHomeView(next);
-    location.hash = next === 'taurus' ? 'taurus' : `b/${boards[0]?.id ?? 'home'}`;
-  };
   const setLanguage = (code: string) => setPrefs(p => ({ ...p, profile: { ...p.profile, language: code === 'en' ? undefined : code } }));
   useEffect(() => { document.documentElement.lang = prefs?.profile?.language ?? 'en'; }, [prefs?.profile?.language]);
   const ctx = { data, history, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
@@ -284,7 +276,7 @@ export default function App() {
     <div className={`shell ${dock ? 'with-dock' : ''} ${tabsOpen ? 'tabs-open' : ''}`}>
       <Rail boards={boards} current={page.kind === 'board' ? board?.id : undefined} page={page.kind === 'settings' ? 'settings' : page.kind} dock={dock} setDock={setDock} open={tabsOpen} onClose={() => setTabsOpen(false)}
         home={homeView === 'taurus' ? '#taurus' : boards[0] ? `#b/${boards[0].id}` : '#b/home'} onCustomize={customizeTaurus}
-        taurusOn={taurusOn} onTaurus={toggleTaurus} brand={profile}
+        homeIsTaurus={homeView === 'taurus'} brand={profile}
         doing={nowDoing({ entries: activity, browser, wins: windows.wins, now, setDock, music })} />
       <div className="stage">
         <TopBar profile={profile} now={now} line={dayLine(data, now)} onTabs={() => setTabsOpen(o => !o)} tabsOpen={tabsOpen} onLanguage={setLanguage} />
@@ -321,6 +313,6 @@ export default function App() {
     {!ring && <Swarm />}
     {showOx && <OxBuddy lines={oxLines(data, shownPrefs, now)} lineFor={lineFor} voice={voice.view} roam={page.kind === 'board' && prefs?.ox !== false} />}
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
-    {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = 'taurus'; }} />}
+    {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = homeView === 'taurus' ? 'taurus' : `b/${boards[0]?.id ?? 'home'}`; }} />}
   </>;
 }

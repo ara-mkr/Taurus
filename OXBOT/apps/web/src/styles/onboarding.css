@@ -38,11 +38,10 @@
 }
 .ob-hello { background: none; border: 0; box-shadow: none; }
 
-.ob-body h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.05; letter-spacing: -.02em; font-weight: 650; }
-.ob-body h2 { font-size: clamp(22px, 4.5vw, 30px); line-height: 1.1; letter-spacing: -.01em; font-weight: 600; }
+.ob-body h1 { font-size: clamp(34px, 6.4vw, 52px); line-height: 1.02; letter-spacing: -.035em; font-weight: 700; }
+.ob-body h2 { font-size: clamp(24px, 4.6vw, 32px); line-height: 1.08; letter-spacing: -.028em; font-weight: 650; }
 .ob-body h3 { font-size: 15px; font-weight: 600; color: var(--ink-2); align-self: start; margin-top: 4px; }
-.ob-lede { font-size: clamp(15px, 2.3vw, 17px); line-height: 1.5; color: var(--ink); max-width: 46ch; }
-.ob-fine { font-size: 13px; max-width: 42ch; }
+.ob-lede { font-size: clamp(15px, 2.3vw, 17px); line-height: 1.45; letter-spacing: -.005em; color: var(--ink-2); max-width: 40ch; text-wrap: balance; }
 
 .ob-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
 .ob-actions-inline { display: flex; justify-content: center; margin-top: 2px; }
@@ -75,7 +74,6 @@
 .ob-connect { max-width: 100%; }
 .ob-connect .ob-lede { max-width: 52ch; }
 .ob-connect-tools { display: grid; gap: 8px; justify-items: center; width: 100%; margin: 4px 0 2px; }
-.ob-connect-tools .muted { font-size: 13px; max-width: 54ch; }
 .ob-group { width: min(480px, 100%); display: grid; gap: 8px; text-align: left; margin-top: 8px; }
 .ob-group .muted { font-size: 13px; }
 .ob-rows { display: grid; gap: 8px; }
@@ -87,8 +85,6 @@
 a.ob-account { text-decoration: none; }
 .ob-account.on { background: var(--wash); border: 1px solid var(--glass-border); color: var(--ink-2); font-weight: 500; }
 
-.ob-tour-step { font-size: 13px; color: var(--ink-2); letter-spacing: .04em; }
-.ob-tour-note { font-size: 13.5px; max-width: 44ch; font-style: italic; }
 
 @keyframes ob-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ob-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }

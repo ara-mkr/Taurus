@@ -22,12 +22,13 @@ export const ONBOARDED_KEY = 'oxbot-onboarded';
 export const wasOnboarded = () => { try { return localStorage.getItem(ONBOARDED_KEY) === '1'; } catch { return false; } };
 
 // The calm, plain tour. Each card is one thing OXBOT does, said in a sentence or two, in order of a day.
-const TOUR: { title: string; say: string; note: string }[] = [
-  { title: 'Taurus, your home', say: 'This is Taurus. I sit in the middle, and the things that matter today float in around me. It is the first thing you see.', note: 'Ox in the middle, your day drifting in as calm glass panels.' },
-  { title: 'Just ask', say: 'Type to me, or press Talk and say it out loud. Hey Ox wakes me too. I keep it short, and I never dump a wall of text on you.', note: 'The bar at the bottom. Typing or voice — whichever is easier right now.' },
-  { title: 'Helpers, when it is big', say: 'For a big job I can send out a swarm of helpers at once. You watch the little cursors fan out, read, and fold back into me with the answer.', note: 'A flock of coloured cursors, each one reading a page for you.' },
-  { title: 'Nothing without your yes', say: 'I only ever read, unless you say so. Sending a mail, a reply, an order — each one comes back to you as a card. You approve the exact words. Nothing goes out behind your back.', note: 'Approval cards. Who, what, the exact text — you tap yes or no.' },
-  { title: 'I ring when it matters', say: 'When something truly needs you, I can ring your phone or this screen. The rest of the time I stay quiet. That is the whole idea — I carry the small stuff so you do not have to.', note: 'A calm day, and a real ring only for the things that cannot wait.' },
+// Each stop: a title and one short line on screen; Ox says the longer version out loud.
+const TOUR: { title: string; line: string; say: string }[] = [
+  { title: 'Taurus, your home', line: 'Ox in the middle. Your day around him.', say: 'This is Taurus. I sit in the middle, and the things that matter today float in around me. It is the first thing you see.' },
+  { title: 'Just ask', line: 'Type, press Talk, or say “Hey Ox”.', say: 'Type to me, or press Talk and say it out loud. Hey Ox wakes me too. I keep it short, and I never dump a wall of text on you.' },
+  { title: 'Helpers for big jobs', line: 'A swarm of helpers reads in parallel.', say: 'For a big job I can send out a swarm of helpers at once. You watch the little cursors fan out, read, and fold back into me with the answer.' },
+  { title: 'Nothing without your yes', line: 'You approve the exact words before anything goes out.', say: 'I only ever read, unless you say so. Sending a mail, a reply, an order: each one comes back to you as a card. You approve the exact words. Nothing goes out behind your back.' },
+  { title: 'I ring when it matters', line: 'Quiet by default. A ring only when it can’t wait.', say: 'When something truly needs you, I can ring your phone or this screen. The rest of the time I stay quiet. I carry the small stuff so you do not have to.' },
 ];
 
 export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void; onDone: () => void }) {
@@ -116,8 +117,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
 
     {step === 'hello' ? <div className="ob-body ob-hello">
       <h1>Hi. I’m Ox.</h1>
-      <p className="ob-lede">I’m your chief of staff. I read your mail, calendar, chat, numbers and body, carry the small stuff, and ring you only when it truly matters.</p>
-      <p className="muted ob-fine">A couple of minutes to set up. I’ll talk you through it — turn my voice off any time.</p>
+      <p className="ob-lede">Your chief of staff. I carry the small stuff and ring you only when it matters.</p>
       <div className="ob-actions"><button type="button" className="primary ob-begin" onClick={begin}>Begin</button></div>
     </div> : <>
       {header}
@@ -126,7 +126,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
         <h2>What should I call you?</h2>
         <div className="ob-form">
           <label>Your name<input type="text" autoFocus defaultValue={profile.name} maxLength={60} placeholder="First name is fine" onBlur={e => setProfile({ name: e.target.value.trim() })} /></label>
-          <label>Email <span className="muted">· optional</span><input type="email" defaultValue={profile.email ?? ''} maxLength={254} placeholder="you@example.com" autoComplete="email"
+          <label>Email<input type="email" defaultValue={profile.email ?? ''} maxLength={254} placeholder="Optional" autoComplete="email"
             onBlur={e => { const v = e.target.value.trim(); if (!v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) setProfile({ email: v || undefined }); }} /></label>
           <fieldset className="ob-tone">
             <legend>How should I sound?</legend>
@@ -142,23 +142,20 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
 
       {step === 'connect' && <div className="ob-body ob-connect">
         <h2>Connect what you already use</h2>
-        <p className="ob-lede">Everything here only reads. Each app connects through its own sign-in — your account, your tap. I never read, store or type a password, and letting me <em>act</em> anywhere is always a separate yes.</p>
-        {loadError && <p className="muted">I can’t reach the OXBOT server to list your apps right now. You can connect them later in Connections — let’s carry on.</p>}
+        <p className="ob-lede">Read-only, through each app’s own sign‑in. Acting on anything is always a separate yes.</p>
+        {loadError && <p className="muted">I can’t reach OXBOT to list your apps. Connect them later in Settings.</p>}
         {bundles.some(b => b.ready || b.connected) && <section className="ob-group ob-accounts">
           <h3>Start with your main account</h3>
           <div className="ob-account-row">{bundles.filter(b => b.ready || b.connected).map(b => b.connected
-            ? <span key={b.provider} className="ob-account on" aria-label={`${b.name} connected`}>{b.name} — connected</span>
+            ? <span key={b.provider} className="ob-account on" aria-label={`${b.name} connected`}>{b.name} connected</span>
             : <a key={b.provider} className="button primary ob-account" href={`/api/oauth/start-bundle/${b.provider}`}>Connect {b.name}</a>)}</div>
-          <p className="muted">One sign-in each — brings your mail <em>and</em> calendar together. No password, just your account.</p>
         </section>}
         <div className="ob-connect-tools">
           <button type="button" className="primary" onClick={() => setFinding(true)} disabled={!list}>Find the apps I already use</button>
-          <span className="muted">Reads only the website column of a password export you choose, in this window, to show which apps I can connect. No password is kept.</span>
         </div>
         {youUse.length > 0 && <section className="ob-group"><h3>You already use these</h3><div className="ob-rows">{youUse.map(c => <Connector key={c.id} c={c} onChange={setList} />)}</div></section>}
         {suggested.length > 0 && <section className="ob-group"><h3>A good place to start</h3>
           <div className="ob-rows">{suggested.map(c => <Connector key={c.id} c={c} onChange={setList} />)}</div>
-          <p className="muted">{connected.length} connected so far. More in Connections any time.</p>
         </section>}
         <div className="ob-actions">
           <button type="button" className="primary" onClick={() => go('schedule')}>{connected.length ? 'Continue' : 'I’ll do this later'}</button>
@@ -168,20 +165,17 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
       {step === 'schedule' && <div className="ob-body">
         <h2>Your schedule</h2>
         {scheduleSource ? <>
-          <p className="ob-lede">You use <strong>{scheduleSource.name.split(' (')[0]}</strong>, so I’ll read what’s next from there. If you keep your calendar somewhere else too, connect it and I’ll watch both.</p>
-          {connected.some(c => c.group === 'Body') && <p className="muted">I can see your health is connected too — I’ll factor your recovery into how hard I think today should be.</p>}
+          <p className="ob-lede">I’ll read what’s next from <strong>{scheduleSource.name.split(' (')[0]}</strong>.</p>
         </> : <>
-          <p className="ob-lede">I didn’t spot a calendar or notes app connected yet. Connect one — Google Calendar, Outlook, Notion — and I’ll read your schedule from it and keep you ahead of what’s next.</p>
+          <p className="ob-lede">Connect a calendar and I’ll keep you ahead of what’s next.</p>
           <div className="ob-actions-inline"><button type="button" onClick={() => go('connect')}>Back to connections</button></div>
         </>}
         <div className="ob-actions"><button type="button" className="primary" onClick={() => go('tour')}>Show me around</button></div>
       </div>}
 
       {step === 'tour' && <div className="ob-body ob-tour">
-        <p className="ob-tour-step" aria-hidden="true">{tourAt + 1} / {TOUR.length}</p>
         <h2>{TOUR[tourAt].title}</h2>
-        <p className="ob-lede">{TOUR[tourAt].say}</p>
-        <p className="muted ob-tour-note">{TOUR[tourAt].note}</p>
+        <p className="ob-lede">{TOUR[tourAt].line}</p>
         <div className="ob-actions">
           <button type="button" onClick={back} disabled={tourAt === 0}>Back</button>
           <button type="button" className="primary" onClick={nextTour}>{tourAt < TOUR.length - 1 ? 'Next' : 'Finish'}</button>
@@ -190,7 +184,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
 
       {step === 'done' && <div className="ob-body ob-done">
         <h2>You’re set{name ? `, ${name}` : ''}.</h2>
-        <p className="ob-lede">I’ll take it from here. Ask me anything, or just watch your day come together.</p>
+        <p className="ob-lede">I’ll take it from here.</p>
         <div className="ob-actions"><button type="button" className="primary ob-begin" onClick={finish}>Enter OXBOT</button></div>
       </div>}
     </>}

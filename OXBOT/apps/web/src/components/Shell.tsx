@@ -39,10 +39,9 @@ export function Avatar({ name, photo, size = 34 }: { name: string; photo?: strin
 
 interface RailProps {
   boards: Board[]; current?: string; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
-  home: string; onCustomize: () => void; doing: Doing[];
-  // Taurus as a switch (owner, November 6, 2026: "make it so taurus is a toggle button on the left side bar if u click
-  // it, the home converts to that layout and its saved").
-  taurusOn: boolean; onTaurus: () => void; brand: Profile;
+  // Home is the view picked in Settings, Personalize: Taurus (the dashboard) or the first board's tiles (owner,
+  // November 19, 2026: "make it just in settings either tile view or dashboard view and then home becomes that").
+  home: string; homeIsTaurus: boolean; onCustomize: () => void; doing: Doing[]; brand: Profile;
 }
 
 // Quick access to what Ox is doing right now (owner, November 5, 2026: "on the left side tab u can also see current
@@ -60,7 +59,7 @@ export function nowDoing({ entries, browser, wins, now, setDock, music }: { entr
   return out;
 }
 
-export function Rail({ boards, current, page, dock, setDock, open, onClose, home, onCustomize, doing, taurusOn, onTaurus, brand }: RailProps) {
+export function Rail({ boards, current, page, dock, setDock, open, onClose, home, homeIsTaurus, onCustomize, doing, brand }: RailProps) {
   const toggle = (t: DockTab) => { setDock(dock === t ? null : t); onClose(); };
   return <>
     {open && <div className="scrim" onClick={onClose} aria-hidden="true" />}
@@ -68,15 +67,10 @@ export function Rail({ boards, current, page, dock, setDock, open, onClose, home
       <div className="rail-panel">
         <a className="brand" href={home} onClick={onClose} style={brandStyle(brand)}><BrandMark profile={brand} height={20} /></a>
         <ul className="rail-list" aria-label="Tabs">
-          {boards.map(b => <li key={b.id}><a href={`#b/${b.id}`} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}>{b.name}</a></li>)}
-          <li><a className="rail-quiet" href="#settings" onClick={onClose}>Settings</a></li>
+          <li><a href={home} aria-current={(homeIsTaurus ? page === 'taurus' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}>Home</a></li>
+          {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}>{b.name}</a></li>)}
         </ul>
         <ul className="rail-list rail-ox" aria-label="Ox">
-          <li className="rail-switch-row"><button type="button" role="switch" className="rail-switch" aria-checked={taurusOn} onClick={() => { onTaurus(); onClose(); }}
-            title={taurusOn ? 'Home is Taurus. Tap for the board.' : 'Tap to make Taurus your home.'}>
-            <span>Taurus</span><span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span>
-          </button></li>
-          {page === 'taurus' && <li><button type="button" className="rail-quiet" onClick={() => { onCustomize(); onClose(); }}>Customize</button></li>}
           <li><a href="#ask" aria-current={page === 'ask' ? 'page' : undefined} onClick={onClose}>Ask Ox</a></li>
           <li><a href="#house" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}>House</a></li>
           <li><a href="#brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}>Brain</a></li>
@@ -90,6 +84,10 @@ export function Rail({ boards, current, page, dock, setDock, open, onClose, home
             {d.extra && <button type="button" className="rail-doing-extra" onClick={d.extra.run}>{d.extra.label}</button>}
           </li>)}
         </ul>}
+        <ul className="rail-list rail-foot" aria-label="Settings">
+          {page === 'taurus' && <li><button type="button" onClick={() => { onCustomize(); onClose(); }}>Customize</button></li>}
+          <li><a href="#settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}>Settings</a></li>
+        </ul>
       </div>
     </nav>
   </>;

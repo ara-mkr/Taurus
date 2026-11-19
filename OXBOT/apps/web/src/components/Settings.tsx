@@ -4,6 +4,7 @@ import { Catalog, newWidget, Sheet, sizeNames, WidgetSettings } from './Board';
 import { canListen, inDesktop, type VoiceSettings } from './Voice';
 import { OxVoice } from './OxVoice';
 import { catalog } from './widgets';
+import { taurusDefaults } from './CloudDashboard';
 
 export type Appearance = 'auto' | 'light' | 'dark';
 export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone', notch: 'Notch' } as const;
@@ -51,7 +52,12 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
   return <main id="main" tabIndex={-1} className="settings-page">
     <div className="page-head"><h1>Personalize</h1></div>
 
-    <p className="muted">Your name, email, photo and OXBOT’s icon are on <a href="#profile">your profile</a>.</p>
+    <fieldset className="choice">
+      <legend>Home</legend>
+      {([['taurus', 'Dashboard', 'Ox in the sky, your day around him'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
+        <input type="radio" name="home-view" checked={(prefs.taurus?.start ?? 'taurus') === k} onChange={() => { setPrefs(p => ({ ...p, taurus: { ...(p.taurus ?? taurusDefaults()), start: k } })); try { localStorage.setItem('oxbot-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
+        <span><strong>{name}</strong> <span className="muted">{what}</span></span></label>)}
+    </fieldset>
 
     <fieldset className="choice">
       <legend>How Ox talks to you</legend>

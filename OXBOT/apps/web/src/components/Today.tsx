@@ -10,7 +10,7 @@ function Heading({ title, data, section, extra }: { title: string; data: Dashboa
       <h2 id={section}>{title}{extra}</h2>
       <span className="source">{state.live ? state.sources.join(', ') : <a href="#connections">Sample</a>}</span>
     </div>
-    {state.errors.map(error => <p key={error} className="problem">{error} <a href="#connections">Fix</a></p>)}
+    {state.errors.map(error => <p key={error} className="problem">{error} <a href="#connections">Reconnect</a></p>)}
   </>;
 }
 

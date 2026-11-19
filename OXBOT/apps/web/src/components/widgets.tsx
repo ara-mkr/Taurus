@@ -55,7 +55,7 @@ function sourceNote(data: Dashboard | null, section: Section) {
   return s.live ? s.sources.join(', ') : <a href="#connections">Sample</a>;
 }
 function Problems({ data, section }: { data: Dashboard | null; section: Section }) {
-  return <>{data?.sections[section]?.errors.map(e => <p key={e} className="problem">{e} <a href="#connections">Fix</a></p>)}</>;
+  return <>{data?.sections[section]?.errors.map(e => <p key={e} className="problem">{e} <a href="#connections">Reconnect</a></p>)}</>;
 }
 
 // Fetch on mount and on an interval; keeps the last good value while refreshing.
@@ -166,7 +166,7 @@ function TodoW({ widget, ctx }: Props) {
         <label className="sr-only" htmlFor={`todo-${widget.id}`}>Add a to-do</label>
         <input type="text" id={`todo-${widget.id}`} value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do" maxLength={300} autoComplete="off" />
       </form>
-      {prefs.todos.length === 0 ? <p className="empty">Nothing yet. Type above and press Return.</p> : <ul className="todos">
+      {prefs.todos.length > 0 && <ul className="todos">
         {[...open, ...closed].map(t => <li key={t.id} className={t.done ? 'done' : undefined}>
           <label><input type="checkbox" checked={t.done} onChange={() => toggle(t.id)} /><span>{t.text}</span></label>
         </li>)}
@@ -303,7 +303,7 @@ function TrendW({ widget, ctx }: Props) {
   return <>
     <Head title={widget.title ?? meta.name} note={!ctx.history ? '' : ctx.history.sample ? <a href="#connections">Sample</a> : `${days} days`} />
     <div className="card-body trend">
-      {points.length < 2 ? <p className="empty">OXBOT records one point a day from your connected tracker. {points.length ? 'One day so far.' : 'Nothing yet.'}</p> : <>
+      {points.length < 2 ? <p className="empty">{points.length ? 'One day so far.' : 'Fills in a day at a time.'}</p> : <>
         <p className="big">{meta.format(last!)}<span className="unit">{avg !== undefined && ` ${days}-day average ${meta.format(avg)}`}</span></p>
         {widget.size === 'small' || widget.size === 'banner' ? <Sparkline values={points.map(p => p.v)} height={chartHeight[widget.size]} /> : <LineChart points={points} label={`${meta.name}, ${days} days`} format={meta.format} height={chartHeight[widget.size]} />}
       </>}
@@ -423,7 +423,7 @@ function UpdatesW({ widget, ctx }: Props) {
     <Head title={widget.title ?? catalog.updates.name} note={data?.sections.updates?.live ? data.sections.updates.sources.join(', ') : undefined} />
     <div className="card-body">
       <Problems data={data} section="updates" />
-      {!data ? <p className="empty">Loading.</p> : !items.length ? <p className="empty">Nothing connected yet. Weather, feeds, files and music show here once you <a href="#connections">connect them</a>.</p> : <ol className="news">
+      {!data ? <p className="empty">Loading.</p> : !items.length ? <p className="empty"><a href="#connections">Connect</a> weather, feeds or music.</p> : <ol className="news">
         {items.map(i => <li key={i.id}>
           {i.url ? <a href={i.url} target="_blank" rel="noreferrer">{i.title}</a> : <span>{i.title}</span>}
           <p className="muted">{[i.source, i.detail, i.at && i.source !== 'Weather' && `${ago(i.at)}${ago(i.at).length < 4 ? ' ago' : ''}`].filter(Boolean).join(' · ')}</p>
