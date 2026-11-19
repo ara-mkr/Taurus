@@ -312,7 +312,7 @@ export function Swarm() {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [drawn]); // eslint-disable-line react-hooks/exhaustive-deps -- one loop per swarm; it reads the latest state from a ref
+  }, [drawn]); // One loop per swarm; it reads the latest state from a ref.
 
   const stop = async () => {
     setStopping(true); setError('');

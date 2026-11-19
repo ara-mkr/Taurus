@@ -68,11 +68,15 @@ function watchLevel(id: number) {
 export function chunks(text: string): string[] {
   const clean = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/https?:\/\/\S+/g, '').replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
   const sentences = clean.match(/[^.!?]+(?:[.!?]+["')\]]*|$)\s*/g)?.map(s => s.trim()).filter(Boolean) ?? [];
+  // The first chunk is all you wait for (about 2.5 s per sentence on the Mac's CPU, November 18, 2026), so it stays
+  // one sentence, cut at its first comma when that comes early. Later chunks are made while earlier ones play.
+  const first = sentences[0];
+  const comma = first ? first.search(/[,;:–—]\s/) : -1;
+  if (first && first.length > 60 && comma >= 12 && comma <= 70) sentences.splice(0, 1, first.slice(0, comma + 1), first.slice(comma + 1).trim());
   const out: string[] = [];
   for (const s of sentences) {
     const last = out.at(-1);
     if (last !== undefined && out.length > 1 && last.length + s.length < 220) out[out.length - 1] = `${last} ${s}`;
-    else if (last !== undefined && out.length === 1 && last.length < 40 && last.length + s.length < 120) out[0] = `${last} ${s}`;
     else out.push(s.length > 400 ? s.slice(0, 400) : s);
   }
   return out.slice(0, 8);

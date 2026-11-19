@@ -24,7 +24,10 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
   calls.push(call);
   const route = routes.find(([pattern]) => pattern.test(url));
   if (!route) throw new Error(`Unexpected request: ${call.method} ${url}`);
-  return new Response(JSON.stringify(route[1](call)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const out = route[1](call) as { status?: number; body?: unknown } | undefined;
+  // A route can answer with an error: { status: 402, body: {...} }.
+  const failed = typeof out?.status === 'number' && 'body' in out;
+  return new Response(JSON.stringify(failed ? out.body : out), { status: failed ? out.status : 200, headers: { 'Content-Type': 'application/json' } });
 }) as typeof fetch;
 
 const reply = (text: string) => ({ choices: [{ message: { role: 'assistant', content: text } }] });
@@ -91,6 +94,28 @@ test('OXBOT asks the chosen free model with your key', async () => {
   assert.equal(call.headers.get('X-Title'), 'OXBOT');
   assert.equal(call.body.model, 'google/gemma-4-31b-it:free');
   assert.deepEqual(call.body.messages, [{ role: 'system', content: 'You are OXBOT.' }, { role: 'user', content: 'What is next?' }]);
+});
+
+test('a paid model picked for OXBOT free that is out of credit hands the question to a free model', async () => {
+  store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'deepseek/deepseek-v4.1-flash' });
+  routes.push([/openrouter\.ai\/api\/v1\/models$/, () => ({ data: [
+    { id: 'google/gemma-4-31b-it:free', name: 'Gemma', pricing: { prompt: '0', completion: '0' }, context_length: 128000 },
+  ] })]);
+  routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, call => call.body.model === 'deepseek/deepseek-v4.1-flash'
+    ? { status: 402, body: { error: { message: 'Insufficient credits. Add more using https://openrouter.ai/settings/credits', code: 402 } } }
+    : reply('Hello from a free model.')]);
+  const answer = await ai.ask('You are OXBOT.', [{ role: 'user', text: 'Say hello.' }]);
+  assert.equal(answer.text, 'Hello from a free model.');
+  assert.match(answer.model ?? '', /:free$|^openrouter\/free$/);
+  const asked = calls.filter(c => /chat\/completions$/.test(c.url)).map(c => c.body.model);
+  assert.equal(asked[0], 'deepseek/deepseek-v4.1-flash');
+});
+
+test('a free model picked for OXBOT free still reports its own errors', async () => {
+  store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'google/gemma-4-31b-it:free' });
+  routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, () => ({ status: 401, body: { error: { message: 'No auth credentials found', code: 401 } } })]);
+  await assert.rejects(ai.ask('You are OXBOT.', [{ role: 'user', text: 'Say hello.' }]), /401/);
+  assert.equal(calls.filter(c => /chat\/completions$/.test(c.url)).length, 1);
 });
 
 test('every OpenAI-compatible lab gets its own address, key and model', async () => {

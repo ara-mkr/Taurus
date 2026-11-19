@@ -296,10 +296,10 @@ export function OxBuddy({ lines, lineFor, voice, roam = true }: { lines: Line[];
     const s = safe();
     return pivotAt(clamp(clientX - BW / 2, s.left, s.right - BW), clamp(clientY - BH + 10, s.top, s.bottom - BH));
   }, []);
-  const toCard = useCallback((card: HTMLElement, clientX: number) => {
+  const toCard = useCallback((card: HTMLElement, clientX: number, quiet = false) => {
     const r = settled(card), id = card.id.replace(/^w-/, '');
     anchor.current = { id: card.id, fx: (clamp(clientX - BW / 2, r.left + 10, r.right - BW - 10) - r.left) / Math.max(1, r.width) };
-    go(perch(card, clientX), () => speak(latest.current.lineFor?.(id) ?? null));
+    go(perch(card, clientX), quiet ? undefined : () => speak(latest.current.lineFor?.(id) ?? null));
   }, [go, perch, speak]);
 
   // Start in the bottom right corner. Keep his spot when the window or the board reflows.
@@ -338,7 +338,8 @@ export function OxBuddy({ lines, lineFor, voice, roam = true }: { lines: Line[];
     return () => document.removeEventListener('click', click);
   }, [roam, go, free, toCard]);
 
-  // On his own: say hello, then every 20 to 40 seconds charge to a card on screen and talk about it.
+  // On his own he only wanders, every 20 to 40 seconds, to a card on screen. He says nothing unless you tap him or a
+  // card (owner, November 18, 2026: an unasked bubble above him was "dumb").
   useEffect(() => {
     if (!roam) return;
     const timers: number[] = [];
@@ -346,16 +347,15 @@ export function OxBuddy({ lines, lineFor, voice, roam = true }: { lines: Line[];
     const wander = () => {
       later(wander, 20_000 + Math.random() * 20_000);
       if (document.hidden || plan.current || box.current?.dataset.busy === 'true') return;
-      if (reduce) { speak(); return; }
+      if (reduce) return;
       const s = safe();
       const cards = [...document.querySelectorAll<HTMLElement>('.board .card')].filter(c => { const r = c.getBoundingClientRect(); return r.top - BH > s.top && r.top < s.bottom - 40; });
       const card = cards[Math.floor(Math.random() * cards.length)];
-      if (card) { const r = card.getBoundingClientRect(); toCard(card, r.left + 20 + Math.random() * Math.max(0, r.width - 40)); }
+      if (card) { const r = card.getBoundingClientRect(); toCard(card, r.left + 20 + Math.random() * Math.max(0, r.width - 40), true); }
     };
-    later(() => { if (!box.current?.querySelector('.ox-bubble') && box.current?.dataset.phase !== 'run') speak(); }, 1_500);
     later(wander, 20_000 + Math.random() * 20_000);
     return () => timers.forEach(t => window.clearTimeout(t));
-  }, [roam, reduce, speak, toCard]);
+  }, [roam, reduce, toCard]);
 
   useEffect(() => { if (!say) return; const t = window.setTimeout(() => { setSay(null); setMood('idle'); }, 9_000); return () => window.clearTimeout(t); }, [say]);
 

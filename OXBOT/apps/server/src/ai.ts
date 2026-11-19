@@ -133,7 +133,10 @@ async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta:
   const pinned = store.secret(p.model);
   const free = Boolean(p.free);
   const seesPicture = turns.some(t => t.image);
-  const order = !free ? [await modelFor(p, key)] : pinned ? [pinned] : seesPicture ? [SUPER, ...freeOrder(tier).filter(m => m !== SUPER)] : freeOrder(tier, (await freeModels()).map(m => m.id));
+  // A paid model picked for "OXBOT free" runs first; if the OpenRouter account is out of credit (402), the free models
+  // answer instead of an error (owner, November 18, 2026: "credits ran out ITS A FREE MODEL").
+  const paidPin = free && Boolean(pinned) && !/:free$|^openrouter\/free$/.test(pinned!);
+  const order = !free ? [await modelFor(p, key)] : pinned ? [pinned, ...(paidPin ? freeOrder(tier, (await freeModels()).map(m => m.id)).filter(m => m !== pinned) : [])] : seesPicture ? [SUPER, ...freeOrder(tier).filter(m => m !== SUPER)] : freeOrder(tier, (await freeModels()).map(m => m.id));
   const reasoning = free ? freeTiers[tier].reasoning : undefined;
   let lastError: unknown;
   for (const model of order) {
@@ -166,7 +169,8 @@ async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta:
       // The account's daily allowance of free asks is used up: every free model says the same, so say it plainly.
       if (free && e instanceof HttpError && e.status === 429 && /per-day|per day|daily/i.test(e.message)) throw new HttpError(429, FREE_DAY_LIMIT);
       // Busy (429), down (5xx) or gone (404), before a word was shown: the next free model.
-      if (!free || pinned || streamed || !(e instanceof HttpError) || ![404, 408, 429, 500, 502, 503, 504].includes(e.status)) throw e;
+      if (paidPin && model === pinned && !streamed && e instanceof HttpError && e.status === 402) continue;
+      if (!free || (pinned && !paidPin) || streamed || !(e instanceof HttpError) || ![404, 408, 429, 500, 502, 503, 504].includes(e.status)) throw e;
       markBusy(model);
     }
   }
