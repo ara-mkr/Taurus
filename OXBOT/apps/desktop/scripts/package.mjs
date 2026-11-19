@@ -66,7 +66,10 @@ function scan(label, files) {
     count++;
     if (badPath.test(path)) problems.push(`${label}: ${path} is a private file`);
     const text = data.toString('latin1');
-    for (const [what, re] of patterns) { const m = text.match(re); if (m) problems.push(`${label}: ${path} contains ${what} (${m[0].slice(0, 12)}…)`); }
+    // A library's own license file names its authors (public addresses, such as sindresorhus@gmail.com in Playwright's).
+    // Only that check is skipped there; keys and the owner's email are still looked for in every file.
+    const credits = /^node_modules\/.+(\.LICENSE|\/LICENSE|\/NOTICE|\/ThirdPartyNotices\.txt)$/.test(path);
+    for (const [what, re] of patterns) { if (credits && what === 'a personal email address') continue; const m = text.match(re); if (m) problems.push(`${label}: ${path} contains ${what} (${m[0].slice(0, 12)}…)`); }
     for (const email of owner) if (text.toLowerCase().includes(email)) problems.push(`${label}: ${path} contains the owner's email`);
   }
   return { problems, count };
@@ -94,7 +97,8 @@ for (const platform of platforms) {
   for (const dir of unpacked) {
     for (const asar of findAll(join(release, dir), 'app.asar')) {
       const r = scan(relative(release, asar), asarFiles(asar));
-      const names = [...asarFiles(asar)].map(([p]) => p).filter(p => !p.startsWith('dist/') && p !== 'package.json');
+      // playwright-core is the one library the bundled server loads from node_modules (OXBOT's own browser).
+      const names = [...asarFiles(asar)].map(([p]) => p).filter(p => !p.startsWith('dist/') && p !== 'package.json' && !p.startsWith('node_modules/playwright-core/'));
       if (names.length) r.problems.push(`${relative(release, asar)}: unexpected files ${names.join(', ')}`);
       console.log(`Checked ${relative(release, asar)}: ${r.count} files, ${r.problems.length ? 'PROBLEMS' : 'clean'}`);
       failures.push(...r.problems);
