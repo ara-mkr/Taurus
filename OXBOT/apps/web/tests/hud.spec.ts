@@ -146,7 +146,7 @@ test('double-click or right-click the sky: a small popup adds a panel and sets t
   const menu = page.getByRole('dialog', { name: 'HUD options' });
   await expect(menu).toBeVisible();
   await menu.getByRole('radiogroup', { name: 'Text size' }).getByRole('radio', { name: 'Large' }).click();
-  await menu.getByRole('radiogroup', { name: 'Backdrop' }).getByRole('radio', { name: 'Fast' }).click();
+  await menu.getByRole('radiogroup', { name: 'Backdrop' }).getByRole('radio', { name: 'Always' }).click();
   await expect.poll(() => [saved?.profile?.large, saved?.hud.clouds]).toEqual([true, 'lively']);
   await page.screenshot({ path: `${shots}/hud-popup-1440-dark.png` });
   const axe = await new AxeBuilder({ page }).include('.bg-menu').analyze();

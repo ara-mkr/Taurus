@@ -395,3 +395,14 @@ The owner: "fuck the extramoney for openrouter i wil just be using deepseek v4 f
 - **Consequences:** sharper recall's extra call goes to the quick-ask AI, so with this setup it's a fraction of a cent on DeepSeek rather than one of OpenRouter's 50 free daily asks. Nothing changes until the owner adds his DeepSeek key (Settings, AI, API keys) and says the line or taps the preset. Tests: `apps/server/test/deepseek.test.ts`.
 - **Later the same day,** the owner: "btw i use my openrouter for deepseek ... like let me paste in my api key". "DeepSeek" now means DeepSeek V4 Flash on his OpenRouter key when there is no DeepSeek key. Saying the line or tapping the preset pins OpenRouter's model to `deepseek/deepseek-v4-flash` (about $0.09 in and $0.18 out per million tokens on OpenRouter's model list, November 20, 2026). If the OpenRouter account runs out of credit, the free models answer instead of an error. Quick and everyday asks go with `reasoning: {effort: "none"}`. The AI page's OpenRouter model picker offers "DeepSeek V4 Flash (paid, pennies)", and the route menu names the pinned model. He pastes the key himself on the AI page (API keys, OpenRouter, "Or paste an OpenRouter key"); it is saved in `~/.taurus` only.
 
+## November 20, 2026: Taurus heating the Mac on open
+
+The owner: "its still super laggy right as i open it my computer heats up significanrtly it becomes laggy".
+
+- **Measured** on the packaged desktop app (scratch data folder, port 8861, `top` over 5 seconds, summed over every Taurus process): Home sat at 25 to 35% CPU while in use, mostly in the graphics process. With every animation paused it used about 2%. Taken apart: the particle orb redrawing 1,600 dots 60 times a second at rest (building a colour string for each dot each frame) cost about 15 to 20%. The turning HUD rings cost about 30% even with the frosted glass off. Any motion at all, however cheap to draw, made the whole window with its frosted glass composite again every frame, 20 to 40%.
+- **Changed:**
+  - The orb draws with one colour and `globalAlpha`, at 20 frames a second at rest. Once its dots settle into the logo it stops drawing, and CSS turns the finished picture for the sway.
+  - Each turning ring is its own layer, and the arc's glow is no longer a filter on a turning shape.
+  - By default (Backdrop "While working", formerly "Slow"), the rings, sweep, orb sway and status dot hold still while Taurus is idle and move while he listens, thinks or talks. "Always" (formerly "Fast") keeps them moving, and the menu says it warms the Mac.
+- **Result,** same build and screen: about 3% while idle with the mouse moving, down from about 30%. Not measured: the owner's own data (more panels, scans, voice models), and the first-run welcome, which still animates fully.
+

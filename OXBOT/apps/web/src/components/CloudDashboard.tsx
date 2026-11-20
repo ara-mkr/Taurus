@@ -281,13 +281,17 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
       <p className="hud-date">{today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</p>
       <h1 className="cloud-hello">{hello(hour)}{name ? `, ${name.split(' ')[0]}` : ''}.</h1>
       <div className="cloud-core">
+        {/* Each turning ring is its own layer, so the graphics chip turns a finished picture instead of the whole ring
+            being redrawn every frame (November 20, 2026: the rings drawn together cost about 30% CPU in the desktop app). */}
         <svg className="hud-ring" viewBox="0 0 400 400" aria-hidden="true">
-          <g className="ticks">{TICKS.map((k, i) => <line key={i} className={`tick${k.major ? ' major' : ''}`} x1={k.x1} y1={k.y1} x2={k.x2} y2={k.y2} />)}</g>
           <circle className="hr-edge" cx="200" cy="200" r="199" />
-          <circle className="hr-arc-a" cx="200" cy="200" r="174" />
-          <circle className="hr-arc-b" cx="200" cy="200" r="164" />
           <circle className="hr-inner" cx="200" cy="200" r="150" />
         </svg>
+        <svg className="hud-ring hud-turn turn-ticks" viewBox="0 0 400 400" aria-hidden="true">
+          <g className="ticks">{TICKS.map((k, i) => <line key={i} className={`tick${k.major ? ' major' : ''}`} x1={k.x1} y1={k.y1} x2={k.x2} y2={k.y2} />)}</g>
+        </svg>
+        <svg className="hud-ring hud-turn turn-a" viewBox="0 0 400 400" aria-hidden="true"><circle className="hr-arc-a" cx="200" cy="200" r="174" /></svg>
+        <svg className="hud-ring hud-turn turn-b" viewBox="0 0 400 400" aria-hidden="true"><circle className="hr-arc-b" cx="200" cy="200" r="164" /></svg>
         <p className={`hud-readout nw${needs ? ' signal' : ''}`}><span>Needs you</span><strong>{needs === undefined ? '--' : two(needs)}</strong></p>
         <p className="hud-readout ne"><span>Next</span><strong>{next ? clock(next.start) : 'Clear'}</strong></p>
         <p className="hud-readout sw"><span>Body</span><strong>{body}</strong></p>
@@ -310,7 +314,7 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
         <div className="card-head"><h2 id="hud-settings">HUD</h2><button type="button" className="primary cloud-edit" onClick={() => { setEditing(false); setAdding(null); }}>Done</button></div>
         <div className="card-body">
           <fieldset><legend>Backdrop</legend>
-            {(['calm', 'lively', 'off'] as const).map(c => <label key={c} className="check"><input type="radio" name="t-clouds" checked={t.clouds === c} onChange={() => setT(x => ({ ...x, clouds: c }))} />{c === 'calm' ? 'Slow sweep' : c === 'lively' ? 'Fast sweep' : 'Still'}</label>)}
+            {(['calm', 'lively', 'off'] as const).map(c => <label key={c} className="check"><input type="radio" name="t-clouds" checked={t.clouds === c} onChange={() => setT(x => ({ ...x, clouds: c }))} />{c === 'calm' ? 'Moves while Taurus works' : c === 'lively' ? 'Always moving (warmer Mac)' : 'Still'}</label>)}
           </fieldset>
           <fieldset><legend>Orb size</legend>
             {(Object.keys(sizeNames) as PanelSize[]).map(s => <label key={s} className="check"><input type="radio" name="t-taurus" checked={t.taurusSize === s} onChange={() => setT(x => ({ ...x, taurusSize: s }))} />{sizeNames[s]}</label>)}
@@ -340,7 +344,7 @@ export function CloudDashboard({ ctx, voice, profile, center, onBack, closeWin, 
           <button type="button" onClick={() => { setEditing(true); closeMenu(); }}>Customize</button>
         </div>
         <TextSize prefs={prefs} setPrefs={setPrefs} />
-        <Choice label="Backdrop" value={t.clouds} options={[['calm', 'Slow'], ['lively', 'Fast'], ['off', 'Still']]} onChange={c => setT(x => ({ ...x, clouds: c }))} />
+        <Choice label="Backdrop" value={t.clouds} options={[['calm', 'While working'], ['lively', 'Always'], ['off', 'Still']]} onChange={c => setT(x => ({ ...x, clouds: c }))} />
         <Choice label="Orb size" value={t.taurusSize} options={[['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']]} onChange={s => setT(x => ({ ...x, taurusSize: s }))} />
         <Choice label="Today line" value={t.facts ? 'on' : 'off'} options={[['on', 'Show'], ['off', 'Hide']]} onChange={v => setT(x => ({ ...x, facts: v === 'on' }))} />
       </>}
