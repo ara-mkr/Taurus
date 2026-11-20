@@ -10,17 +10,17 @@ import type { MacState } from './types.ts';
 import { show } from './windows.ts';
 
 // This Mac (owner, November 5, 2026: "make it so it can do agentic actions on like all ur apps"). Still no shell:
-// OXBOT runs four fixed programs (open, osascript, shortcuts, pmset) with fixed scripts, and what you said only ever
+// Taurus runs four fixed programs (open, osascript, shortcuts, pmset) with fixed scripts, and what you said only ever
 // travels as an argument, never as code. With "Control this Mac" allowed, opening and switching apps, the volume,
-// dark mode, sleeping the display and Shortcuts in your "OXBOT" or "Home" folder happen the moment you ask, because
+// dark mode, sleeping the display and Shortcuts in your "Taurus" or "Home" folder happen the moment you ask, because
 // they change nothing anyone else sees and one word undoes them. Quitting an app, sending an iMessage, writing a note
 // and running any other Shortcut wait for your OK in an approval card. Apple's Shortcuts app is the bridge to
-// everything else on the Mac: anything an app offers Shortcuts, Ox can run.
+// everything else on the Mac: anything an app offers Shortcuts, Taurus can run.
 
 type Program = 'open' | 'osascript' | 'shortcuts' | 'pmset';
 type Runner = (program: Program, args: string[]) => Promise<string>;
 const plain = (error: string) => {
-  if (/-1743|not authori[sz]ed|Not authorised/i.test(error)) return 'macOS blocked it. Allow OXBOT (or Terminal, in development) in System Settings, Privacy & Security, Automation, then ask again.';
+  if (/-1743|not authori[sz]ed|Not authorised/i.test(error)) return 'macOS blocked it. Allow Taurus (or Terminal, in development) in System Settings, Privacy & Security, Automation, then ask again.';
   if (/-1728|Can’t get application|Unable to find application|can't find/i.test(error)) return 'That app isn’t on this Mac.';
   if (/couldn’t find shortcut|could not find shortcut|shortcut .* not found/i.test(error)) return 'There’s no Shortcut with that name.';
   return error.split('\n').filter(Boolean).at(-1)?.replace(/^.*execution error: /, '').slice(0, 200) || 'macOS said no.';
@@ -45,11 +45,11 @@ export const useRunner = (r?: Runner, apps?: string[]) => {
 };
 
 export const isMac = () => process.platform === 'darwin' || runner !== real;
-// Hands one file OXBOT wrote to its Mac app (November 16, 2026: an approved calendar card's .ics goes to Calendar).
-export const openWithMac = (path: string) => { if (!isMac()) throw new HttpError(409, 'Only works when OXBOT runs on a Mac.'); return runner('open', [path]); };
+// Hands one file Taurus wrote to its Mac app (November 16, 2026: an approved calendar card's .ics goes to Calendar).
+export const openWithMac = (path: string) => { if (!isMac()) throw new HttpError(409, 'Only works when Taurus runs on a Mac.'); return runner('open', [path]); };
 export const macAllowed = () => isMac() && isConnected('mac-control');
 const need = () => {
-  if (!isMac()) throw new HttpError(409, 'Controlling apps only works when OXBOT runs on a Mac.');
+  if (!isMac()) throw new HttpError(409, 'Controlling apps only works when Taurus runs on a Mac.');
   if (!isConnected('mac-control')) throw new HttpError(409, 'Allow “Control this Mac” first: Settings, then Actions.');
 };
 const oneLine = (text: unknown, max = 200) => String(text ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, max);
@@ -88,12 +88,12 @@ export function findApp(said: string, list = installedApps()): string | undefine
   if (!n) return undefined;
   return list.find(a => norm(a) === n) ?? list.find(a => norm(a).replace(/^(?:microsoft|google|adobe|apple)/, '') === n);
 }
-// Where an app lives, when OXBOT found it on disk.
+// Where an app lives, when Taurus found it on disk.
 export const appPath = (name: string) => appCache?.paths.get(name);
 
 export async function openApp(name: string, heard = '') {
   need();
-  const step = begin('mac', `Opening ${name}`, { by: 'ox' });
+  const step = begin('mac', `Opening ${name}`, { by: 'taurus' });
   // By its bundle's path when known: the fixed program /usr/bin/open, the app as an argument, no name lookup.
   try { await runner('open', ['-a', appPath(name) ?? name]); step.done(`Opened ${name}`); }
   catch (error) { step.fail(error); throw error; }
@@ -135,7 +135,7 @@ export async function shortcuts(): Promise<{ name: string; folder?: string }[]> 
   const lines = (s: string) => s.split('\n').map(x => x.trim()).filter(Boolean);
   const all = lines(await runner('shortcuts', ['list']).catch(() => ''));
   const trusted = new Map<string, string>();
-  for (const folder of ['OXBOT', 'Home']) for (const name of lines(await runner('shortcuts', ['list', '--folder-name', folder]).catch(() => ''))) trusted.set(name, folder);
+  for (const folder of ['Taurus', 'Home']) for (const name of lines(await runner('shortcuts', ['list', '--folder-name', folder]).catch(() => ''))) trusted.set(name, folder);
   shortcutCache = { at: Date.now(), list: all.map(name => ({ name, folder: trusted.get(name) })) };
   return shortcutCache.list;
 }
@@ -145,11 +145,11 @@ export async function findShortcut(said: string) {
   const list = await shortcuts();
   return list.find(s => norm(s.name) === n) ?? (n.length > 3 ? list.find(s => norm(s.name).includes(n)) : undefined);
 }
-// Your "OXBOT" and "Home" folders in Shortcuts hold the ones you've said Ox may run without asking.
-export const trustedShortcut = (s: { folder?: string }) => s.folder === 'OXBOT' || s.folder === 'Home';
+// Your "Taurus" and "Home" folders in Shortcuts hold the ones you've said Taurus may run without asking.
+export const trustedShortcut = (s: { folder?: string }) => s.folder === 'Taurus' || s.folder === 'Home';
 export async function runShortcut(name: string, heard = '') {
   need();
-  const step = begin('mac', `Running the “${name}” Shortcut`, { by: 'ox' });
+  const step = begin('mac', `Running the “${name}” Shortcut`, { by: 'taurus' });
   try { await runner('shortcuts', ['run', name]); step.done(`Ran “${name}”`); }
   catch (error) { step.fail(error); throw error; }
   show({ id: `mac-${Date.now()}`, kind: 'mac', title: name, text: 'Shortcut ran.', app: 'Shortcuts', said: heard });
@@ -177,7 +177,7 @@ end run`;
 const QUIT = `on run argv
   tell application (item 1 of argv) to quit
 end run`;
-const ready = () => !isMac() ? 'Only works when OXBOT runs on a Mac.' : !isConnected('mac-control') ? 'Allow “Control this Mac” first: Settings, then Actions.' : undefined;
+const ready = () => !isMac() ? 'Only works when Taurus runs on a Mac.' : !isConnected('mac-control') ? 'Allow “Control this Mac” first: Settings, then Actions.' : undefined;
 const html = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 
 const specs: Spec[] = [
@@ -199,7 +199,7 @@ const specs: Spec[] = [
     help: 'Write a new note in Apple Notes. Args: title, text.',
     missing: ready,
     async prepare(args) {
-      const title = oneLine(args.title, 120) || 'From Ox';
+      const title = oneLine(args.title, 120) || 'From Taurus';
       const text = String(args.text ?? '').trim().slice(0, 8000);
       return { title: `New note: ${title}`, text, payload: { title, text } };
     },
@@ -223,7 +223,7 @@ const specs: Spec[] = [
     async prepare(args) {
       const found = await findShortcut(String(args.name ?? ''));
       if (!found) throw new HttpError(404, 'There’s no Shortcut with that name.');
-      return { title: `Run the “${found.name}” Shortcut`, caution: 'A Shortcut does whatever it was built to do. Put it in a folder named OXBOT in Shortcuts and it runs without asking next time.', payload: { name: found.name } };
+      return { title: `Run the “${found.name}” Shortcut`, caution: 'A Shortcut does whatever it was built to do. Put it in a folder named Taurus in Shortcuts and it runs without asking next time.', payload: { name: found.name } };
     },
     async run(p) { need(); await runner('shortcuts', ['run', p.name]); return `Ran “${p.name}”.`; },
   },

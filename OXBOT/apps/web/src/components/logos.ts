@@ -30,7 +30,7 @@ export const marks: Record<string, Mark> = {
   mercury: letters('M', '1E1E2A'), 'apple-health': icon(siApple, 'FF2D55'), withings: letters('W', '00A4A7'), 'google-drive': icon(siGoogledrive),
   dropbox: icon(siDropbox), box: icon(siBox), onedrive: draw('onedrive'), obsidian: icon(siObsidian), spotify: icon(siSpotify), rss: icon(siRss),
   weather: draw('weather'), 'hacker-news': icon(siYcombinator), composio: letters('C', '111111'),
-  // The House and this Mac (November 5, 2026), and the sign-ins that let OXBOT act, which share their app's mark.
+  // The House and this Mac (November 5, 2026), and the sign-ins that let Taurus act, which share their app's mark.
   'home-assistant': icon(siHomeassistant), hue: icon(siPhilipshue), lifx: icon(siLifx), 'mac-control': icon(siApple, '111111'),
 };
 for (const [act, app] of [['gmail-send', 'gmail'], ['outlook-send', 'outlook-mail'], ['slack-act', 'slack'], ['github-act', 'github'], ['linear-act', 'linear'],

@@ -1,7 +1,7 @@
 /* The Brain and ProFinder (November 16, 2026). Glass panels in one ink, rules inside, nothing under 13 px.
    Red (--signal) is used only for "needs you". */
 
-/* Above the Taurus sky, which is fixed at z-index 0, the way the cloud dashboard sits. */
+/* Above the Hud sky, which is fixed at z-index 0, the way the cloud dashboard sits. */
 main.brain, main.profinder { position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 1440px; margin: 12px auto 72px; padding: 18px 20px 0; }
 main.brain .page-head, main.profinder .page-head { align-items: center; border-bottom: 0; padding-bottom: 12px; }
 .brain-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

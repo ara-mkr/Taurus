@@ -26,4 +26,4 @@ Do not fork a huge agent repository, buy a domain based on a provisional name, c
 
 ## Decisions proposed for approval
 
-Product: OXBOT; company name pending clearance. UI: calm graphite/off-white system, periwinkle accent, original small companion later. Web stack: React/TypeScript/Vite. Current data: synthetic only. Default architecture direction: modular TypeScript backend later, no implementation now. Early workflow: ready for tomorrow plus an inspectable action.
+Product: Taurus; company name pending clearance. UI: calm graphite/off-white system, periwinkle accent, original small companion later. Web stack: React/TypeScript/Vite. Current data: synthetic only. Default architecture direction: modular TypeScript backend later, no implementation now. Early workflow: ready for tomorrow plus an inspectable action.

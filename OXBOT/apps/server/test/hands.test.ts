@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, test } from 'node:test';
 
-const home = process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-hands-'));
-process.env.OXBOT_BROKER_URL = '';
-process.env.OXBOT_HANDS_TOKEN = 't'.repeat(48);
+const home = process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-hands-'));
+process.env.TAURUS_BROKER_URL = '';
+process.env.TAURUS_HANDS_TOKEN = 't'.repeat(48);
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const hands = await import('../src/hands.ts');
@@ -74,22 +74,22 @@ const notes = { app: 'Notes', title: 'Groceries', window: { x: 100, y: 100, w: 9
 ] };
 
 test('only the desktop app that started this server, on this Mac, can use the private line', () => {
-  const req = (key: string | undefined, ip = '127.0.0.1') => ({ headers: key ? { 'x-oxbot-hands': key } : {}, socket: { remoteAddress: ip } }) as any;
+  const req = (key: string | undefined, ip = '127.0.0.1') => ({ headers: key ? { 'x-taurus-hands': key } : {}, socket: { remoteAddress: ip } }) as any;
   assert.equal(hands.trusted(req('t'.repeat(48))), true);
   assert.equal(hands.trusted(req('t'.repeat(47) + 'u')), false);
   assert.equal(hands.trusted(req(undefined)), false);
   assert.equal(hands.trusted(req('t'.repeat(48), '192.168.1.20')), false);
 });
 
-test('with no desktop app open, Ox says so instead of looking', async () => {
+test('with no desktop app open, Taurus says so instead of looking', async () => {
   const answer = await converse([{ role: 'user', text: 'What’s on my screen?' }], 'ask');
-  assert.equal(answer.text, 'Helpers in other apps need OXBOT’s desktop app open on this Mac.');
+  assert.equal(answer.text, 'Helpers in other apps need Taurus’s desktop app open on this Mac.');
 });
 
 test('“what’s on my screen” sends one picture to the AI the owner chose, notes it, and treats it as data', async () => {
   open = desk(verb => { assert.equal(verb, 'look'); return { image: 'data:image/jpeg;base64,AAAA', windows: [{ app: 'Notes', title: 'Groceries' }] }; });
   script = [messages => { const last = messages.at(-1); assert.ok(Array.isArray(last.content)); return 'Your Notes window shows a grocery list.'; }];
-  const answer = await converse([{ role: 'user', text: 'Hey Ox, what’s on my screen?' }], 'ask');
+  const answer = await converse([{ role: 'user', text: 'Hey Taurus, what’s on my screen?' }], 'ask');
   assert.equal(answer.text, 'Your Notes window shows a grocery list.');
   const parts = seen[0].at(-1).content;
   assert.equal(parts[1].image_url.url, 'data:image/jpeg;base64,AAAA');

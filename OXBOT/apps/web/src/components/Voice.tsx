@@ -3,8 +3,8 @@ import { say, stopSpeaking } from '../speech';
 import { useDoubleClap } from '../clap';
 import { LocalRecognition, warmEars } from '../hearing';
 
-// Talking to Ox. Authorized by the owner on October 31, 2026 (docs/decision-log.md): the browser's own speech
-// recognition, which sends audio to Google in Chrome and to Apple in Safari. OXBOT records and stores nothing;
+// Talking to Taurus. Authorized by the owner on October 31, 2026 (docs/decision-log.md): the browser's own speech
+// recognition, which sends audio to Google in Chrome and to Apple in Safari. Taurus records and stores nothing;
 // transcripts live only in memory, like the Ask turns. In the desktop app (November 7, 2026) the words come from
 // Moonshine on this Mac instead (../hearing.ts), because the desktop window's Chromium has no speech service.
 
@@ -22,19 +22,22 @@ const engine = (): RecognitionClass | undefined => { if (inDesktop()) return Loc
 export const canListen = () => typeof window !== 'undefined' && Boolean(engine());
 
 export interface VoiceSettings { wake: boolean; speak: boolean; clap?: boolean }
-const key = 'oxbot-voice';
+const key = 'taurus-voice';
 export function readVoice(): VoiceSettings {
   try { const v = JSON.parse(localStorage.getItem(key) ?? '{}') as Partial<VoiceSettings>; return { wake: v.wake === true, speak: v.speak === true, clap: v.clap === true }; } catch { return { wake: false, speak: false, clap: false }; }
 }
 export function saveVoice(v: VoiceSettings) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* storage blocked: the setting lasts this visit */ } }
 
-// "Hey Ox", "Yo Ox", "Hi Ox", "Hello Ox", "Okay Ox", "Ox", "OXBOT" and the usual mishearings, only at the start of
-// a phrase (owner, November 6, 2026: "say like yo ox, hi ox, OX, oxbot, anything like that not just hey ox").
+// "Hey Taurus", "Yo Taurus", "Hi Taurus", "Hello Taurus", "Okay Taurus", "Taurus", "Taurus" and the usual mishearings, only at the start of
+// a phrase (owner, November 6, 2026: "say like yo taurus, hi taurus, TAURUS, taurus, anything like that not just hey taurus").
 // Returns what was said after the wake word, or null when the phrase did not start with one.
-// Run-together forms from Moonshine on the Mac (November 7, 2026) too: "Yoox", "I ox", "Iox", "Yo-Ox". The name always
-// has "ox" in it (owner, November 19, 2026: "only come when ... i call his name which is anything with ox in it"), so
+// Run-together forms from Moonshine on the Mac (November 7, 2026) too: "Yoox", "I taurus", "Iox", "Yo-Taurus". The name always
+// has "taurus" in it (owner, November 19, 2026: "only come when ... i call his name which is anything with taurus in it"), so
 // sound-alikes such as "box", "ax" and "Ochs", which noise and other talk turn into, no longer wake him.
-const wakeWord = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up|i)[\s,]+(?:there[\s,]+)?|(?:hey|hi|yo|i)(?=ox))?ox(?:\s*bot|\s*bought|en)?(?![a-z])[\s,.!?]*/;
+// Renamed to Taurus (November 19, 2026). Speech engines also write it as torus, tauris, taurous, tarus, toros or
+// torres; those count only at the very start of a phrase, like the name itself.
+// Moonshine on the Mac also runs them together ("Heytaurus", "Yotaurus"), so those count too.
+const wakeWord = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up|i)[\s,]+(?:there[\s,]+)?|(?:hey|hi|yo|i)(?=t(?:au|o|a)r))?(?:taurus|torus|tauris|taurous|tarus|toros|torres)(?:'s)?(?:\s*bot)?(?![a-z])[\s,.!?]*/;
 const hellos = ['Hey.', 'Yo.', 'Talk to me.', 'What’s up?', 'Here. Go.'];
 const words = (t: string) => t.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
 const sameWords = (a: string, b: string) => { const x = words(a), y = words(b); return Boolean(x) && (x === y || y.includes(x)); };
@@ -54,12 +57,12 @@ const problems: Record<string, string> = {
 };
 const unsupported = 'This browser can’t listen. Voice works in Chrome and Safari.';
 // The desktop app's Chromium has no speech service key, so there the words come from this Mac (../hearing.ts).
-export function inDesktop() { return typeof window !== 'undefined' && Boolean((window as { oxbotDesktop?: unknown }).oxbotDesktop); }
+export function inDesktop() { return typeof window !== 'undefined' && Boolean((window as { taurusDesktop?: unknown }).taurusDesktop); }
 // Speech recognition needs a secure page: this Mac (localhost) or HTTPS. A phone on plain Wi-Fi http has neither.
 const insecure = 'I can’t listen on this connection. Your phone reaches the Mac over plain Wi-Fi, and browsers only allow the microphone on secure pages. Talk to me on the Mac instead.';
 
 export type VoicePhase = 'idle' | 'listening' | 'thinking' | 'answer' | 'error';
-// What Ox shows in his bubble.
+// What Taurus shows in his bubble.
 export interface VoiceView { phase: VoicePhase; text: string; woke: boolean; answered: boolean; browser: boolean; dismiss: () => void }
 
 export function useVoice(settings: VoiceSettings, onAsk: (question: string) => Promise<string>) {
@@ -81,13 +84,13 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
   useEffect(() => { phaseRef.current = phase; askRef.current = onAsk; speakRef.current = settings.speak; }, [phase, onAsk, settings.speak]);
   useEffect(() => { const v = () => setVisible(!document.hidden); document.addEventListener('visibilitychange', v); return () => document.removeEventListener('visibilitychange', v); }, []);
 
-  // In the desktop app, with "Hey Ox" or the double clap on, the window keeps hearing while it is hidden or behind other
-  // apps, and Ox comes to the app in front (November 16, 2026; docs/21-ox-anywhere.md). Moonshine on this Mac, as before.
+  // In the desktop app, with "Hey Taurus" or the double clap on, the window keeps hearing while it is hidden or behind other
+  // apps, and Taurus comes to the app in front (November 16, 2026; docs/21-taurus-anywhere.md). Moonshine on this Mac, as before.
   const listensAnywhere = inDesktop() && (settings.wake || settings.clap === true);
-  useEffect(() => { (window as { oxbotDesktop?: { keepHearing?: (on: boolean) => void } }).oxbotDesktop?.keepHearing?.(listensAnywhere); }, [listensAnywhere]);
+  useEffect(() => { (window as { taurusDesktop?: { keepHearing?: (on: boolean) => void } }).taurusDesktop?.keepHearing?.(listensAnywhere); }, [listensAnywhere]);
 
   const show = useCallback((next: VoicePhase, words: string) => { phaseRef.current = next; setPhase(next); setText(words); }, []);
-  // Ox in the Mac's notch (November 6, 2026) shows him listening while the microphone is open here. Only that it is
+  // Taurus in the Mac's notch (November 6, 2026) shows him listening while the microphone is open here. Only that it is
   // open or closed goes to the server; the words go only with the question, as before. The server reports thinking
   // and the answer itself.
   const told = useRef<'listening' | 'idle'>('idle');
@@ -95,12 +98,12 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
     const now = phase === 'listening' ? 'listening' : phase === 'idle' || phase === 'error' ? 'idle' : null;
     if (!now || now === told.current) return;
     told.current = now;
-    void fetch('/api/voice/presence', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify({ phase: now }) }).catch(() => undefined);
+    void fetch('/api/voice/presence', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: JSON.stringify({ phase: now }) }).catch(() => undefined);
   }, [phase]);
   const fail = useCallback((message: string) => { show('error', message); setAnswered(false); setBrowser(false); }, [show]);
   // The desktop app's own recognizer reports problems in words already.
   const failHere = useCallback((error: string) => {
-    if (inDesktop() && error === 'not-allowed') { fail('I can’t hear you: macOS is blocking the microphone. Allow it for OXBOT in System Settings, Privacy & Security, Microphone.'); return; }
+    if (inDesktop() && error === 'not-allowed') { fail('I can’t hear you: macOS is blocking the microphone. Allow it for Taurus in System Settings, Privacy & Security, Microphone.'); return; }
     fail(problems[error] ?? (inDesktop() ? error : `Listening stopped: ${error}.`));
   }, [fail]);
   const submit = useCallback(async (question: string) => {
@@ -109,7 +112,7 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
     try {
       const answer = await askRef.current(question.trim());
       show('answer', answer); setAnswered(true);
-      // Ox's own voice (November 5, 2026): Kokoro on this Mac, or the browser's best voice when it's off.
+      // Taurus's own voice (November 5, 2026): Kokoro on this Mac, or the browser's best voice when it's off.
       if (speakRef.current) void say(answer);
     } catch (e) { fail((e as Error).message); }
   }, [fail, show]);
@@ -124,7 +127,7 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
 
   // Push-to-talk: one phrase, sent to Ask when it ends.
   const start = useCallback(() => {
-    // Talking over Ox cuts him off.
+    // Talking over Taurus cuts him off.
     stopSpeaking();
     if (wakeArm.current) { wakeArm.current(); return; }
     const Engine = engine();
@@ -180,8 +183,8 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
       show('listening', ''); setWoke(byWord); setAnswered(false);
     };
     wakeArm.current = () => arm(false, seen);
-    // "Hey Ox" on its own: a hello back at once, out loud when Ox's voice is on (November 7, 2026: "I say hey ox it
-    // says hey back within a second"). The lines are ones the server has ready in Ox's voice.
+    // "Hey Taurus" on its own: a hello back at once, out loud when Taurus's voice is on (November 7, 2026: "I say hey taurus it
+    // says hey back within a second"). The lines are ones the server has ready in Taurus's voice.
     let greeted = -1;
     const echo = { text: '', until: 0 };
     const hello = (i: number) => {
@@ -213,7 +216,7 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
           if (i < armed.current.from) continue;
           const asked = i === armed.current.from ? afterWake(said) ?? said.trim() : said.trim();
           if (!asked) { if (result.isFinal && i === armed.current.from) hello(i); continue; }
-          // Ox's own "Hey." coming back through the microphone isn't a question.
+          // Taurus's own "Hey." coming back through the microphone isn't a question.
           if (Date.now() < echo.until && sameWords(asked, echo.text)) continue;
           setText(asked);
           if (result.isFinal && asked) { disarm(); void submit(asked); }
@@ -226,7 +229,7 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
         if (!alive) return;
         // Browsers end long sessions on their own: start again, but give up if it keeps failing.
         if (Date.now() - since > 10_000) { since = Date.now(); restarts = 0; }
-        if (++restarts > 6) { alive = false; setWaking(false); fail('Listening for “Hey Ox” keeps stopping, so I paused it. Reload to try again.'); return; }
+        if (++restarts > 6) { alive = false; setWaking(false); fail('Listening for “Hey Taurus” keeps stopping, so I paused it. Reload to try again.'); return; }
         seen = 0;
         window.setTimeout(run, 300);
       };
@@ -249,7 +252,7 @@ export function FunctionBar({ voice, floating = false }: { voice: Voice; floatin
   const on = voice.view.phase === 'listening';
   const items = <>
     <button type="button" className={`fn-talk ${on ? 'on' : ''}`} aria-pressed={on} {...voice.talkButton}>Talk</button>
-    {voice.waking && <span className="fn-note">Listening for “Hey Ox”</span>}
+    {voice.waking && <span className="fn-note">Listening for “Hey Taurus”</span>}
   </>;
   return floating ? <aside className="fnbar fnbar-float" aria-label="Quick functions">{items}</aside> : <div className="fnbar" role="group" aria-label="Quick functions">{items}</div>;
 }

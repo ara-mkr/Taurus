@@ -1,126 +1,126 @@
 {
-  "project": "OXBOT",
+  "project": "Taurus",
   "plan_date": "2026-10-20",
   "pdf_pages": 43,
   "master_word_count": 15856,
   "files": [
     {
-      "path": ".agents/skills/oxbot-action-safety/SKILL.md",
+      "path": ".agents/skills/taurus-action-safety/SKILL.md",
       "bytes": 2020,
       "sha256": "8ef7af9ab28f8176a2cfdd8bd7c779d8aeb628e126f8440c04801edf93b0b0c0"
     },
     {
-      "path": ".agents/skills/oxbot-action-safety/agents/openai.yaml",
+      "path": ".agents/skills/taurus-action-safety/agents/openai.yaml",
       "bytes": 287,
       "sha256": "6d91545851f3510c59eae02d7d47499e16ae41536fe015d8300f121e2487e49a"
     },
     {
-      "path": ".agents/skills/oxbot-action-safety/references/action-checklist.md",
+      "path": ".agents/skills/taurus-action-safety/references/action-checklist.md",
       "bytes": 913,
       "sha256": "2dab7b4ced068dcfedc9830c57fb8c1ae3a60e365683a2c2ddca574cf551c24d"
     },
     {
-      "path": ".agents/skills/oxbot-phase-gate/SKILL.md",
+      "path": ".agents/skills/taurus-phase-gate/SKILL.md",
       "bytes": 1772,
       "sha256": "888aa56b3cd119b742417c92ef9c406d560d01f1a3b6ec3800dc582a31bba663"
     },
     {
-      "path": ".agents/skills/oxbot-phase-gate/agents/openai.yaml",
+      "path": ".agents/skills/taurus-phase-gate/agents/openai.yaml",
       "bytes": 275,
       "sha256": "ad61ce8dc02e23445a645aeadadb01c10cdb400d5d2a451b25a5a65921514104"
     },
     {
-      "path": ".agents/skills/oxbot-phase-gate/references/gate-contract.md",
+      "path": ".agents/skills/taurus-phase-gate/references/gate-contract.md",
       "bytes": 790,
       "sha256": "c139b188f1c070d64169a5a105355ca5ab1a1f99ae843e61cdca32642437581f"
     },
     {
-      "path": ".agents/skills/oxbot-ui/SKILL.md",
+      "path": ".agents/skills/taurus-ui/SKILL.md",
       "bytes": 2727,
       "sha256": "f9a3a9ac917867a22aff6a886486eb4d3e162b995a46f4611152fb572ce95103"
     },
     {
-      "path": ".agents/skills/oxbot-ui/agents/openai.yaml",
+      "path": ".agents/skills/taurus-ui/agents/openai.yaml",
       "bytes": 267,
       "sha256": "f718767fb337e160f3eb2eb3d9fafebc2327882eca065951beae58133dd3138b"
     },
     {
-      "path": ".agents/skills/oxbot-ui/references/ui-contract.md",
+      "path": ".agents/skills/taurus-ui/references/ui-contract.md",
       "bytes": 1279,
       "sha256": "878108356f70a967ee589bfda6cf32e583b9422ddf4ef116785ca75c61ad085f"
     },
     {
-      "path": ".agents/skills/oxbot-ui-audit/SKILL.md",
+      "path": ".agents/skills/taurus-ui-audit/SKILL.md",
       "bytes": 2131,
       "sha256": "81828e5f47d405234b5eee960fca490547cd82ceeb228b0de9e452e677aeeecd"
     },
     {
-      "path": ".agents/skills/oxbot-ui-audit/agents/openai.yaml",
+      "path": ".agents/skills/taurus-ui-audit/agents/openai.yaml",
       "bytes": 270,
       "sha256": "93a6baab96deb446493844af5335b0d042745c49ada33797b50f2e08cd8bb48f"
     },
     {
-      "path": ".agents/skills/oxbot-ui-audit/references/audit-rubric.md",
+      "path": ".agents/skills/taurus-ui-audit/references/audit-rubric.md",
       "bytes": 815,
       "sha256": "4f46f93e9e1210621df943765d0fe3ea32193df9958b8efd1413fe8c6f2da5e9"
     },
     {
-      "path": ".claude/skills/oxbot-action-safety/SKILL.md",
+      "path": ".claude/skills/taurus-action-safety/SKILL.md",
       "bytes": 2020,
       "sha256": "8ef7af9ab28f8176a2cfdd8bd7c779d8aeb628e126f8440c04801edf93b0b0c0"
     },
     {
-      "path": ".claude/skills/oxbot-action-safety/agents/openai.yaml",
+      "path": ".claude/skills/taurus-action-safety/agents/openai.yaml",
       "bytes": 287,
       "sha256": "6d91545851f3510c59eae02d7d47499e16ae41536fe015d8300f121e2487e49a"
     },
     {
-      "path": ".claude/skills/oxbot-action-safety/references/action-checklist.md",
+      "path": ".claude/skills/taurus-action-safety/references/action-checklist.md",
       "bytes": 913,
       "sha256": "2dab7b4ced068dcfedc9830c57fb8c1ae3a60e365683a2c2ddca574cf551c24d"
     },
     {
-      "path": ".claude/skills/oxbot-phase-gate/SKILL.md",
+      "path": ".claude/skills/taurus-phase-gate/SKILL.md",
       "bytes": 1772,
       "sha256": "888aa56b3cd119b742417c92ef9c406d560d01f1a3b6ec3800dc582a31bba663"
     },
     {
-      "path": ".claude/skills/oxbot-phase-gate/agents/openai.yaml",
+      "path": ".claude/skills/taurus-phase-gate/agents/openai.yaml",
       "bytes": 275,
       "sha256": "ad61ce8dc02e23445a645aeadadb01c10cdb400d5d2a451b25a5a65921514104"
     },
     {
-      "path": ".claude/skills/oxbot-phase-gate/references/gate-contract.md",
+      "path": ".claude/skills/taurus-phase-gate/references/gate-contract.md",
       "bytes": 790,
       "sha256": "c139b188f1c070d64169a5a105355ca5ab1a1f99ae843e61cdca32642437581f"
     },
     {
-      "path": ".claude/skills/oxbot-ui/SKILL.md",
+      "path": ".claude/skills/taurus-ui/SKILL.md",
       "bytes": 2727,
       "sha256": "f9a3a9ac917867a22aff6a886486eb4d3e162b995a46f4611152fb572ce95103"
     },
     {
-      "path": ".claude/skills/oxbot-ui/agents/openai.yaml",
+      "path": ".claude/skills/taurus-ui/agents/openai.yaml",
       "bytes": 267,
       "sha256": "f718767fb337e160f3eb2eb3d9fafebc2327882eca065951beae58133dd3138b"
     },
     {
-      "path": ".claude/skills/oxbot-ui/references/ui-contract.md",
+      "path": ".claude/skills/taurus-ui/references/ui-contract.md",
       "bytes": 1279,
       "sha256": "878108356f70a967ee589bfda6cf32e583b9422ddf4ef116785ca75c61ad085f"
     },
     {
-      "path": ".claude/skills/oxbot-ui-audit/SKILL.md",
+      "path": ".claude/skills/taurus-ui-audit/SKILL.md",
       "bytes": 2131,
       "sha256": "81828e5f47d405234b5eee960fca490547cd82ceeb228b0de9e452e677aeeecd"
     },
     {
-      "path": ".claude/skills/oxbot-ui-audit/agents/openai.yaml",
+      "path": ".claude/skills/taurus-ui-audit/agents/openai.yaml",
       "bytes": 270,
       "sha256": "93a6baab96deb446493844af5335b0d042745c49ada33797b50f2e08cd8bb48f"
     },
     {
-      "path": ".claude/skills/oxbot-ui-audit/references/audit-rubric.md",
+      "path": ".claude/skills/taurus-ui-audit/references/audit-rubric.md",
       "bytes": 815,
       "sha256": "4f46f93e9e1210621df943765d0fe3ea32193df9958b8efd1413fe8c6f2da5e9"
     },
@@ -160,12 +160,12 @@
       "sha256": "012dfa97fdc550f30a53cd4036b9088e6b7adc2a6f65ac4cec1069499fbdbe1e"
     },
     {
-      "path": "OXBOT_Master_Plan.md",
+      "path": "Taurus_Master_Plan.md",
       "bytes": 115409,
       "sha256": "518faf8f13cba21b9abe41ee2c67387954418a44ec7cc6e530bcc2d2440d456c"
     },
     {
-      "path": "OXBOT_Master_Plan.pdf",
+      "path": "Taurus_Master_Plan.pdf",
       "bytes": 315728,
       "sha256": "2ef815cd4b2efe8e42f4da936556c98afe1a1859c1baba72c8bdcc7b4b39b3bc"
     },
@@ -300,22 +300,22 @@
       "sha256": "0b27a7fdddf6c9c987a71485941b991ce24ec48a2f0f9f6f36a383d5132d4656"
     },
     {
-      "path": "skill-packages/oxbot-action-safety/skill.zip",
+      "path": "skill-packages/taurus-action-safety/skill.zip",
       "bytes": 2248,
       "sha256": "2b91dab2fe56d2163ae28db7ad35cfda6789ae1c557882af4f14bf06904d2c89"
     },
     {
-      "path": "skill-packages/oxbot-phase-gate/skill.zip",
+      "path": "skill-packages/taurus-phase-gate/skill.zip",
       "bytes": 2074,
       "sha256": "3f770aad28dd57fc47e6dde30db81ae6472a14d28a1c622f0aabb9cedddd95fa"
     },
     {
-      "path": "skill-packages/oxbot-ui/skill.zip",
+      "path": "skill-packages/taurus-ui/skill.zip",
       "bytes": 2763,
       "sha256": "f520bd6b25a49494148e0600970bcc78e81fb0f61b0ac54da28c29f2c831743d"
     },
     {
-      "path": "skill-packages/oxbot-ui-audit/skill.zip",
+      "path": "skill-packages/taurus-ui-audit/skill.zip",
       "bytes": 2259,
       "sha256": "0e35e93512312aad84ef9440220ef27c8fdc2bdad49273ef34376533daffc764"
     }

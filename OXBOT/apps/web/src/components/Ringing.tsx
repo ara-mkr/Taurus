@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, clock, type Dashboard, type Proposal, type Ring } from '../api';
 import { ApprovalCard } from './Approval';
-import { Ox } from './Ox';
+import { Taurus } from './Taurus';
 import { FlipClock } from './FlipClock';
 import { Sky } from './CloudDashboard';
 
@@ -94,7 +94,7 @@ export function RingScreen({ ring, onDone, waiting = [], onUpdate }: { ring: Rin
     const title = document.title;
     let flip = false;
     const tick = window.setInterval(() => { setNow(Date.now()); flip = !flip; document.title = flip ? `Ringing: ${ring.title}` : title; }, 1000);
-    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(`OXBOT: ${ring.title}`, { body: ring.detail, tag: ring.id, requireInteraction: true });
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(`Taurus: ${ring.title}`, { body: ring.detail, tag: ring.id, requireInteraction: true });
     return () => { alarm.stop(); window.clearInterval(tick); document.title = title; };
   }, [ring.id, ring.title, ring.detail]);
 
@@ -104,9 +104,9 @@ export function RingScreen({ ring, onDone, waiting = [], onUpdate }: { ring: Rin
   }
 
   return <div className="ring" role="alertdialog" aria-modal="true" aria-labelledby="ring-title" aria-describedby="ring-detail">
-    <div className="ring-top"><span className="wordmark">OXBOT</span><span>{clock(new Date(now).toISOString())}</span></div>
+    <div className="ring-top"><span className="wordmark">Taurus</span><span>{clock(new Date(now).toISOString())}</span></div>
     <div className="ring-main">
-      <Ox size={104} mood="alert" className="ring-ox" />
+      <Taurus size={104} mood="alert" className="ring-taurus" />
       <p className="ring-reason">{ring.reason === 'meeting' ? 'Meeting' : ring.reason === 'vip' ? 'From a VIP' : ring.reason === 'test' ? 'Test' : 'Needs you'}</p>
       <h1 id="ring-title">{ring.title}</h1>
       <p id="ring-detail">{ring.detail}</p>
@@ -137,10 +137,10 @@ export function Unreachable({ onRetry }: { onRetry: () => Promise<unknown> }) {
   return <main id="main" tabIndex={-1} className="unreachable"
     onTouchStart={e => { pull.current = window.scrollY <= 0 && (document.getElementById('root')?.scrollTop ?? 0) <= 0 ? e.touches[0].clientY : null; }}
     onTouchEnd={e => { if (pull.current !== null && e.changedTouches[0].clientY - pull.current > 80) void retry(); pull.current = null; }}>
-    <Ox size={96} mood="sleep" className="unreachable-ox" />
+    <Taurus size={96} mood="sleep" className="unreachable-taurus" />
     <h1>Can’t reach your Mac.</h1>
-    <p>OXBOT runs on your Mac; open it there, then pull to retry.</p>
-    {onMac && <p className="muted">On this Mac, open the OXBOT app or run pnpm start.</p>}
+    <p>Taurus runs on your Mac; open it there, then pull to retry.</p>
+    {onMac && <p className="muted">On this Mac, open the Taurus app or run pnpm start.</p>}
     <p><button className="glass-button" onClick={() => void retry()} disabled={trying}>{trying ? 'Trying' : 'Try again'}</button></p>
   </main>;
 }
@@ -180,11 +180,11 @@ export function Standby({ data, listening, now, waiting = [], onUpdate }: { data
     <h1 className="sr-only">{clock(new Date(now).toISOString())}</h1>
     <FlipClock />
     <div className="standby-chrome" aria-hidden={!chrome}>
-      <Ox size={64} mood={!listening ? 'sleep' : armed ? 'idle' : 'sleep'} className="standby-ox" />
+      <Taurus size={64} mood={!listening ? 'sleep' : armed ? 'idle' : 'sleep'} className="standby-taurus" />
       <div className="standby-gap" />
       <div className="standby-foot" onClick={keep}>
         <p className="standby-next">{next ? `${next.title} at ${clock(next.start)}` : 'Nothing else scheduled'}</p>
-        <p className="standby-state">{!listening ? 'Not connected to OXBOT. Check that your Mac is awake.' : armed ? 'Listening. Ox will ring here.' : 'Tap anywhere so Ox can ring out loud.'}</p>
+        <p className="standby-state">{!listening ? 'Not connected to Taurus. Check that your Mac is awake.' : armed ? 'Listening. Taurus will ring here.' : 'Tap anywhere so Taurus can ring out loud.'}</p>
         {waiting.length > 0 && <section className="standby-waiting" aria-label="Waiting for your OK">
           {waiting.map(p => <ApprovalCard key={p.id} p={p} via="phone" onChange={onUpdate} level={2} />)}
         </section>}

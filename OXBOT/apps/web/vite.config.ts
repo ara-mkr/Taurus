@@ -9,7 +9,7 @@ function stampServiceWorker(): Plugin {
   let files: string[] = [];
   let outDir = 'dist';
   return {
-    name: 'oxbot-service-worker', apply: 'build',
+    name: 'taurus-service-worker', apply: 'build',
     configResolved(config) { outDir = config.build.outDir; },
     generateBundle(_options, bundle) { files = Object.keys(bundle).filter(f => f !== 'index.html' && !f.endsWith('.map')).map(f => `/${f}`); },
     closeBundle() {
@@ -23,7 +23,7 @@ function stampServiceWorker(): Plugin {
   };
 }
 
-// The server's port; OXBOT_PORT lets a second copy run beside one already on 8787.
-const apiPort = Number(process.env.OXBOT_PORT || 8787);
+// The server's port; TAURUS_PORT lets a second copy run beside one already on 8787.
+const apiPort = Number(process.env.TAURUS_PORT || 8787);
 
 export default defineConfig({ plugins: [react(), stampServiceWorker()], server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy: { '/api': { target: `http://127.0.0.1:${apiPort}`, headers: { host: `localhost:${apiPort}` } } } } });

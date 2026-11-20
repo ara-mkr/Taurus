@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize only the four canonical Ox skills to Claude's project folder."""
+"""Synchronize only the four canonical Taurus skills to Claude's project folder."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-NAMES = ('oxbot-ui', 'oxbot-ui-audit', 'oxbot-phase-gate', 'oxbot-action-safety')
+NAMES = ('taurus-ui', 'taurus-ui-audit', 'taurus-phase-gate', 'taurus-action-safety')
 
 def digest_tree(path: Path) -> dict[str, str]:
     if not path.is_dir():
@@ -40,7 +40,7 @@ def main() -> int:
     if args.check and drift:
         print('Skill drift: ' + ', '.join(drift), file=sys.stderr)
         return 1
-    print(('Checked' if args.check else 'Synchronized') + f' {len(NAMES)} Ox skills. Drift: {len(drift)}.')
+    print(('Checked' if args.check else 'Synchronized') + f' {len(NAMES)} Taurus skills. Drift: {len(drift)}.')
     return 0
 
 if __name__ == '__main__':

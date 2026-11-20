@@ -8,12 +8,12 @@ import { HttpError, store } from './store.ts';
 
 // The Brain (owner, November 16, 2026: "make it have a mindmap like obsidian of everything it remembers about u from ur
 // personality to job, friends, hobbies ... under certain dots like job, there will be files like resume and shit u can
-// just pull from, so u never forget"). A folder of plain markdown notes in ~/.oxbot/brain, the way Obsidian keeps a
+// just pull from, so u never forget"). A folder of plain markdown notes in ~/.taurus/brain, the way Obsidian keeps a
 // vault: one note per thing, YAML frontmatter on top, [[links]] between notes, and files in attachments/ embedded with
 // ![[file]]. The owner can open the folder in Obsidian and see the same graph. Nothing here leaves this Mac.
 
 export const HUBS: { title: string; about: string }[] = [
-  { title: 'Me', about: 'Everything Ox knows about you starts here.' },
+  { title: 'Me', about: 'Everything Taurus knows about you starts here.' },
   { title: 'Personality', about: 'How you like to work, talk and decide.' },
   { title: 'Career', about: 'Jobs, internships, your resume, and how applications should be answered.' },
   { title: 'School', about: 'Classes, grades, transcripts and what you study.' },
@@ -276,7 +276,7 @@ export async function fileText(rawName: string, limit = 20_000): Promise<string>
     const { text } = await extractText(pdf, { mergePages: true });
     return String(text).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, limit);
   }
-  throw new HttpError(415, `${rawName} has no text OXBOT can read. Open it instead.`);
+  throw new HttpError(415, `${rawName} has no text Taurus can read. Open it instead.`);
 }
 
 // ---------- The graph ----------
@@ -308,7 +308,7 @@ export function graph(): Graph {
   return { nodes: [...nodes.values()], links };
 }
 
-// ---------- Search, for the Brain page and for Ox ----------
+// ---------- Search, for the Brain page and for Taurus ----------
 
 const STOP = new Set(['my', 'the', 'is', 'what', 'whats', 'of', 'an', 'and', 'do', 'does', 'me', 'about', 'for', 'to', 'in', 'on', 'did', 'are', 'was', 'who', 'where', 'when', 'how']);
 const words = (q: string) => q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 1 && !STOP.has(w));
@@ -324,10 +324,10 @@ export function search(query: string, limit = 8): { title: string; up?: string; 
   }).filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-// ---------- What Ox already knows, and what he learns ----------
+// ---------- What Taurus already knows, and what he learns ----------
 
 // Memories are the owner's own words ("remember I take my coffee black"), so they go straight in, each under the main
-// dot it fits, marked with its id so it lands once. Nothing Ox only guessed is added this way.
+// dot it fits, marked with its id so it lands once. Nothing Taurus only guessed is added this way.
 const homes: [RegExp, string][] = [
   [/\b(job|work|intern|internship|career|resume|cv|boss|manager|salary|interview|recruiter|linkedin|offer|employer)\b/i, 'Career'],
   [/\b(school|class|classes|gpa|major|minor|university|college|semester|professor|course|degree|exam|transcript|grades?)\b/i, 'School'],
@@ -356,7 +356,7 @@ export function syncMemories(): number {
 
 const SUGGESTIONS = 'brain-suggestions.json';
 export const suggestions = () => store.doc<Suggestion[]>(SUGGESTIONS, []);
-// "Add to Brain?": something Ox picked up that the owner didn't ask him to remember waits here for a yes.
+// "Add to Brain?": something Taurus picked up that the owner didn't ask him to remember waits here for a yes.
 export function suggest(fact: string, noteTitle?: string, why?: string): Suggestion {
   const text = String(fact ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
   if (!text) throw new HttpError(400, 'Say what to add.');
@@ -367,7 +367,7 @@ export function suggest(fact: string, noteTitle?: string, why?: string): Suggest
   if (!hasNote(target)) target = hubFor(text);
   const s: Suggestion = { id: `s-${randomBytes(4).toString('hex')}`, fact: text, note: target, at: new Date().toISOString(), ...(why ? { why: String(why).slice(0, 200) } : {}) };
   store.saveDoc(SUGGESTIONS, [...all, s].slice(-50));
-  activity('tool', `Ox wants to add to ${target}: ${text.slice(0, 60)}`, { by: 'ox' });
+  activity('tool', `Taurus wants to add to ${target}: ${text.slice(0, 60)}`, { by: 'taurus' });
   return s;
 }
 export function decide(id: string, add: boolean, noteTitle?: string): Note | undefined {
@@ -383,9 +383,9 @@ export function decide(id: string, add: boolean, noteTitle?: string): Note | und
 export const brainDir = root;
 export const resetBrain = () => { seeded = false; };
 
-// ---------- Ox's tools ----------
+// ---------- Taurus's tools ----------
 
-export const brainToolsText = `- brain_search {"query": what to look for, like "gpa", "mom birthday", "resume"}: searches the owner's Brain, the notes OXBOT keeps about them (personality, career, school, friends, family, hobbies, projects) and the files on those notes, like their resume or transcript. Use it first for any question about the owner's own life or details ("what's my GPA", "when is my sister's birthday", "what did I study").
+export const brainToolsText = `- brain_search {"query": what to look for, like "gpa", "mom birthday", "resume"}: searches the owner's Brain, the notes Taurus keeps about them (personality, career, school, friends, family, hobbies, projects) and the files on those notes, like their resume or transcript. Use it first for any question about the owner's own life or details ("what's my GPA", "when is my sister's birthday", "what did I study").
 - brain_read {"note": a note title from brain_search, "file": optional, a file name on that note}: the whole note, or the words of one of its files (PDF or text).
 - brain_suggest {"fact": one fact about the owner in plain words, "note": the note it belongs under}: suggests adding something you learned about the owner to the Brain. It waits for the owner's yes on the Brain page. Use it for things they told you but didn't ask you to remember.`;
 

@@ -1,12 +1,12 @@
 {
-  "appId": "local.oxbot.desktop",
-  "productName": "OXBOT",
+  "appId": "local.taurus.desktop",
+  "productName": "Taurus",
   "copyright": "Personal build for Akhil. Not for distribution.",
   "directories": { "output": "release", "buildResources": "assets" },
   "files": ["dist/**/*", "package.json", "!dist/**/*.map"],
   "extraResources": [{ "from": "../web/dist", "to": "web" }],
   "asar": true,
-  "asarUnpack": ["dist/oxbot-hands", "dist/OxNotch", "dist/libOxNowPlaying.dylib"],
+  "asarUnpack": ["dist/taurus-hands", "dist/TaurusNotch", "dist/libOxNowPlaying.dylib"],
   "npmRebuild": false,
   "nodeGypRebuild": false,
   "publish": null,
@@ -18,18 +18,18 @@
     "hardenedRuntime": false,
     "gatekeeperAssess": false,
     "notarize": false,
-    "extendInfo": { "NSMicrophoneUsageDescription": "OXBOT asks for the microphone only when you tap Talk.", "NSCameraUsageDescription": "OXBOT uses the camera only while Look is open, and sends one frame to your AI when you tap Send." }
+    "extendInfo": { "NSMicrophoneUsageDescription": "Taurus asks for the microphone only when you tap Talk.", "NSCameraUsageDescription": "Taurus uses the camera only while Look is open, and sends one frame to your AI when you tap Send." }
   },
   "dmg": { "writeUpdateInfo": false },
   "win": { "target": [{ "target": "nsis", "arch": ["x64", "arm64"] }], "icon": "assets/icon.ico", "signAndEditExecutable": true },
-  "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "differentialPackage": false, "artifactName": "OXBOT-Setup-${version}-${arch}.${ext}" },
+  "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "differentialPackage": false, "artifactName": "Taurus-Setup-${version}-${arch}.${ext}" },
   "linux": {
     "target": [{ "target": "AppImage", "arch": ["x64", "arm64"] }, { "target": "deb", "arch": ["x64", "arm64"] }],
     "icon": "assets/icon.png",
     "category": "Office",
-    "maintainer": "OXBOT <oxbot@localhost>",
+    "maintainer": "Taurus <taurus@localhost>",
     "synopsis": "Local chief-of-staff dashboard that rings when it matters."
   },
-  "appImage": { "artifactName": "OXBOT-${version}-${arch}.${ext}" },
-  "deb": { "artifactName": "oxbot_${version}_${arch}.${ext}" }
+  "appImage": { "artifactName": "Taurus-${version}-${arch}.${ext}" },
+  "deb": { "artifactName": "taurus_${version}_${arch}.${ext}" }
 }

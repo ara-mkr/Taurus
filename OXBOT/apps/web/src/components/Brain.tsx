@@ -5,7 +5,7 @@ import type { Extras } from './ChatBar';
 import '../styles/brain.css';
 
 // The Brain (owner, November 16, 2026: "a mindmap like obsidian of everything it remembers about u ... under certain
-// dots like job, there will be files like resume and shit u can just pull from"). The notes in ~/.oxbot/brain drawn
+// dots like job, there will be files like resume and shit u can just pull from"). The notes in ~/.taurus/brain drawn
 // as a force graph (force-graph by vasturiano, MIT; docs/23-brain-and-profinder.md says why), in one ink on glass.
 // Click a dot to read its note and its files; search, zoom, add and edit notes, drop files on a note.
 
@@ -271,7 +271,7 @@ export function BrainPage({ onAsk }: { onAsk: (question: string, frame?: string,
       </div>
     </div>
     {suggestions.length > 0 && <section className="brain-suggest glass" aria-labelledby="brain-suggest-h">
-      <h2 id="brain-suggest-h">{suggestions.length === 1 ? 'Ox learned one thing. Add it to your Brain?' : `Ox learned ${suggestions.length} things. Add them to your Brain?`}</h2>
+      <h2 id="brain-suggest-h">{suggestions.length === 1 ? 'Taurus learned one thing. Add it to your Brain?' : `Taurus learned ${suggestions.length} things. Add them to your Brain?`}</h2>
       <ul>{suggestions.map(s => <li key={s.id}>
         <span className="brain-suggest-fact">{s.fact}</span><span className="muted">Under {s.note}</span>
         <span className="brain-suggest-do"><button type="button" onClick={() => decide(s, true)}>Add</button><button type="button" className="text-button" onClick={() => decide(s, false)}>Not now</button></span>
@@ -307,7 +307,7 @@ export function BrainPage({ onAsk }: { onAsk: (question: string, frame?: string,
             <span className="brain-file-name">{f}</span>
             <span className="brain-file-do">
               <a href={`/api/brain/file?name=${encodeURIComponent(f)}`} download={f}>Download</a>
-              {readable.test(f) && <button type="button" className="text-button" onClick={() => askAbout(f)}>Ask Ox about it</button>}
+              {readable.test(f) && <button type="button" className="text-button" onClick={() => askAbout(f)}>Ask Taurus about it</button>}
               <button type="button" className="text-button" onClick={() => api.detachFile(note.title, f).then(r => { setNote(r.note); setGraph(r.graph); }).catch(e => setProblem((e as Error).message))}>Remove</button>
             </span>
           </li>)}</ul> : <p className="muted">No files yet.</p>}
@@ -319,7 +319,7 @@ export function BrainPage({ onAsk }: { onAsk: (question: string, frame?: string,
             <button type="button" onClick={() => setEditing({ title: note.title, body: note.body, up: note.up ?? '', was: note.title, hub: note.hub })}>Edit</button>
             {!note.hub && <button type="button" className="text-button" onClick={() => void remove()}>Move to trash</button>}
           </div>
-        </article> : <p className="brain-hint">Pick a dot to read what Ox knows about you. It’s all plain notes on this Mac.</p>}
+        </article> : <p className="brain-hint">Pick a dot to read what Taurus knows about you. It’s all plain notes on this Mac.</p>}
         {!editing && <nav className="brain-outline" aria-label="All notes">
           <h3>{q ? `${found.length} found` : 'All notes'}</h3>
           {q ? <ul>{found.map(n => <li key={n.id}>{item(n)}</li>)}</ul>

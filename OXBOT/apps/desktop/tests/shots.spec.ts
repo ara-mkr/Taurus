@@ -7,18 +7,18 @@ import { fileURLToPath } from 'node:url';
 
 // Screenshots of the packaged Mac app, for the owner: window light and dark, the menu bar menu, the ring screen.
 //   SHOTS=1 pnpm exec playwright test shots
-// Uses a temporary OXBOT_HOME (sample data only) on port 8790, so a running OXBOT on 8787 is never touched.
+// Uses a temporary TAURUS_HOME (sample data only) on port 8790, so a running Taurus on 8787 is never touched.
 const here = dirname(fileURLToPath(import.meta.url));
-const executable = join(here, '../release/mac-arm64/OXBOT.app/Contents/MacOS/OXBOT');
-const out = join(here, '../../../qa-local/oxbot/desktop');
+const executable = join(here, '../release/mac-arm64/Taurus.app/Contents/MacOS/Taurus');
+const out = join(here, '../../../qa-local/taurus/desktop');
 test.skip(!process.env.SHOTS || process.platform !== 'darwin' || !existsSync(executable), 'SHOTS=1 on a Mac with release/mac-arm64 built');
 
 test('packaged Mac app screenshots', async () => {
   test.setTimeout(120_000);
   mkdirSync(out, { recursive: true });
-  const home = mkdtempSync(join(tmpdir(), 'oxbot-shots-'));
+  const home = mkdtempSync(join(tmpdir(), 'taurus-shots-'));
   writeFileSync(join(home, 'settings.json'), JSON.stringify({ ringMeetings: false, ringVip: false }));
-  const app = await electron.launch({ executablePath: executable, env: { ...process.env, OXBOT_HOME: home, OXBOT_PORT: '8790', OXBOT_BROKER_URL: '' } as Record<string, string> });
+  const app = await electron.launch({ executablePath: executable, env: { ...process.env, TAURUS_HOME: home, TAURUS_PORT: '8790', TAURUS_BROKER_URL: '' } as Record<string, string> });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows()[0]; w.setBounds({ width: 1280, height: 820 }); w.center(); });
@@ -31,24 +31,24 @@ test('packaged Mac app screenshots', async () => {
   // Since November 7, 2026 Talk listens on this Mac (Moonshine via the local server); in a quiet room it ends with
   // "didn't hear", and without macOS microphone access it says so. Record what it says.
   await page.getByRole('group', { name: 'Quick functions' }).getByRole('button', { name: 'Talk' }).click();
-  await expect(page.locator('#ox-says')).toContainText(/didn’t hear|microphone|couldn’t|lost touch|Yes\?/, { timeout: 20_000 });
-  console.log('Talk in the packaged app says:', await page.locator('#ox-says').innerText());
-  await page.locator('#ox-says').getByRole('button', { name: 'Close' }).click();
+  await expect(page.locator('#taurus-says')).toContainText(/didn’t hear|microphone|couldn’t|lost touch|Yes\?/, { timeout: 20_000 });
+  console.log('Talk in the packaged app says:', await page.locator('#taurus-says').innerText());
+  await page.locator('#taurus-says').getByRole('button', { name: 'Close' }).click();
 
-  await page.evaluate(() => localStorage.setItem('oxbot-appearance', 'dark'));
+  await page.evaluate(() => localStorage.setItem('taurus-appearance', 'dark'));
   await page.reload();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await shoot('mac-window-dark.png');
-  await page.evaluate(() => localStorage.setItem('oxbot-appearance', 'light'));
+  await page.evaluate(() => localStorage.setItem('taurus-appearance', 'light'));
   await page.reload();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await shoot('mac-window-light.png');
-  await page.evaluate(() => localStorage.setItem('oxbot-appearance', 'dark'));
+  await page.evaluate(() => localStorage.setItem('taurus-appearance', 'dark'));
   await page.reload();
 
   // The menu bar menu: open it, capture the area under the icon, close it.
   const bounds = await app.evaluate(() => {
-    const tray = (globalThis as { oxbotTray?: Electron.Tray }).oxbotTray!;
+    const tray = (globalThis as { taurusTray?: Electron.Tray }).taurusTray!;
     setTimeout(() => tray.popUpContextMenu(), 100);
     setTimeout(() => tray.closeContextMenu(), 2500);
     return tray.getBounds();
@@ -59,7 +59,7 @@ test('packaged Mac app screenshots', async () => {
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   // Ring test, the same request the menu's "Ring test" sends.
-  await fetch('http://127.0.0.1:8790/api/ring', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: '{}' });
+  await fetch('http://127.0.0.1:8790/api/ring', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: '{}' });
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await shoot('mac-ring.png');

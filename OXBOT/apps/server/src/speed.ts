@@ -4,7 +4,7 @@ import { store } from './store.ts';
 // real time super snappy to create the fastest response like if its js a simple ask or a medium ask or a high ask").
 // Every answer records how long its first word took. Quick asks go to whichever free model has been fastest lately;
 // a model that answers "busy" (429) rests for two minutes. OpenRouter publishes no latency for its free endpoints, so
-// OXBOT measures its own.
+// Taurus measures its own.
 
 export type Tier = 'simple' | 'medium' | 'hard';
 const SPEED = 'ai-speed.json';
@@ -41,7 +41,7 @@ export const freeTiers: Record<Tier, { models: string[]; reasoning?: { effort: s
   medium: { models: [ULTRA, SUPER, LIGHTNING], reasoning: { effort: 'none' } },
   hard: { models: [ULTRA, SUPER, GEMMA] },
 };
-// What each model's first word took on November 17, until OXBOT has measured it here.
+// What each model's first word took on November 17, until Taurus has measured it here.
 const guess: Record<string, number> = { [LIGHTNING]: 150, [SUPER]: 800, [ULTRA]: 450, [GEMMA]: 1500 };
 
 // The order to try free models in for this kind of ask: busy ones last; for quick asks, the fastest lately first.

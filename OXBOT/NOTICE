@@ -1,4 +1,4 @@
-OXBOT
+Taurus
 Third-party code and ideas used in this repository.
 
 OpenMausBot
@@ -8,8 +8,8 @@ https://github.com/milind-soni/OpenMausBot
 
 apps/server/src/repeat-guard.ts adapts OpenMausBot's server/drivers/chat-repeat-guard.ts (the per-call repeat
 guard) and the English rules of server/drivers/chat-announcement.ts (spotting a reply that announces an action
-without calling a tool). Changes: OXBOT's wording, a lower stop limit for OXBOT's shorter loop, no Chinese-language
-rules, and "I'll" alone is not treated as an announcement because OXBOT's persona states defaults that way.
+without calling a tool). Changes: Taurus's wording, a lower stop limit for Taurus's shorter loop, no Chinese-language
+rules, and "I'll" alone is not treated as an announcement because Taurus's persona states defaults that way.
 
 The loop limits, the announcement nudge, corrective rounds only for local models, and ok/false tool results in
 apps/server/src/agent.ts follow the design of OpenMausBot's server/drivers/openai-chat.ts; no code was copied from

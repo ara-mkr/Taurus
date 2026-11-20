@@ -37,13 +37,13 @@ async function start(page: Page) {
   await mock(page);
   const send = stream(page);
   await page.goto('/');
-  await expect(page.locator('[data-ox-center], .ox-buddy').first()).toBeVisible();
+  await expect(page.locator('[data-taurus-center], .taurus-buddy').first()).toBeVisible();
   await page.waitForTimeout(700);
   return send;
 }
-// Where Ox is, as the overlay finds him.
+// Where Taurus is, as the overlay finds him.
 const centre = (page: Page) => page.evaluate(() => {
-  const r = (document.querySelector('[data-ox-center]') ?? document.querySelector('.ox-buddy .ox-button') ?? document.querySelector('.ox-buddy'))!.getBoundingClientRect();
+  const r = (document.querySelector('[data-taurus-center]') ?? document.querySelector('.taurus-buddy .taurus-button') ?? document.querySelector('.taurus-buddy'))!.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 });
 const cursorAt = (page: Page, id: string) => page.locator(`.swarm-cursor[data-helper="${id}"]`).evaluate(el => ({ x: Number((el as HTMLElement).dataset.x), y: Number((el as HTMLElement).dataset.y), phase: (el as HTMLElement).dataset.phase, opacity: Number(getComputedStyle(el).opacity) }));
@@ -54,14 +54,14 @@ const small = (page: Page, selector: string) => page.locator(selector).evaluate(
 const twelve = () => Array.from({ length: 12 }, (_, i) => (i < 6 ? working(i + 1) : helper(i + 1)));
 const frames = () => [1, 2, 3, 4, 5, 6].map(n => ev('frame', { id: `h${n}`, frame: pageArt(n) })).join('');
 
-test('twelve helpers burst out of Ox, work on their pages, then flock home together and fold into him one by one', async ({ page }) => {
+test('twelve helpers burst out of Taurus, work on their pages, then flock home together and fold into him one by one', async ({ page }) => {
   // The homecoming gathers, flies and files in, so this one takes longer than the default.
   test.setTimeout(60_000);
   const send = await start(page);
-  const ox = await centre(page);
+  const taurus = await centre(page);
   send(ev('swarm', swarm('running', twelve())) + frames());
 
-  // The burst: twelve cursors, twelve colours, all leaving from Ox.
+  // The burst: twelve cursors, twelve colours, all leaving from Taurus.
   const panel = page.getByRole('region', { name: 'Swarm' });
   await expect(panel.getByRole('heading', { name: 'Swarm' })).toBeVisible();
   await expect(page.locator('.swarm-cursor')).toHaveCount(12);
@@ -69,9 +69,9 @@ test('twelve helpers burst out of Ox, work on their pages, then flock home toget
   expect(new Set(colours).size).toBe(12);
   await page.waitForTimeout(90);
   await page.screenshot({ path: `${shots}/swarm-1-burst-1440-dark.png` });
-  // Every one of them set off from Ox.
+  // Every one of them set off from Taurus.
   const from = await page.locator('.swarm-cursor').evaluateAll(els => els.map(el => (el as HTMLElement).dataset.from!.split(',').map(Number)));
-  for (const [x, y] of from) expect(Math.hypot(x - ox.x, y - ox.y)).toBeLessThan(12);
+  for (const [x, y] of from) expect(Math.hypot(x - taurus.x, y - taurus.y)).toBeLessThan(12);
 
   // At work: the six with pages sit on their live page in the panel; the six waiting have left the screen.
   await expect(panel).toContainText('6 at work · 0 of 12 done');
@@ -110,17 +110,17 @@ test('twelve helpers burst out of Ox, work on their pages, then flock home toget
   expect(await small(page, '.swarm-layer')).toEqual([]);
   expect(await page.locator('.swarm-layer').getAttribute('aria-hidden')).toBe('true');
 
-  // Some finish early and head home on their own, then the rest are done and Ox merges.
+  // Some finish early and head home on their own, then the rest are done and Taurus merges.
   const done = (n: number) => helper(n, { state: 'done', host: `shop${n}.example.com`, doing: `found $${30 + n * 3}`, price: 30 + n * 3, finding: `$${30 + n * 3}: Example desk lamp`, moves: 9 });
   send(ev('swarm', swarm('running', [done(1), ...twelve().slice(1, 6), working(7), working(8), ...twelve().slice(8)])));
-  // November 6, 2026 (owner: "they all gorup together before flying back to the main ox circle and then they js hit the
-  // center one after the other"): an early finisher roosts above Ox, it doesn't dive in alone.
+  // November 6, 2026 (owner: "they all gorup together before flying back to the main taurus circle and then they js hit the
+  // center one after the other"): an early finisher roosts above Taurus, it doesn't dive in alone.
   await page.waitForTimeout(1200);
   const early = await cursorAt(page, 'h1');
   expect(early.phase).toBe('roost');
-  expect(early.y).toBeLessThan(ox.y - 120);
+  expect(early.y).toBeLessThan(taurus.y - 120);
   const answer = 'Lowest for a desk lamp: $33 on shop1.example.com. Then $36 on shop2.example.com, $39 on shop3.example.com. These are the search pages’ top matches, so check it’s the same item before you buy.';
-  // Note when each cursor reaches Ox, so "one after another" is measured, not sampled.
+  // Note when each cursor reaches Taurus, so "one after another" is measured, not sampled.
   await page.evaluate(() => {
     const w = window as unknown as { arrivals: number[] };
     w.arrivals = [];
@@ -138,7 +138,7 @@ test('twelve helpers burst out of Ox, work on their pages, then flock home toget
   const spread = Math.max(...flock.flatMap(([x1, y1]) => flock.map(([x2, y2]) => Math.hypot(x1 - x2, y1 - y2))));
   expect(spread, 'the flock flies as one group').toBeLessThan(260);
   await page.screenshot({ path: `${shots}/swarm-3-return-1440-dark.png` });
-  // Then all of them have folded into Ox and the cursors are gone.
+  // Then all of them have folded into Taurus and the cursors are gone.
   await expect(page.locator('.swarm-cursor')).toHaveCount(0, { timeout: 8000 });
   // One after another: twelve arrivals, spread out in a queue rather than all at once.
   const arrivals = await page.evaluate(() => (window as unknown as { arrivals: number[] }).arrivals);
@@ -155,7 +155,7 @@ test('twelve helpers burst out of Ox, work on their pages, then flock home toget
 test('Stop all asks the server to call every helper back', async ({ page }) => {
   const send = await start(page);
   const posted: string[] = [];
-  await page.route('**/api/swarm/stop', r => { posted.push(r.request().headers()['x-oxbot']); return r.fulfill({ json: { swarm: swarm('running', twelve()) } }); });
+  await page.route('**/api/swarm/stop', r => { posted.push(r.request().headers()['x-taurus']); return r.fulfill({ json: { swarm: swarm('running', twelve()) } }); });
   send(ev('swarm', swarm('running', twelve())) + frames());
   const panel = page.getByRole('region', { name: 'Swarm' });
   await panel.getByRole('button', { name: 'Stop all' }).click();

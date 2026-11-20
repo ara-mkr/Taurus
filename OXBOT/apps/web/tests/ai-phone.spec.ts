@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mock, shots } from './fixtures';
 
-// The AI page (OXBOT, once OXBOT Free, and the big labs), the phone tab bar in the home-screen app, and the new backgrounds.
+// The AI page (Taurus, once Taurus Free, and the big labs), the phone tab bar in the home-screen app, and the new backgrounds.
 // Every /api/ai answer is mocked: no real key, no OpenRouter.
 const free = [
   { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', name: 'NVIDIA: Nemotron 3 Ultra', context: 1_000_000 },
@@ -10,11 +10,11 @@ const free = [
   { id: 'google/gemma-4-31b-it:free', name: 'Google: Gemma 4 31B', context: 262_144 },
 ];
 const providers = [
-  ['openrouter', 'OXBOT', 'OpenRouter', true], ['chatgpt-plan', 'ChatGPT plan', 'OpenAI'], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
+  ['openrouter', 'Taurus', 'OpenRouter', true], ['chatgpt-plan', 'ChatGPT plan', 'OpenAI'], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
   ['grok', 'Grok', 'xAI'], ['mistral', 'Mistral', 'Mistral AI'], ['deepseek', 'DeepSeek', 'DeepSeek'], ['ollama', 'Ollama', 'on this Mac'],
 ] as const;
 const info = (signedIn: boolean, chosen = '') => ({
-  using: signedIn ? { id: 'openrouter', name: 'OXBOT', model: free[0].id } : null, chosen,
+  using: signedIn ? { id: 'openrouter', name: 'Taurus', model: free[0].id } : null, chosen,
   providers: providers.map(([id, name, maker, isFree]) => ({ id, name, maker, note: '', keyUrl: 'https://example.com', free: Boolean(isFree), local: id === 'ollama', connected: signedIn && (id === 'openrouter' || id === 'mistral'),
     ...(id === 'chatgpt-plan' ? { plan: true, installed: true } : {}) })),
   free, freeModel: '',
@@ -37,7 +37,7 @@ async function open(page: Page, signedIn: boolean) {
   await page.route('**/api/ai/plans*', r => r.fulfill({ json: { plans: [{ id: 'chatgpt-plan', installed: true, signedIn: false }] } }));
   await page.route('**/api/ai/plans/login', r => { posts.push({ login: r.request().postDataJSON().id }); return r.fulfill({ json: { ok: true } }); });
   await page.route('**/api/connectors/*/fields', r => { posts.push({ fields: r.request().url().split('/').at(-2), values: r.request().postDataJSON().values }); return r.fulfill({ json: { connectors: aiConnectors } }); });
-  await page.route('**/api/connectors', r => r.fulfill({ json: { connectors: aiConnectors, redirectUri: '', home: '~/.oxbot' } }));
+  await page.route('**/api/connectors', r => r.fulfill({ json: { connectors: aiConnectors, redirectUri: '', home: '~/.taurus' } }));
   await page.goto('/#ai');
   await expect(page.getByRole('heading', { name: 'AI', exact: true })).toBeVisible();
   return posts;
@@ -46,7 +46,7 @@ async function open(page: Page, signedIn: boolean) {
 // November 19, 2026: cards with each lab's logo on three tabs, Plans, API keys and Who answers; each card opens a sheet
 // where you sign in or paste the key right there.
 test('with nothing connected: tabs of logo cards, an OpenRouter key pasted right on its card, and ChatGPT signs in through the browser', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   const posts = await open(page, false);
   await expect(page.getByText('Nothing connected yet')).toBeVisible();
   const tabs = page.getByRole('tablist', { name: 'AI' });
@@ -81,12 +81,12 @@ test('with nothing connected: tabs of logo cards, an OpenRouter key pasted right
 
 test('signed in: pick the free model on OpenRouter\'s card, and choose which AI writes under Who answers', async ({ page }) => {
   const posts = await open(page, true);
-  await expect(page.locator('.ai-using')).toContainText('OXBOT');
+  await expect(page.locator('.ai-using')).toContainText('Taurus');
   await expect(page.getByRole('tab', { name: 'API keys' })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tabpanel').getByRole('button', { name: /OpenRouter/ }).click();
   const sheet = page.getByRole('dialog', { name: 'OpenRouter' });
   const model = sheet.getByLabel('Model');
-  // November 17, 2026: by default OXBOT picks the fastest free model for each ask.
+  // November 17, 2026: by default Taurus picks the fastest free model for each ask.
   await expect(model).toHaveValue('');
   await model.selectOption('google/gemma-4-31b-it:free');
   await expect(sheet.getByRole('button', { name: 'Sign out' })).toBeVisible();
@@ -98,12 +98,12 @@ test('signed in: pick the free model on OpenRouter\'s card, and choose which AI 
 });
 
 test('phone home-screen app: the chat bar stays put while the page scrolls, and the tabs slide in from the left', async ({ page }) => {
-  await page.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { value: true }); localStorage.setItem('oxbot-appearance', 'dark'); });
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { value: true }); localStorage.setItem('taurus-appearance', 'dark'); });
   await page.setViewportSize({ width: 390, height: 844 });
   await mock(page);
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.dataset.shell)).toBe('app');
-  const bar = page.getByRole('complementary', { name: 'Chat with Ox' });
+  const bar = page.getByRole('complementary', { name: 'Chat with Taurus' });
   await expect(bar).toBeVisible();
   const before = await bar.boundingBox();
   expect(before!.y + before!.height).toBeGreaterThan(780);
@@ -130,7 +130,7 @@ test('phone home-screen app: the chat bar stays put while the page scrolls, and 
 });
 
 test('nine backgrounds to choose from, and picking one changes the page', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'dark'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'dark'));
   await mock(page);
   await page.goto('/#look');
   await expect(page.getByRole('radio', { name: 'Moving light' })).toBeChecked();
@@ -144,7 +144,7 @@ test('nine backgrounds to choose from, and picking one changes the page', async 
 });
 
 test('with Twilio connected, Call me now places a test call and shows what happened', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   await mock(page);
   let lastCall: { at: string; ok: boolean; message: string } | null = null;
   let answers = [{ status: 409, json: { error: 'A Twilio trial account can only call numbers you’ve verified.' } }, { status: 200, json: { at: new Date().toISOString(), ok: true, message: 'Called +•••••••4321.' } }];

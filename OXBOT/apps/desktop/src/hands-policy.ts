@@ -1,6 +1,6 @@
 // What helpers may do in other apps (owner, November 5, 2026; docs/19-computer-use.md). Pure rules, no Electron, so
-// they are tested on their own. The desktop app checks every step against these before oxbot-hands runs it, and
-// oxbot-hands refuses the never-list again on its own.
+// they are tested on their own. The desktop app checks every step against these before taurus-hands runs it, and
+// taurus-hands refuses the never-list again on its own.
 
 export interface HandsSettings { on: boolean; act: string[]; look: string[]; chrome: boolean }
 // The owner's first choices: Canva and Notes may act, Google Chrome may only be looked at. Acting is off until he
@@ -8,7 +8,7 @@ export interface HandsSettings { on: boolean; act: string[]; look: string[]; chr
 export const defaults: HandsSettings = { on: false, act: ['Canva', 'Notes'], look: ['Google Chrome'], chrome: false };
 
 const neverNames = ['1Password', '1Password 7', 'Bitwarden', 'LastPass', 'Dashlane', 'Keychain Access', 'Passwords', 'System Settings', 'System Preferences',
-  'Terminal', 'iTerm', 'iTerm2', 'Warp', 'Ghostty', 'OXBOT'];
+  'Terminal', 'iTerm', 'iTerm2', 'Warp', 'Ghostty', 'Taurus'];
 const money = /\b(bank|banking|wallet|venmo|paypal|cash ?app|zelle|robinhood|coinbase|kraken|binance|schwab|fidelity|vanguard|chase|wells ?fargo|amex|revolut|wise|crypto|ledger|metamask|trading|brokerage|quickbooks)\b/i;
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -34,11 +34,11 @@ export function check(verb: string, args: Record<string, unknown>, s: HandsSetti
   if (verb === 'tree') return app && mayLook(app, s) ? '' : `${app || 'That app'} isn’t on your list of apps helpers may use.`;
   if (!acting.has(verb)) return `Helpers can’t ${verb}.`;
   if (!app) return 'Say which app.';
-  if (never(app)) return `OXBOT never works in ${app}.`;
-  if (!s.on) return 'Helpers in other apps are switched off (OXBOT’s menu, Helpers in other apps).';
+  if (never(app)) return `Taurus never works in ${app}.`;
+  if (!s.on) return 'Helpers in other apps are switched off (Taurus’s menu, Helpers in other apps).';
   if (!mayAct(app, s)) return `${app} isn’t on your list of apps helpers may act in.`;
   if (pointing.has(verb)) {
-    if (!win) return `Read ${app} first, so OXBOT knows where its window is.`;
+    if (!win) return `Read ${app} first, so Taurus knows where its window is.`;
     if (!inside(win, args.x, args.y) || (verb === 'drag' && !inside(win, args.toX, args.toY))) return `That spot is outside ${app}’s window.`;
   }
   return '';

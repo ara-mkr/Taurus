@@ -9,11 +9,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // fake listen-only bridge standing in for Electron's, so it runs on a Mac with one screen. Twelve mocked helpers;
 // with one other screen, the even-numbered six work here. Fictional example.com shops; nothing leaves this page.
 const here = dirname(fileURLToPath(import.meta.url));
-const shots = join(here, '../../../qa-local/oxbot');
+const shots = join(here, '../../../qa-local/taurus');
 let dir: string;
 
 test.beforeAll(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'oxbot-overlay-'));
+  dir = mkdtempSync(join(tmpdir(), 'taurus-overlay-'));
   await build({ bundle: true, platform: 'browser', target: 'chrome130', format: 'iife', logLevel: 'warning', entryPoints: [join(here, '../src/overlay.ts')], outfile: join(dir, 'overlay.js') });
   copyFileSync(join(here, '../src/overlay.html'), join(dir, 'overlay.html'));
 });
@@ -26,25 +26,25 @@ const art = (n: number) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns=
 const swarm = (state: string, s: string) => ({ id: 'sw', state, width: 800, height: 1000, helpers: Array.from({ length: 12 }, (_, i) => helper(i + 1, i < 6 ? s : 'waiting')) });
 
 async function open(page: Page) {
-  await page.addInitScript(() => { (window as unknown as { oxbotOverlay: unknown }).oxbotOverlay = { on(cb: unknown) { (window as unknown as { send: unknown }).send = cb; } }; });
+  await page.addInitScript(() => { (window as unknown as { taurusOverlay: unknown }).taurusOverlay = { on(cb: unknown) { (window as unknown as { send: unknown }).send = cb; } }; });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(pathToFileURL(join(dir, 'overlay.html')).href);
   // A plain stand-in for the wallpaper behind the transparent window, for the screenshots only.
   await page.addStyleTag({ content: 'html { background: #2A3446; }' });
   const send = (event: string, data: unknown) => page.evaluate(([e, d]) => (window as unknown as { send: (m: unknown) => void }).send({ event: e, data: d }), [event, data] as const);
-  // OXBOT's own screen is to the left of this one.
+  // Taurus's own screen is to the left of this one.
   await send('hello', { index: 0, others: 1, toHome: { dx: -1440, dy: 0 }, swarm: swarm('running', 'working'), frames: Object.fromEntries([2, 4, 6].map(n => [`h${n}`, art(n)])) });
   return send;
 }
 
-test('helpers working on another screen come in from OXBOT’s side, read their page cards, and leave the way they came', async ({ page }) => {
+test('helpers working on another screen come in from Taurus’s side, read their page cards, and leave the way they came', async ({ page }) => {
   const send = await open(page);
   // Only this screen's helpers: 2, 4, 6 at work (cards and cursors); 8, 10, 12 waiting (cursors kept off screen).
   await expect(page.locator('.card')).toHaveCount(3);
   await expect(page.locator('.cursor')).toHaveCount(6);
   await expect(page.locator('.card', { hasText: 'Scout 2' })).toContainText('Scout 2 shop2.example.com · Desk lamps');
   await page.waitForTimeout(150);
-  // They enter from the left, where OXBOT's screen is.
+  // They enter from the left, where Taurus's screen is.
   const early = await page.locator('.cursor').evaluateAll(els => els.map(el => Number((el as HTMLElement).dataset.x)));
   expect(Math.min(...early)).toBeLessThan(500);
   await page.screenshot({ path: `${shots}/swarm-screen-1-arrive.png` });
@@ -63,7 +63,7 @@ test('helpers working on another screen come in from OXBOT’s side, read their 
   expect(small).toEqual([]);
   await page.screenshot({ path: `${shots}/swarm-screen-2-work.png` });
 
-  // Done: the cards go and the cursors head back to OXBOT's screen.
+  // Done: the cards go and the cursors head back to Taurus's screen.
   await send('swarm', swarm('merging', 'done'));
   await expect(page.locator('.card')).toHaveCount(0);
   await page.waitForTimeout(250);
@@ -77,5 +77,5 @@ test('the overlay page can reach nothing: no network and no way to send a messag
   await open(page);
   const fetched = await page.evaluate(() => fetch('http://127.0.0.1:8787/api/health').then(() => 'reached', () => 'blocked'));
   expect(fetched).toBe('blocked');
-  expect(await page.evaluate(() => Object.keys((window as unknown as { oxbotOverlay: object }).oxbotOverlay))).toEqual(['on']);
+  expect(await page.evaluate(() => Object.keys((window as unknown as { taurusOverlay: object }).taurusOverlay))).toEqual(['on']);
 });

@@ -1,9 +1,9 @@
 // HTTPS between your phone and this Mac (owner, November 2, 2026: "Yes, set up HTTPS"). Plain http on Wi-Fi could be
-// read by anyone on the same network, so OXBOT makes its own certificate authority, which the phone trusts once, and
+// read by anyone on the same network, so Taurus makes its own certificate authority, which the phone trusts once, and
 // signs a certificate for this Mac's Wi-Fi addresses with it.
 //
 // The authority is limited by name constraints to private addresses (10/8, 172.16/12, 192.168/16) and .local names,
-// so even if its key were stolen it could not stand in for any real website. Its key never leaves ~/.oxbot/tls, readable
+// so even if its key were stolen it could not stand in for any real website. Its key never leaves ~/.taurus/tls, readable
 // only by you. Keys are ECDSA P-256; the server certificate lasts 397 days (Apple's limit for servers is 825) and is
 // reissued when it nears expiry or the Mac's Wi-Fi address changes. openssl does the signing: Node can't issue X.509.
 import { execFileSync } from 'node:child_process';
@@ -21,7 +21,7 @@ function openssl(args: string[], dir: string) {
 
 function makeAuthority(dir: string, host: string) {
   write(join(dir, 'ca.cnf'), [
-    '[req]', 'distinguished_name = dn', 'prompt = no', '[dn]', `CN = OXBOT on ${host}`, 'O = OXBOT (this Mac only)',
+    '[req]', 'distinguished_name = dn', 'prompt = no', '[dn]', `CN = Taurus on ${host}`, 'O = Taurus (this Mac only)',
     '[ext]', 'basicConstraints = critical, CA:TRUE, pathlen:0', 'keyUsage = critical, keyCertSign, cRLSign', 'subjectKeyIdentifier = hash',
     'nameConstraints = critical, permitted;IP:10.0.0.0/255.0.0.0, permitted;IP:172.16.0.0/255.240.0.0, permitted;IP:192.168.0.0/255.255.0.0, permitted;DNS:local',
     '',
@@ -63,7 +63,7 @@ export function localTls(home: string, hostname: string, ips: string[]): LocalTl
   const dir = join(home, 'tls');
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   chmodSync(dir, 0o700);
-  const host = hostname.toLowerCase().replace(/\.local$/, '').replace(/[^a-z0-9-]/g, '-') || 'oxbot';
+  const host = hostname.toLowerCase().replace(/\.local$/, '').replace(/[^a-z0-9-]/g, '-') || 'taurus';
   const caFile = join(dir, 'ca.crt');
   let fresh = false;
   if (!existsSync(caFile) || !existsSync(join(dir, 'ca.key')) || Date.parse(new X509Certificate(readFileSync(caFile)).validTo) - Date.now() < 30 * 86_400_000) { makeAuthority(dir, host); fresh = true; }

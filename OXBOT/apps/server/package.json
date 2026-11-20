@@ -1,9 +1,9 @@
 {
-  "name": "oxbot-server",
+  "name": "taurus-server",
   "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "OXBOT local server: connectors, dashboard, ask, and phone ringing. Runs on your machine only.",
+  "description": "Taurus local server: connectors, dashboard, ask, and phone ringing. Runs on your machine only.",
   "scripts": {
     "start": "node src/index.ts",
     "dev": "node --watch src/index.ts",

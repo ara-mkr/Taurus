@@ -1,8 +1,8 @@
-# 15. Instant commands and Ox windows
+# 15. Instant commands and Taurus windows
 
-Added November 4, 2026 at the owner's request ("hey ox play juice wrld on spotify ... pull up a simple liquid glass window ... so it shows that it did it").
+Added November 4, 2026 at the owner's request ("hey taurus play juice wrld on spotify ... pull up a simple liquid glass window ... so it shows that it did it").
 
-Say these after "Hey Ox" (or tap Talk), type them in the chat bar, or say them on a phone call to OXBOT. They're recognized on the Mac without the AI, so they answer at once and work with no AI connected. Each one pops an Ox window in at the top right of every open screen. Say it some other way ("put on something sad") and the AI does the same thing with its tools.
+Say these after "Hey Taurus" (or tap Talk), type them in the chat bar, or say them on a phone call to Taurus. They're recognized on the Mac without the AI, so they answer at once and work with no AI connected. Each one pops a Taurus window in at the top right of every open screen. Say it some other way ("put on something sad") and the AI does the same thing with its tools.
 
 ## Music (Spotify)
 
@@ -48,7 +48,7 @@ When one is due: a red window with Done, In 10 minutes and In an hour, a chime, 
 
 ## Memory
 
-"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.oxbot/memory.json` and sent to your chosen AI with every question, so answers use it. "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
+"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.taurus/memory.json` and sent to your chosen AI with every question, so answers use it. "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
 
 ## Opening apps
 

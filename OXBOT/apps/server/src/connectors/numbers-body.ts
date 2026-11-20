@@ -123,7 +123,7 @@ export const numbersBodyDefs: Def[] = [
     id: 'xero', name: 'Xero', group: 'Money', mockOnly: true,
     reads: 'Income and net profit this month from the profit and loss report.',
     oauth: { app: 'xero', scopes: ['offline_access', 'accounting.reports.read', 'accounting.settings.read'] }, fields: appFields('xero'),
-    setup: 'Xero developer portal → New app → Web app. Add the redirect URL. OXBOT asks only for read scopes on reports and settings.', setupUrl: 'https://developer.xero.com/app/manage',
+    setup: 'Xero developer portal → New app → Web app. Add the redirect URL. Taurus asks only for read scopes on reports and settings.', setupUrl: 'https://developer.xero.com/app/manage',
     async pull({ token }) {
       const t = await token();
       const tenants = await api<any[]>('https://api.xero.com/connections', { token: t });
@@ -142,7 +142,7 @@ export const numbersBodyDefs: Def[] = [
   },
   {
     id: 'mercury', name: 'Mercury', group: 'Money', mockOnly: true,
-    reads: 'Available balance across your Mercury accounts. Reading only: OXBOT can’t move money.',
+    reads: 'Available balance across your Mercury accounts. Reading only: Taurus can’t move money.',
     fields: [{ key: 'MERCURY_TOKEN', label: 'API token, Read Only', secret: true }],
     setup: 'Mercury → Settings → Tokens → Add API token. Choose "Read Only".', setupUrl: 'https://app.mercury.com/settings/tokens',
     async pull({ field }) {
@@ -167,7 +167,7 @@ export const numbersBodyDefs: Def[] = [
     id: 'withings', name: 'Withings', group: 'Body', mockOnly: true,
     reads: 'Your latest weight and last night’s sleep and resting heart rate from a Withings scale or sleep mat.',
     oauth: { app: 'withings', scopes: ['user.metrics', 'user.activity'] }, fields: appFields('withings'),
-    setup: 'Withings developer dashboard → Create an application (Public API integration). Add the redirect URL. OXBOT asks only for user.metrics and user.activity.', setupUrl: 'https://developer.withings.com/dashboard/',
+    setup: 'Withings developer dashboard → Create an application (Public API integration). Add the redirect URL. Taurus asks only for user.metrics and user.activity.', setupUrl: 'https://developer.withings.com/dashboard/',
     async pull({ token }) {
       const t = await token();
       const since = Math.floor((Date.now() - 30 * DAY) / 1000);

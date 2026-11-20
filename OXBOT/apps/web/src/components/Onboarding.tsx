@@ -1,32 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Bundle, type ConnectorInfo, type Prefs, type Profile } from '../api';
 import { say, stopSpeaking, unlockAudio, useSpeaking } from '../speech';
-import { Ox, type Mood } from './Ox';
+import { Taurus, type Mood } from './Taurus';
 import { AppSheet, Connector, FindAccounts, type Found } from './Connections';
 import { inDesktop } from './Voice';
 import '../styles/onboarding.css';
 
-// Onboarding (owner, November 17, 2026): "right as u download it very simple ox shows up gives u a voice guided every
-// soothing and calm tutorial of how everything works." Ox meets you, you set a simple profile, you connect the apps you
-// already use, Ox works out where your schedule lives, and then he walks you through the app in his own voice.
+// Onboarding (owner, November 17, 2026): "right as u download it very simple taurus shows up gives u a voice guided every
+// soothing and calm tutorial of how everything works." Taurus meets you, you set a simple profile, you connect the apps you
+// already use, Taurus works out where your schedule lives, and then he walks you through the app in his own voice.
 //
 // What this never does: it never reads, decrypts or stores a password, and never signs in for you behind your back.
-// Every account connects the same consent way the rest of OXBOT does — your own one-click sign-in with each service, or
+// Every account connects the same consent way the rest of Taurus does — your own one-click sign-in with each service, or
 // a key you paste — which is exactly what AGENTS.md requires ("signing in still needs an approval card"; "never into
 // password fields"; "never: password managers, Keychain"). "Find the apps you already use" reads only the website
-// column of a password export you choose, in this window, to show which apps OXBOT can connect; it keeps no password.
+// column of a password export you choose, in this window, to show which apps Taurus can connect; it keeps no password.
 
 type Step = 'hello' | 'profile' | 'connect' | 'schedule' | 'tour' | 'done';
 const ORDER: Step[] = ['hello', 'profile', 'connect', 'schedule', 'tour', 'done'];
 
-export const ONBOARDED_KEY = 'oxbot-onboarded';
+export const ONBOARDED_KEY = 'taurus-onboarded';
 export const wasOnboarded = () => { try { return localStorage.getItem(ONBOARDED_KEY) === '1'; } catch { return false; } };
 
-// The calm, plain tour. Each card is one thing OXBOT does, said in a sentence or two, in order of a day.
-// Each stop: a title and one short line on screen; Ox says the longer version out loud.
+// The calm, plain tour. Each card is one thing Taurus does, said in a sentence or two, in order of a day.
+// Each stop: a title and one short line on screen; Taurus says the longer version out loud.
 const TOUR: { title: string; line: string; say: string }[] = [
-  { title: 'Taurus, your home', line: 'Ox in the middle. Your day around him.', say: 'This is Taurus. I sit in the middle, and the things that matter today float in around me. It is the first thing you see.' },
-  { title: 'Just ask', line: 'Type, press Talk, or say “Hey Ox”.', say: 'Type to me, or press Talk and say it out loud. Hey Ox wakes me too. I keep it short, and I never dump a wall of text on you.' },
+  { title: 'The HUD, your home', line: 'Taurus in the middle. Your day around him.', say: 'This is the HUD. I sit in the middle, and the things that matter today float in around me. Say open the brain map, or any page, and I take you there.' },
+  { title: 'Your email, twice a day', line: 'Say “check my email twice a day”.', say: 'Say check my email twice a day, and I will read your inbox every weekday at eight and four, draft replies for you to approve, and learn from every edit you make.' },
+  { title: 'Just ask', line: 'Type, press Talk, or say “Hey Taurus”.', say: 'Type to me, or press Talk and say it out loud. Hey Taurus wakes me too. I keep it short, and I never dump a wall of text on you.' },
   { title: 'Helpers for big jobs', line: 'A swarm of helpers reads in parallel.', say: 'For a big job I can send out a swarm of helpers at once. You watch the little cursors fan out, read, and fold back into me with the answer.' },
   { title: 'Nothing without your yes', line: 'You approve the exact words before anything goes out.', say: 'I only ever read, unless you say so. Sending a mail, a reply, an order: each one comes back to you as a card. You approve the exact words. Nothing goes out behind your back.' },
   { title: 'I ring when it matters', line: 'Quiet by default. A ring only when it can’t wait.', say: 'When something truly needs you, I can ring your phone or this screen. The rest of the time I stay quiet. I carry the small stuff so you do not have to.' },
@@ -58,7 +59,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
     return () => { live = false; window.removeEventListener('focus', back); };
   }, []);
 
-  // What Ox says when a step opens. Voice only after the first tap (the Begin button unlocks the audio).
+  // What Taurus says when a step opens. Voice only after the first tap (the Begin button unlocks the audio).
   const narrate = useCallback((text: string) => { if (voiceRef.current) void say(text); else stopSpeaking(); }, []);
 
   const name = profile.name?.trim();
@@ -90,9 +91,9 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
   const begin = () => { unlockAudio(); go('profile'); };
   const toggleVoice = () => setVoiceOn(v => { const on = !v; if (!on) stopSpeaking(); return on; });
 
-  // Ox's face: he talks while his own voice plays, otherwise he is happy to see you.
+  // Taurus's face: he talks while his own voice plays, otherwise he is happy to see you.
   const mood: Mood = speaking.active ? 'talking' : step === 'hello' ? 'idle' : 'happy';
-  const oxSize = step === 'hello' ? 160 : 92;
+  const taurusSize = step === 'hello' ? 160 : 92;
 
   // Suggested apps to sign into first: the ones a day runs on, your not-yet-connected ones first.
   const suggested = useMemo(() => {
@@ -114,11 +115,11 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
     </div>
   </div>;
 
-  return <div className="ob-screen" role="dialog" aria-modal="true" aria-label="Welcome to OXBOT" data-step={step}>
-    <div className="ob-ox" data-big={step === 'hello'}><Ox size={oxSize} mood={mood} talk={mood === 'talking' ? speaking.level : undefined} label="Ox" /></div>
+  return <div className="ob-screen" role="dialog" aria-modal="true" aria-label="Welcome to Taurus" data-step={step}>
+    <div className="ob-taurus" data-big={step === 'hello'}><Taurus size={taurusSize} mood={mood} talk={mood === 'talking' ? speaking.level : undefined} label="Taurus" /></div>
 
     {step === 'hello' ? <div className="ob-body ob-hello">
-      <h1>Hi. I’m Ox.</h1>
+      <h1>Hi. I’m Taurus.</h1>
       <p className="ob-lede">Your chief of staff. I carry the small stuff and ring you only when it matters.</p>
       <div className="ob-actions"><button type="button" className="primary ob-begin" onClick={begin}>Begin</button></div>
     </div> : <>
@@ -138,6 +139,12 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
             </div>
           </fieldset>
           <label className="check"><input type="checkbox" checked={profile.greet !== false} onChange={e => setProfile({ greet: e.target.checked })} />Greet me by name with the time of day</label>
+          {/* Luke's first step (November 19, 2026): pick one job to hand off. Saved to Taurus's memory. */}
+          <label>The one job you want off your plate first
+            <textarea rows={2} maxLength={300} placeholder="Like answering the same client emails, or logging receipts"
+              onBlur={e => { const v = e.target.value.trim(); if (v) void api.askStream([{ role: 'user', text: `remember the one job I want off my plate first is: ${v}` }], { via: 'ask' }, { text: () => undefined, reset: () => undefined }).catch(() => undefined); }} />
+          </label>
+          <p className="muted ob-hint">Pick something that repeats, eats your time, and has clear steps you already know how to do. After this, try “interview me” so Taurus can ask what it still needs.</p>
         </div>
         <div className="ob-actions"><button type="button" className="primary" onClick={() => go('connect')}>{name ? 'Continue' : 'Skip for now'}</button></div>
       </div>}
@@ -145,7 +152,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
       {step === 'connect' && <div className="ob-body ob-connect">
         <h2>Connect what you already use</h2>
         <p className="ob-lede">Read-only, through each app’s own sign‑in. Acting on anything is always a separate yes.</p>
-        {loadError && <p className="muted">I can’t reach OXBOT to list your apps. Connect them later in Settings.</p>}
+        {loadError && <p className="muted">I can’t reach Taurus to list your apps. Connect them later in Settings.</p>}
         {bundles.some(b => b.ready || b.connected) && <section className="ob-group ob-accounts">
           <h3>Start with your main account</h3>
           <div className="ob-account-row">{bundles.filter(b => b.ready || b.connected).map(b => b.connected
@@ -187,7 +194,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
       {step === 'done' && <div className="ob-body ob-done">
         <h2>You’re set{name ? `, ${name}` : ''}.</h2>
         <p className="ob-lede">I’ll take it from here.</p>
-        <div className="ob-actions"><button type="button" className="primary ob-begin" onClick={finish}>Enter OXBOT</button></div>
+        <div className="ob-actions"><button type="button" className="primary ob-begin" onClick={finish}>Enter Taurus</button></div>
       </div>}
     </>}
 

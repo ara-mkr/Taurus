@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-canvas-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-canvas-'));
+process.env.TAURUS_BROKER_URL = '';
 const { canvasBase, canvasPull } = await import('../src/connectors/canvas.ts');
 const { connectorInfo } = await import('../src/connectors.ts');
 
@@ -53,7 +53,7 @@ test('the address is normalised to a bare https origin', () => {
   assert.equal(canvasBase('https://canvas.state.edu:443/'), 'https://canvas.state.edu');
 });
 
-test('addresses OXBOT must not send a token to are refused with a plain sentence', () => {
+test('addresses Taurus must not send a token to are refused with a plain sentence', () => {
   for (const bad of ['', 'http://school.instructure.com', 'https://localhost', 'https://canvas.localhost', 'https://printer.local', 'https://wiki.internal', 'https://127.0.0.1', 'https://10.0.0.5', 'https://192.168.1.20', 'https://169.254.169.254', 'https://[::1]', 'https://intranet', 'https://user:pass@school.instructure.com', 'https://school.instructure.com:8443', 'ftp://school.instructure.com', 'not a url']) {
     assert.throws(() => canvasBase(bad), /^Error: Canvas: /, `should refuse ${JSON.stringify(bad)}`);
   }

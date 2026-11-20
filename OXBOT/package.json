@@ -1,8 +1,8 @@
 {
-  "name": "oxbot",
+  "name": "taurus",
   "private": true,
   "type": "module",
-  "description": "OXBOT: a local chief-of-staff dashboard that reads your mail, calendar, chat, numbers and body, and rings you when it matters.",
+  "description": "Taurus: a local chief-of-staff dashboard that reads your mail, calendar, chat, numbers and body, and rings you when it matters.",
   "scripts": {
     "setup": "pnpm --dir apps/server install && pnpm --dir apps/web install && pnpm --dir apps/desktop install",
     "dev": "node scripts/dev.mjs",

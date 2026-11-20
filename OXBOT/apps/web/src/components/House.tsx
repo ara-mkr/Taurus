@@ -3,8 +3,8 @@ import { api, type ConnectorInfo, type Device, type Grant, type HomeState, type 
 import { Connector } from './Connections';
 
 // House (owner, November 5, 2026: "connect it to like smart lights or curtains to make it like a smart home controlled
-// by ox"). Every light, curtain, plug, fan, thermostat and lock, by room, with the scenes on top. A tap changes it at
-// once; locks and garage doors open an approval card instead. Say it to Ox and the same tiles pop up in a window.
+// by taurus"). Every light, curtain, plug, fan, thermostat and lock, by room, with the scenes on top. A tap changes it at
+// once; locks and garage doors open an approval card instead. Say it to Taurus and the same tiles pop up in a window.
 
 const word = (d: Device) => {
   switch (d.kind) {
@@ -115,7 +115,7 @@ export function House({ onProposal }: { onProposal: (p: Proposal) => void }) {
   return <main id="main" tabIndex={-1} className="connections house">
     <div className="page-head"><h1>House</h1>{home?.sample && <span className="muted">Sample</span>}</div>
     <p className="house-summary" aria-live="polite">{summary}</p>
-    {home?.sample && <p className="lede muted">A sample house, so you can try it: tap a light, or say “Hey Ox, movie time”. Connect Home Assistant, Hue or LIFX below and these become your real rooms.</p>}
+    {home?.sample && <p className="lede muted">A sample house, so you can try it: tap a light, or say “Hey Taurus, movie time”. Connect Home Assistant, Hue or LIFX below and these become your real rooms.</p>}
     {(error || note) && <p className={error ? 'problem' : 'muted'} role="status">{error || note}</p>}
 
     {(home?.scenes.length ?? 0) > 0 && <section aria-labelledby="h-scenes">
@@ -142,7 +142,7 @@ export function House({ onProposal }: { onProposal: (p: Proposal) => void }) {
       <details className="connector">
         <summary><span className="connector-name">Apple Home</span><span className={`connector-status ${mac?.allowed ? 'on' : ''}`}>{mac?.allowed ? 'Through Shortcuts' : 'Needs Control this Mac'}</span></summary>
         <div className="connector-body">
-          <p>Apple doesn’t let other apps reach HomeKit directly, so Ox goes through Shortcuts. In the Shortcuts app, make a folder named Home and add a Shortcut for each scene (for “Movie time”: Control Home, then pick the scene). Each one shows up here as a scene, and Ox runs it when you say its name.</p>
+          <p>Apple doesn’t let other apps reach HomeKit directly, so Taurus goes through Shortcuts. In the Shortcuts app, make a folder named Home and add a Shortcut for each scene (for “Movie time”: Control Home, then pick the scene). Each one shows up here as a scene, and Taurus runs it when you say its name.</p>
           <p><a href="#actions">Allow Control this Mac</a> in Actions first.</p>
         </div>
       </details>
@@ -150,7 +150,7 @@ export function House({ onProposal }: { onProposal: (p: Proposal) => void }) {
   </main>;
 }
 
-// The tiles inside an Ox window. A new window remounts this (keyed by when it opened), so the list starts fresh.
+// The tiles inside a Taurus window. A new window remounts this (keyed by when it opened), so the list starts fresh.
 export function DeviceList({ devices, sample }: { devices: Device[]; sample?: boolean }) {
   const [list, setList] = useState(devices);
   const [problem, setProblem] = useState('');

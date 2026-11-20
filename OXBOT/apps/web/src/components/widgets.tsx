@@ -59,7 +59,7 @@ function Problems({ data, section }: { data: Dashboard | null; section: Section 
 }
 
 // Fetch on mount and on an interval; keeps the last good value while refreshing.
-// The last live value of each remote feed, so Ox can talk about the card it is sitting on.
+// The last live value of each remote feed, so Taurus can talk about the card it is sitting on.
 export const seen = new Map<string, unknown>();
 
 function useRemote<T>(key: string, load: () => Promise<T>, everyMs: number) {

@@ -67,8 +67,8 @@ export function Today({ data, error, onAsk, now }: Props) {
     {error && <p className="problem">{error}</p>}
 
     <form className="ask-line" onSubmit={submit}>
-      <label className="sr-only" htmlFor="ask-today">Ask OXBOT</label>
-      <input id="ask-today" value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask OXBOT anything about your day" autoComplete="off" maxLength={2000} />
+      <label className="sr-only" htmlFor="ask-today">Ask Taurus</label>
+      <input id="ask-today" value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask Taurus anything about your day" autoComplete="off" maxLength={2000} />
       <button type="submit">Ask</button>
     </form>
 

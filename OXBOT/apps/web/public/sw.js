@@ -1,9 +1,9 @@
-// OXBOT's service worker. It keeps only the app shell (the page, scripts, styles and icons) so a phone can
+// Taurus's service worker. It keeps only the app shell (the page, scripts, styles and icons) so a phone can
 // say "Can't reach your Mac" when the Mac is off. It never handles /api/: no personal data on the phone's disk.
 // Registered only in a secure context (this Mac at localhost); a phone on plain Wi-Fi http never gets it.
 const BUILD = 'dev'; // vite.config.ts writes the build hash here, so a new build replaces the old cache.
 const SHELL = []; // ...and the list of built files.
-const CACHE = `oxbot-shell-${BUILD}`;
+const CACHE = `taurus-shell-${BUILD}`;
 const isShell = path => path === '/' || /\.(?:js|css|png|svg|webmanifest|html)$/.test(path);
 
 self.addEventListener('install', event => {
@@ -11,13 +11,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('oxbot-shell-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('taurus-shell-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 const offline = () => new Response(
-  '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>OXBOT</title>'
+  '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Taurus</title>'
   + '<body style="font:17px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:22vh 28px;background:#07080A;color:#ECEBE6">'
-  + '<h1 style="font-size:28px;margin:0 0 12px">Can’t reach your Mac.</h1><p style="color:#A3A29B">OXBOT runs on your Mac; open it there, then pull to retry.</p>'
+  + '<h1 style="font-size:28px;margin:0 0 12px">Can’t reach your Mac.</h1><p style="color:#A3A29B">Taurus runs on your Mac; open it there, then pull to retry.</p>'
   + '<p><a href="/" style="color:#ECEBE6">Try again</a></p>',
   { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } },
 );

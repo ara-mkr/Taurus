@@ -5,8 +5,8 @@ import type { Turn } from './ai.ts';
 import { phoneNumber, xml } from './ring.ts';
 import { store } from './store.ts';
 
-// Calling OXBOT from your phone (owner, November 1, 2026). Twilio answers your Twilio number, turns your speech into
-// text and posts it here; OXBOT answers with the same AI, tools and approvals as Ask, reads any action back word for
+// Calling Taurus from your phone (owner, November 1, 2026). Twilio answers your Twilio number, turns your speech into
+// text and posts it here; Taurus answers with the same AI, tools and approvals as Ask, reads any action back word for
 // word, and runs it only when you say yes. Three locks: Twilio's signature on every request, your own mobile as the
 // caller, and a PIN typed on the keypad (caller ID alone can be faked). Needs a public address for this Mac,
 // which is the owner's decision (docs/decision-log.md). Tested only against mocked Twilio requests.
@@ -14,7 +14,7 @@ import { store } from './store.ts';
 interface Session { at: number; turns: Turn[]; pending?: string; asked: number }
 const sessions = new Map<string, Session>();
 const SESSION_MS = 20 * 60_000;
-export const voiceUrl = () => (store.secret('OXBOT_VOICE_URL') ?? '').replace(/\/$/, '');
+export const voiceUrl = () => (store.secret('TAURUS_VOICE_URL') ?? '').replace(/\/$/, '');
 
 // Twilio's documented scheme: HMAC-SHA1, keyed with the auth token, over the full URL plus each POST field name
 // and value, sorted by name, then base64.
@@ -47,8 +47,8 @@ export async function voice(path: string, params: Record<string, string>, signat
 
   if (route === '/api/voice/incoming') {
     const pin = store.secret('VOICE_PIN') ?? '';
-    if (!/^\d{4,8}$/.test(pin)) return { status: 200, twiml: hangUp('Set a voice PIN on the Phone page in OXBOT first.') };
-    return { status: 200, twiml: doc(`<Gather input="dtmf" numDigits="${pin.length}" action="/api/voice/pin" method="POST" timeout="10">${say('OXBOT. Enter your PIN.')}</Gather>${say('No PIN. Goodbye.')}<Hangup/>`) };
+    if (!/^\d{4,8}$/.test(pin)) return { status: 200, twiml: hangUp('Set a voice PIN on the Phone page in Taurus first.') };
+    return { status: 200, twiml: doc(`<Gather input="dtmf" numDigits="${pin.length}" action="/api/voice/pin" method="POST" timeout="10">${say('Taurus. Enter your PIN.')}</Gather>${say('No PIN. Goodbye.')}<Hangup/>`) };
   }
   if (route === '/api/voice/pin') {
     const pin = store.secret('VOICE_PIN') ?? '';

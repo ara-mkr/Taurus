@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type WheelEvent } from 'react';
 import { api, type Activity, type BrowserState } from '../api';
-import { Ox } from './Ox';
+import { Taurus } from './Taurus';
 
-// What Ox is doing, live (owner, November 1, 2026): the Activity terminal, OXBOT's own browser, and the one line in
+// What Taurus is doing, live (owner, November 1, 2026): the Activity terminal, Taurus's own browser, and the one line in
 // rail's quick access to what he is on right now. Both stream from the local server.
 
 export function useActivity() {
@@ -31,7 +31,7 @@ export function ActivityLog({ entries }: { entries: Activity[] }) {
   const follow = useRef(true);
   useEffect(() => { const el = box.current; if (el && follow.current) el.scrollTop = el.scrollHeight; }, [entries]);
   return <div className="terminal">
-    {entries.length === 0 ? <p className="terminal-empty">Nothing yet. Every time Ox reads an app, thinks, browses or acts, a line appears here.</p>
+    {entries.length === 0 ? <p className="terminal-empty">Nothing yet. Every time Taurus reads an app, thinks, browses or acts, a line appears here.</p>
       : <ol ref={box} className="terminal-lines" aria-label="Activity" onScroll={e => { const el = e.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
         {entries.map(e => <li key={e.id} className={`line ${e.state}`}>
           <time dateTime={e.at}>{time(e.at)}</time>
@@ -101,14 +101,14 @@ export function BrowserPane({ state }: { state: BrowserState | null }) {
       <input id="browser-address" type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address, or what to search for" autoComplete="off" spellCheck={false} />
       <button type="submit">Go</button>
     </form>
-    <p className="browser-who" aria-live="polite">{!open ? 'Read-only. Forms that would send anything are blocked.' : state?.loading ? `Loading ${state.url}` : state?.by === 'ox' ? `Ox is browsing ${state.title || state.url}` : `You’re driving · ${state?.title || state?.url}`}</p>
+    <p className="browser-who" aria-live="polite">{!open ? 'Read-only. Forms that would send anything are blocked.' : state?.loading ? `Loading ${state.url}` : state?.by === 'taurus' ? `Taurus is browsing ${state.title || state.url}` : `You’re driving · ${state?.title || state?.url}`}</p>
     {(error || state?.error) && <p className="problem">{error || state?.error}</p>}
-    {open && state?.frame ? <div className="browser-view" tabIndex={0} onKeyDown={keys} onWheel={scroll} aria-label="Page in OXBOT’s browser. Click, scroll and type to use it.">
-      <img src={state.frame} alt={state.title ? `Page: ${state.title}` : 'The page Ox has open'} onClick={click} draggable={false} />
+    {open && state?.frame ? <div className="browser-view" tabIndex={0} onKeyDown={keys} onWheel={scroll} aria-label="Page in Taurus’s browser. Click, scroll and type to use it.">
+      <img src={state.frame} alt={state.title ? `Page: ${state.title}` : 'The page Taurus has open'} onClick={click} draggable={false} />
       {state.loading && <span className="browser-loading" />}
     </div> : <div className="browser-empty">
-      <Ox size={64} mood="idle" />
-      <p>When Ox looks something up on the web, the page opens here and you watch every step. You can open one yourself too.</p>
+      <Taurus size={64} mood="idle" />
+      <p>When Taurus looks something up on the web, the page opens here and you watch every step. You can open one yourself too.</p>
     </div>}
     {open && <div className="browser-foot"><span className="muted">Read-only: it can’t sign in, send forms, post or buy.</span><button type="button" className="text-button" onClick={() => step({ do: 'close' })}>Close page</button></div>}
   </div>;
@@ -117,9 +117,9 @@ export function BrowserPane({ state }: { state: BrowserState | null }) {
 export type DockTab = 'browser' | 'activity';
 
 export function Dock({ tab, setTab, onClose, entries, browser }: { tab: DockTab; setTab: (t: DockTab) => void; onClose: () => void; entries: Activity[]; browser: BrowserState | null }) {
-  return <aside className="dock" aria-label="Ox at work">
+  return <aside className="dock" aria-label="Taurus at work">
     <div className="dock-head">
-      <div className="dock-tabs" role="tablist" aria-label="Ox at work">
+      <div className="dock-tabs" role="tablist" aria-label="Taurus at work">
         {(['browser', 'activity'] as DockTab[]).map(t => <button key={t} type="button" role="tab" id={`dock-${t}`} aria-selected={tab === t} aria-controls="dock-panel" className="text-button" onClick={() => setTab(t)}>{t === 'browser' ? 'Browser' : 'Activity'}</button>)}
       </div>
       <button type="button" className="text-button" onClick={onClose}>Close</button>

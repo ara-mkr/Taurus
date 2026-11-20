@@ -1,4 +1,4 @@
-// OXBOT website. No libraries. Everything here is an extra: with JavaScript off the page still reads top to bottom.
+// Taurus website. No libraries. Everything here is an extra: with JavaScript off the page still reads top to bottom.
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const fine = matchMedia('(pointer: fine)');
@@ -79,7 +79,7 @@
     });
   }
 
-  // ---------- Ox ----------
+  // ---------- Taurus ----------
   // He charges: leans back, tucks his horns, bursts forward, eases out. Never side to side.
   const charge = (el, distance = 34) => {
     if (!el || reduce.matches || !el.animate) return;
@@ -118,7 +118,7 @@
   }
 
   // ---------- The wall of app names ----------
-  const rows = window.OXBOT_CONNECTIONS ?? [];
+  const rows = window.TAURUS_CONNECTIONS ?? [];
   const sample = ['Gmail', 'Slack', 'Google Calendar', 'Linear', 'WHOOP', 'Stripe', 'Strava', 'Outlook Mail'];
   const wallRows = $$('.wall .row');
   {
@@ -222,7 +222,7 @@
       ringPre.style.opacity = String(1 - span(p, 0, 0.1));
       const r = ease(span(p, 0.08, 0.45));
       flood.style.setProperty('--r', `${r * 150}%`);
-      if (r >= 0.98 && !charged) { charged = true; charge($('.ox', flood), 40); }
+      if (r >= 0.98 && !charged) { charged = true; charge($('.taurus', flood), 40); }
       if (r < 0.2) charged = false;
     },
   };
@@ -292,7 +292,7 @@
   const status = $('#find-status');
   const listWrap = $('#ledger-wrap');
   let catalog = null;
-  const counts = { direct: rows.filter(r => r[3] === 'Direct').length, composio: rows.filter(r => r[3] === 'Composio').length, total: rows.length, catalog: window.OXBOT_COMPOSIO_COUNT ?? 0 };
+  const counts = { direct: rows.filter(r => r[3] === 'Direct').length, composio: rows.filter(r => r[3] === 'Composio').length, total: rows.length, catalog: window.TAURUS_COMPOSIO_COUNT ?? 0 };
   for (const el of $$('[data-count]')) if (counts[el.dataset.count]) el.textContent = counts[el.dataset.count].toLocaleString('en-US');
 
   const cell = text => { const td = document.createElement('td'); td.textContent = text; return td; };
@@ -316,9 +316,9 @@
       if (input.value.trim().toLowerCase() !== q) return;
     }
     listWrap.hidden = !q;
-    tbody.replaceChildren(...(q ? list : []).map(r => row(r[0], r[1], howOf(r))), ...extra.map(([name]) => row(name, 'Nothing yet. Connect it in Composio and OXBOT can use it, with your OK.', 'In Composio')));
+    tbody.replaceChildren(...(q ? list : []).map(r => row(r[0], r[1], howOf(r))), ...extra.map(([name]) => row(name, 'Nothing yet. Connect it in Composio and Taurus can use it, with your OK.', 'In Composio')));
     status.textContent = !q ? '' : list.length + extra.length === 0 ? `Nothing matches “${input.value.trim()}”, and Composio doesn’t list it either.`
-      : `OXBOT reads ${list.length}${extra.length ? `; ${extra.length} more ${extra.length === 1 ? 'is' : 'are'} in Composio` : ''}.`;
+      : `Taurus reads ${list.length}${extra.length ? `; ${extra.length} more ${extra.length === 1 ? 'is' : 'are'} in Composio` : ''}.`;
     // The page got taller or shorter, so every scene below moved.
     measure();
     queue();

@@ -1,4 +1,4 @@
-// Ox in the notch: its settings, and where the pill goes on a screen (owner, November 6, 2026: "make it so its also
+// Taurus in the notch: its settings, and where the pill goes on a screen (owner, November 6, 2026: "make it so its also
 // on ur notch like look at vorssaint ... make it the ai assistant like version of the notch have all the notch
 // settings similar to vorssaint settings"). The list of settings follows the ideas in Vorssaint's own notch settings
 // (display, hover or click, delays, size, which side the mascot sits, what shows while idle, what appears, full
@@ -15,8 +15,8 @@ export interface NotchSettings {
   closeDelay: number;
   size: 'compact' | 'comfortable' | 'spacious';
   mascotSide: 'left' | 'right';
-  // While nothing is happening: Ox beside the notch, or nothing, so the pill disappears into the notch.
-  idle: 'ox' | 'nothing';
+  // While nothing is happening: Taurus beside the notch, or nothing, so the pill disappears into the notch.
+  idle: 'taurus' | 'nothing';
   show: { answer: boolean; music: boolean; timers: boolean; ask: boolean };
   overFullScreen: boolean;
   inCaptures: boolean;
@@ -26,12 +26,12 @@ export interface NotchSettings {
   // How wide the camera housing is, in points; nudge it until no edge of the real notch shows.
   fitWidth: number;
   // The native notch's own settings (apps/notch-mac, November 17, 2026): sizes, fits and agents, ported from
-  // Vorssaint. Kept as they came; OxNotch checks each field itself (Model.swift, NotchSettings.Native).
+  // Vorssaint. Kept as they came; TaurusNotch checks each field itself (Model.swift, NotchSettings.Native).
   native?: Record<string, unknown>;
 }
 
 export const notchDefaults: NotchSettings = {
-  on: true, display: 'automatic', open: 'hover', hoverDelay: 150, closeDelay: 450, size: 'comfortable', mascotSide: 'left', idle: 'ox',
+  on: true, display: 'automatic', open: 'hover', hoverDelay: 150, closeDelay: 450, size: 'comfortable', mascotSide: 'left', idle: 'taurus',
   show: { answer: true, music: true, timers: true, ask: true }, overFullScreen: true, inCaptures: true, noNotch: 'pill', dropFromTop: 0, fitWidth: 196,
 };
 
@@ -51,7 +51,7 @@ export function cleanNotch(raw: unknown, base: NotchSettings = notchDefaults): N
     closeDelay: num(r.closeDelay, 0, 2000, base.closeDelay),
     size: pick(r.size, ['compact', 'comfortable', 'spacious'] as const, base.size),
     mascotSide: pick(r.mascotSide, ['left', 'right'] as const, base.mascotSide),
-    idle: pick(r.idle, ['ox', 'nothing'] as const, base.idle),
+    idle: pick(r.idle, ['taurus', 'nothing'] as const, base.idle),
     show: { answer: bool(show.answer, base.show.answer), music: bool(show.music, base.show.music), timers: bool(show.timers, base.show.timers), ask: bool(show.ask, base.show.ask) },
     overFullScreen: bool(r.overFullScreen, base.overFullScreen),
     inCaptures: bool(r.inCaptures, base.inCaptures),

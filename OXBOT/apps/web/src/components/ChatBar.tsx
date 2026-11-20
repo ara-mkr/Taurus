@@ -4,11 +4,11 @@ import { Transcript, type ChatTurn } from './Ask';
 import { Camera } from './Camera';
 import type { Voice } from './Voice';
 
-// The chat bar (owner, November 1, 2026: "an always bottom bar of chatting to OXBOT so its very convenient no matter
+// The chat bar (owner, November 1, 2026: "an always bottom bar of chatting to Taurus so its very convenient no matter
 // where u scroll"). Pinned to the bottom of every page; answers open in a panel just above it, so you never leave
 // the board you're on. Ask, full page, is the same conversation.
 // Attachments (owner, November 6, 2026: "u should be able to attatch images and files and stuff there too ... also u
-// should beable to use ox browser and it can just see what ur doing"). Pictures are shrunk on this device; up to four
+// should beable to use taurus browser and it can just see what ur doing"). Pictures are shrunk on this device; up to four
 // go as one picture, tiled. Text files go as their words. Sharing a window or screen uses the browser's own picker;
 // while it's on, each question carries one frame of it, and nothing is recorded.
 export interface Extras { image?: string; files?: { name: string; text: string }[]; names?: string[]; screen?: boolean; preview?: string }
@@ -50,7 +50,7 @@ function useScreenShare() {
   const video = useRef<HTMLVideoElement | null>(null);
   const stop = useCallback(() => { setStream(s => { s?.getTracks().forEach(t => t.stop()); return null; }); }, []);
   const start = useCallback(async () => {
-    if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('This browser can’t share a screen. Use Chrome, Edge or Safari, or OXBOT’s desktop app.');
+    if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('This browser can’t share a screen. Use Chrome, Edge or Safari, or Taurus’s desktop app.');
     const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 2 }, audio: false });
     const track = s.getVideoTracks()[0];
     track.addEventListener('ended', () => setStream(null));
@@ -109,9 +109,9 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
           if (attached.filter(a => a.kind === 'image').length + next.filter(a => a.kind === 'image').length >= 4) { setNote('Up to four pictures at a time.'); continue; }
           next.push({ id, name: f.name || 'Pasted picture', kind: 'image', url: await shrinkImage(f) });
         } else if (f.type.startsWith('text/') || textLike.test(f.name) || f.type === 'application/json') {
-          if (f.size > 400_000) { setNote(`${f.name} is too long; Ox reads text files up to 400 KB.`); continue; }
+          if (f.size > 400_000) { setNote(`${f.name} is too long; Taurus reads text files up to 400 KB.`); continue; }
           next.push({ id, name: f.name, kind: 'text', text: await f.text() });
-        } else setNote(`Ox reads pictures and text files. For ${f.name}, ask him to open it from your files instead.`);
+        } else setNote(`Taurus reads pictures and text files. For ${f.name}, ask him to open it from your files instead.`);
       } catch (e) { setNote((e as Error).message); }
     }
     setAttached(a => [...a, ...next].slice(0, 9));
@@ -137,11 +137,11 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
   const showPanel = open && !onAskPage && (turns.length > 0 || pending || Boolean(error));
   const share = async () => { setMenu(false); setNote(''); try { await screen.start(); } catch (e) { if ((e as Error).name !== 'NotAllowedError') setNote((e as Error).message); } };
 
-  return <aside className="chatbar" aria-label="Chat with Ox">
+  return <aside className="chatbar" aria-label="Chat with Taurus">
     <div className="chatbar-inner">
-      {showPanel && <section className="chat-panel" aria-label="Conversation with Ox">
+      {showPanel && <section className="chat-panel" aria-label="Conversation with Taurus">
         <div className="chat-panel-head">
-          <h2>Ox</h2>
+          <h2>Taurus</h2>
           <span className="chat-panel-tools">
             <a className="text-button" href="#ask">Full page</a>
             <button type="button" className="text-button" onClick={onClear}>Clear</button>
@@ -151,7 +151,7 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
         <div className="chat-panel-body"><Transcript turns={turns} pending={pending} error={error} proposals={proposals} onUpdate={onUpdate} /></div>
       </section>}
       {(attached.length > 0 || screen.sharing || note) && <div className="attach-row" aria-live="polite">
-        {screen.sharing && <span className="attach-chip sharing"><span>Ox can see {screen.label}</span><button type="button" className="text-button" onClick={screen.stop}>Stop sharing</button></span>}
+        {screen.sharing && <span className="attach-chip sharing"><span>Taurus can see {screen.label}</span><button type="button" className="text-button" onClick={screen.stop}>Stop sharing</button></span>}
         {attached.map(a => <span key={a.id} className="attach-chip">
           {a.kind === 'image' ? <img src={a.url} alt="" /> : null}<span className="attach-name">{a.name}</span>
           <button type="button" className="attach-x" aria-label={`Remove ${a.name}`} onClick={() => setAttached(list => list.filter(x => x.id !== a.id))}>×</button>
@@ -160,9 +160,9 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
       </div>}
       <form className={`composer-bar ${over ? 'drop-over' : ''}`} onSubmit={send} onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={drop}>
         <button type="button" className={`fn-talk ${talking ? 'on' : ''}`} aria-pressed={talking} {...voice.talkButton}>Talk</button>
-        <label className="sr-only" htmlFor="ask-input">Message Ox</label>
+        <label className="sr-only" htmlFor="ask-input">Message Taurus</label>
         <textarea id="ask-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={keys} onPaste={paste} onFocus={() => { if (turns.length) setOpen(true); void api.warm().catch(() => undefined); }}
-          placeholder={talking ? 'Listening' : voice.waking ? 'Ask Ox, or say “Hey Ox”' : 'Ask or tell Ox anything'} maxLength={4000} />
+          placeholder={talking ? 'Listening' : voice.waking ? 'Ask Taurus, or say “Hey Taurus”' : 'Ask or tell Taurus anything'} maxLength={4000} />
         {!open && !onAskPage && turns.length > 0 && <button type="button" className="text-button chat-show" onClick={() => setOpen(true)}>Show chat</button>}
         <span className="attach-wrap">
           <button type="button" className="attach-button" aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu(m => !m)} disabled={pending}><span className="attach-plus" aria-hidden="true" /><span className="sr-only">Attach</span></button>

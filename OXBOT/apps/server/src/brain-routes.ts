@@ -6,7 +6,7 @@ import { addSchedule, removeSchedule, schedules } from './schedule.ts';
 import { HttpError } from './store.ts';
 
 // The Brain's and ProFinder's routes (November 16, 2026), kept out of index.ts. Same walls as every other route:
-// loopback or a paired phone, and the x-oxbot header on anything that isn't a GET.
+// loopback or a paired phone, and the x-taurus header on anything that isn't a GET.
 
 interface Kit {
   send: (res: ServerResponse, status: number, body: unknown) => void;
@@ -31,7 +31,7 @@ const busyCheck = () => { const b = summary().busy; if (b) throw new HttpError(4
 export async function brainRoute(req: IncomingMessage, res: ServerResponse, url: URL, { send, json, bytes }: Kit): Promise<boolean> {
   const path = url.pathname, method = req.method ?? 'GET', q = (k: string) => url.searchParams.get(k) ?? '';
   try {
-    if (path === '/api/brain' && method === 'GET') { const added = syncMemories(); send(res, 200, { graph: graph(), suggestions: suggestions(), added, folder: '~/.oxbot/brain' }); return true; }
+    if (path === '/api/brain' && method === 'GET') { const added = syncMemories(); send(res, 200, { graph: graph(), suggestions: suggestions(), added, folder: '~/.taurus/brain' }); return true; }
     if (path === '/api/brain/note') {
       if (method === 'GET') { send(res, 200, { note: getNote(q('title')) }); return true; }
       if (method === 'POST') {

@@ -48,7 +48,7 @@ export function ProFinderPage({ waiting, onUpdate }: { waiting: Proposal[]; onUp
   const take = useCallback((i: ProFinderInfo) => { setInfo(i); if (i.error) setProblem(i.error); }, []);
   const call = useCallback((work: Promise<ProFinderInfo>) => { setProblem(''); work.then(take).catch(e => setProblem((e as Error).message)); }, [take]);
   useEffect(() => { api.profinder().then(take).catch(e => setProblem((e as Error).message)); }, [take]);
-  // While Ox searches, prepares or sends, the page checks back every few seconds.
+  // While Taurus searches, prepares or sends, the page checks back every few seconds.
   useEffect(() => { if (!info?.busy) return; const t = window.setInterval(() => api.profinder().then(take).catch(() => undefined), 2500); return () => window.clearInterval(t); }, [info?.busy, take]);
   const cards = waiting.filter(p => p.kind === 'profinder.batch' && p.state === 'pending');
   const doneCards = waiting.filter(p => p.kind === 'profinder.batch' && p.state !== 'pending').length;
@@ -126,7 +126,7 @@ export function ProFinderPage({ waiting, onUpdate }: { waiting: Proposal[]; onUp
           </label>
           <label><input type="checkbox" checked={p.simplify} onChange={e => prefs({ simplify: e.target.checked })} />SimplifyJobs lists on GitHub</label>
           <label><input type="checkbox" checked={p.adzuna} onChange={e => prefs({ adzuna: e.target.checked })} />Adzuna, with your free key</label>
-          <label><input type="checkbox" checked={p.aiScoring} onChange={e => prefs({ aiScoring: e.target.checked })} />Score with OXBOT Free, contact details left out</label>
+          <label><input type="checkbox" checked={p.aiScoring} onChange={e => prefs({ aiScoring: e.target.checked })} />Score with Taurus Free, contact details left out</label>
           <label><input type="checkbox" checked={Boolean(info.schedule?.on)} onChange={e => call(api.profinderSchedule(e.target.checked))} />Search every day at 8 am</label>
         </fieldset>
       </section>
@@ -146,7 +146,7 @@ export function ProFinderPage({ waiting, onUpdate }: { waiting: Proposal[]; onUp
           <span>{l.title} at {l.company}</span>
           <span className={l.outcome === 'applied' ? '' : 'problem'}>{l.outcome === 'applied' ? 'Applied' : l.outcome === 'unconfirmed' ? 'Not confirmed' : l.outcome === 'error' ? 'Didn’t finish' : 'Needs you'}</span>
           <span className="muted">{ago(l.at)}</span>
-        </li>)}</ul> : <p className="muted">Nothing sent yet. Every application Ox sends is listed here and kept in ~/.oxbot.</p>}
+        </li>)}</ul> : <p className="muted">Nothing sent yet. Every application Taurus sends is listed here and kept in ~/.taurus.</p>}
       </section>
     </div>
   </main>;

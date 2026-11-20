@@ -1,4 +1,4 @@
-// OXBOT's own certificate authority for the phone (owner, November 2, 2026): made once, private files, a server
+// Taurus's own certificate authority for the phone (owner, November 2, 2026): made once, private files, a server
 // certificate that verifies for this Mac's Wi-Fi address, and an authority that can't vouch for any real website.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import { localTls } from '../src/tls.ts';
 
 test('the authority is made once, its files are private, and the server certificate verifies for the Wi-Fi address', () => {
-  const home = mkdtempSync(join(tmpdir(), 'oxbot-tls-'));
+  const home = mkdtempSync(join(tmpdir(), 'taurus-tls-'));
   const first = localTls(home, 'Example-Mac.local', ['192.168.1.20']);
   const again = localTls(home, 'Example-Mac.local', ['192.168.1.20']);
   assert.equal(again.fingerprint, first.fingerprint);
@@ -28,7 +28,7 @@ test('the authority is made once, its files are private, and the server certific
 });
 
 test('the authority cannot vouch for a real website', () => {
-  const home = mkdtempSync(join(tmpdir(), 'oxbot-tls-'));
+  const home = mkdtempSync(join(tmpdir(), 'taurus-tls-'));
   localTls(home, 'example-mac', ['192.168.1.20']);
   const dir = join(home, 'tls');
   writeFileSync(join(dir, 'evil.cnf'), '[req]\ndistinguished_name=dn\nprompt=no\n[dn]\nCN=example.com\n[ext]\nsubjectAltName=DNS:example.com\nextendedKeyUsage=serverAuth\n');

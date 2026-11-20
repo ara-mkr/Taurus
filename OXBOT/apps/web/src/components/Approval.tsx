@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, type Proposal } from '../api';
 
-// One action OXBOT wants to take, shown exactly as it will go out (owner, November 1, 2026). Nothing runs until
+// One action Taurus wants to take, shown exactly as it will go out (owner, November 1, 2026). Nothing runs until
 // Approve is pressed here, on the phone, on the ring screen, or with a spoken yes on a call.
 
 const left = (iso: string, now: number) => {

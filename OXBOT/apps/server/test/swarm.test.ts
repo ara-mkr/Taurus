@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { afterEach, test } from 'node:test';
 import { runInNewContext, Script } from 'node:vm';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-swarm-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-swarm-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const swarm = await import('../src/swarm.ts');
@@ -76,7 +76,7 @@ function listen() {
 afterEach(() => { swarm.resetSwarm(); swarm.useTestPages(); });
 
 test('phrases split a job: research across N sites, compare prices, a helper count kept between 3 and 50', () => {
-  const r = swarm.swarmPhrase('Hey Ox, research hotels in Lisbon across 10 sites');
+  const r = swarm.swarmPhrase('Hey Taurus, research hotels in Lisbon across 10 sites');
   assert.equal(r?.kind, 'research'); assert.equal(r?.query, 'hotels in Lisbon'); assert.equal(r?.count, 10);
   const p = swarm.swarmPhrase('compare prices for AirPods Pro');
   assert.equal(p?.kind, 'prices'); assert.equal(p?.query, 'AirPods Pro'); assert.equal(p?.parts?.length, 12);
@@ -86,7 +86,7 @@ test('phrases split a job: research across N sites, compare prices, a helper cou
   assert.equal(swarm.swarmPhrase('research standing desks on 2 sites')?.count, 3);
   assert.equal(swarm.swarmPhrase('what is on my calendar'), null);
   assert.equal(swarm.swarmPhrase('play lucid dreams'), null);
-  assert.ok(swarm.stopPhrase('Ox, stop the helpers'));
+  assert.ok(swarm.stopPhrase('Taurus, stop the helpers'));
   assert.ok(swarm.stopPhrase('stop the swarm'));
   assert.ok(!swarm.stopPhrase('stop the music'));
   // Every helper of fifty gets its own colour.
@@ -95,7 +95,7 @@ test('phrases split a job: research across N sites, compare prices, a helper cou
   assert.ok(colours.every(c => /^#[0-9A-F]{6}$/.test(c)));
 });
 
-test('twelve helpers compare prices, at most six pages open at once, each one followed live, and Ox merges the lowest', async () => {
+test('twelve helpers compare prices, at most six pages open at once, each one followed live, and Taurus merges the lowest', async () => {
   const shop = (name: string, price: string) => ({ title: `${name}: AirPods Pro`, text: `Results\nApple AirPods Pro (2nd generation)\n${price}\nFree delivery\nCases\nSilicone case $9.99` });
   const prices: Record<string, string> = { 'amazon.com': '$189.99', 'walmart.com': '$179.00', 'target.com': '$199.99', 'bestbuy.com': '$184.99', 'ebay.com': '$162.50', 'newegg.com': '$191.00',
     'costco.com': '$174.99', 'bhphotovideo.com': '$189.00', 'homedepot.com': 'No results', 'etsy.com': '', 'kohls.com': '$199.95', 'macys.com': '$205.00' };
@@ -209,7 +209,7 @@ test('a part on this Mac or the local network is refused before any page opens',
   assert.throws(() => swarm.tasks('too small', [{ url: 'https://a.example.com' }]), /at least 3/);
 });
 
-test('in Ask, “research … across 5 sites” runs the swarm without the AI; out loud, Ox answers at once and shows the result later', async () => {
+test('in Ask, “research … across 5 sites” runs the swarm without the AI; out loud, Taurus answers at once and shows the result later', async () => {
   const sites = ['one', 'two', 'three', 'four', 'five', 'six'].map(n => `${n}.example.com`);
   const pages: Record<string, FakePage> = { 'en.wikipedia.org': { title: 'standing desks - Search results', text: 'Results', links: sites.map(h => ({ text: `Standing desks reviewed by ${h}`, href: `https://${h}/desks` })) } };
   for (const h of sites) pages[h] = { title: h, text: `Our pick among standing desks is the Example Rise, which is steady at full height.` };
@@ -219,7 +219,7 @@ test('in Ask, “research … across 5 sites” runs the swarm without the AI; o
   assert.match(typed.text, /^5 helpers read 5 pages on standing desks, from 5 sites\./);
 
   swarm.useTestPages(fakeWeb(pages).maker, 1);
-  const aloud = await converse([{ role: 'user', text: 'Hey Ox, research standing desks across 5 sites' }], 'talk');
+  const aloud = await converse([{ role: 'user', text: 'Hey Taurus, research standing desks across 5 sites' }], 'talk');
   assert.equal(aloud.text, 'Sending 5 helpers to research standing desks. I’ll show you what they find.');
   assert.equal(swarm.swarmBusy(), true);
   const stop = await converse([{ role: 'user', text: 'stop the helpers' }], 'talk');

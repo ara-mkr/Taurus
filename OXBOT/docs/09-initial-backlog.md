@@ -30,7 +30,7 @@ These are proposed tickets, not completed work. Keep each pull request bounded. 
 
 ## P2 tickets
 
-**P2-01 - Ask Ox simulation.** Implement three supported scripted intents and honest fallback. Done when all responses match fixture state and no unsupported request is falsely accepted.
+**P2-01 - Ask Taurus simulation.** Implement three supported scripted intents and honest fallback. Done when all responses match fixture state and no unsupported request is falsely accepted.
 
 **P2-02 - Task list and filters.** Implement approval, planned, running, completed and attention states using a shared task model. Done when list, drawer and conversation never disagree on a task's state.
 

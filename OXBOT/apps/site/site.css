@@ -1,4 +1,4 @@
-/* OXBOT website.
+/* Taurus website.
    Layout: one dark room with a red alarm in the middle and one daylight section near the end. Huge type, the real
    app as the only imagery. Scroll scenes are tall sections with a sticky "pin"; site.js sets their state.
    App rules still hold: one ink, red only for "needs you now" and ringing, no icons, badges, gradients or glows,
@@ -261,7 +261,7 @@ figcaption { margin-top: 14px; font-size: var(--t-xs); color: var(--soft); }
 .flood-top { display: flex; justify-content: space-between; font-size: 15px; font-weight: 640; letter-spacing: 0.08em; }
 .flood-top span:last-child { letter-spacing: 0; font-variant-numeric: lining-nums proportional-nums; }
 .flood-mid { display: grid; gap: 10px; }
-.flood .ox { width: clamp(72px, 9vw, 132px); height: auto; margin-bottom: 8px; }
+.flood .taurus { width: clamp(72px, 9vw, 132px); height: auto; margin-bottom: 8px; }
 .flood-kind { font-size: var(--t-m); font-weight: 560; }
 .flood h2 { font-size: clamp(44px, min(8.4vw, 14vh), 136px); line-height: 0.92; letter-spacing: -0.045em; font-weight: 700; max-width: 9em; }
 .flood-when { font-size: var(--t-m); }

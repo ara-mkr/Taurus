@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-signin-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'oxbot-signin-'));
+process.env.TAURUS_BROKER_URL = '';
 const { apps, authorizeUrl, tokenRequest } = await import('../src/providers.ts');
 const { connectorDefs, connectorInfo, isConnected, saveFields, disconnect } = await import('../src/connectors.ts');
 

@@ -6,9 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-brain-'));
-process.env.OXBOT_BROKER_URL = '';
-process.env.OXBOT_NO_SCHEDULER = '1';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-brain-'));
+process.env.TAURUS_BROKER_URL = '';
+process.env.TAURUS_NO_SCHEDULER = '1';
 const brain = await import('../src/brain.ts');
 const { remember } = await import('../src/memory.ts');
 const { toolCalls } = await import('../src/agent.ts');
@@ -96,7 +96,7 @@ test('files attach under a note, are read for a prompt (PDFs too), and come off 
   assert.ok(readdirSync(join(brain.brainDir(), '.trash')).some(f => f.endsWith('transcript 2.pdf')));
 });
 
-test('memories go under the dot they fit, once each, and search and Ox’s tools find them', async () => {
+test('memories go under the dot they fit, once each, and search and Taurus’s tools find them', async () => {
   remember('my GPA is 3.9 at Example State University');
   remember('I take my coffee black');
   remember('my sister Maya Example has a birthday on March 3');
@@ -115,7 +115,7 @@ test('memories go under the dot they fit, once each, and search and Ox’s tools
   assert.deepEqual(toolCalls('<tool>{"name": "brain_search", "args": {"query": "gpa"}}</tool>'), [{ name: 'brain_search', args: { query: 'gpa' } }]);
 });
 
-test('“Add to Brain?”: what Ox picked up waits for a yes, then lands under the note it fits', () => {
+test('“Add to Brain?”: what Taurus picked up waits for a yes, then lands under the note it fits', () => {
   const s = brain.suggest('Plays chess at the Example Club on Sundays', 'Chess club', 'Said it while planning the weekend');
   assert.equal(brain.suggest('plays chess at the example club on sundays').id, s.id);
   assert.ok(!brain.getNote('Chess club').body.includes('Example Club'));

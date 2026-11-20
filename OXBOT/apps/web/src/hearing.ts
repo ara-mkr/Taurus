@@ -1,7 +1,7 @@
-// Speech recognition for the desktop app (owner, November 7, 2026: "i said hey ox nothing happened"). The desktop
+// Speech recognition for the desktop app (owner, November 7, 2026: "i said hey taurus nothing happened"). The desktop
 // window's Chromium has no speech service, so this stands in for it with the same shape as the browser's own
 // SpeechRecognition: it listens to the microphone, cuts out each stretch of speech by loudness, and sends it to this
-// Mac's OXBOT server (/api/voice/hear), which turns it into words with Moonshine on the Mac's CPU. Audio goes only to
+// Mac's Taurus server (/api/voice/hear), which turns it into words with Moonshine on the Mac's CPU. Audio goes only to
 // localhost, is kept in memory for one stretch, and is never stored.
 
 interface Alternative { transcript: string }
@@ -21,7 +21,7 @@ let warmed = false;
 export function warmEars() {
   if (warmed) return;
   warmed = true;
-  void fetch('/api/voice/hear?warm', { method: 'POST', credentials: 'same-origin', headers: { 'x-oxbot': '1' } }).catch(() => { warmed = false; });
+  void fetch('/api/voice/hear?warm', { method: 'POST', credentials: 'same-origin', headers: { 'x-taurus': '1' } }).catch(() => { warmed = false; });
 }
 
 export function toPcm16(frames: Float32Array[]): ArrayBuffer {
@@ -120,7 +120,7 @@ export class LocalRecognition {
     this.sending = this.sending.then(async () => {
       if (this.ended) return;
       try {
-        const res = await fetch('/api/voice/hear', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream', 'x-oxbot': '1' }, body });
+        const res = await fetch('/api/voice/hear', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream', 'x-taurus': '1' }, body });
         const data = await res.json().catch(() => ({})) as { text?: string; error?: string };
         if (this.ended) return;
         if (!res.ok) { this.onerror?.({ error: data.error ?? 'I couldn’t make out the words.' }); this.end(); return; }
@@ -130,7 +130,7 @@ export class LocalRecognition {
         this.onresult?.({ resultIndex: this.results.length - 1, results: this.results });
         if (!this.continuous) this.end();
       } catch {
-        if (!this.ended) { this.onerror?.({ error: 'I lost touch with OXBOT on this Mac.' }); this.end(); }
+        if (!this.ended) { this.onerror?.({ error: 'I lost touch with Taurus on this Mac.' }); this.end(); }
       }
     });
   }

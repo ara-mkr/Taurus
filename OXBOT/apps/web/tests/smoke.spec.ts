@@ -8,7 +8,7 @@ test.use({ reducedMotion: 'reduce' });
 for (const scheme of ['light', 'dark'] as const) {
   for (const width of [1440, 390]) {
     test(`board ${scheme} ${width}`, async ({ page }) => {
-      await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'auto'));
+      await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'auto'));
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width, height: width > 500 ? 1000 : 844 });
       await mock(page);
@@ -70,7 +70,7 @@ test('boards can be edited, extended and managed in settings', async ({ page }) 
 });
 
 test('connections and phone pages render', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   await mock(page);
   await page.goto('/#connections');
   await expect(page.getByRole('heading', { name: 'Connections' })).toBeVisible();
@@ -96,7 +96,7 @@ test('connections and phone pages render', async ({ page }) => {
 
 // November 6, 2026: the standby clock is only the clock until a click, tap or key; moving the mouse never shows the rest.
 for (const [width, height] of [[1440, 900], [390, 844]]) {
-  test(`standby clock fills the screen at ${width} and shows Ox only on a tap`, async ({ page }) => {
+  test(`standby clock fills the screen at ${width} and shows Taurus only on a tap`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await mock(page);
     await page.goto('/#ring');
@@ -117,12 +117,12 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.mouse.move(width / 3, height / 3);
     await page.mouse.move(width / 2, height / 2, { steps: 8 });
     await expect(main).toHaveAttribute('data-chrome', 'off');
-    // A click shows Ox, centred, and the rest; another click hides them.
+    // A click shows Taurus, centred, and the rest; another click hides them.
     await page.mouse.click(width / 2, height / 2);
     await expect(main).toHaveAttribute('data-chrome', 'on');
     await expect(page.getByRole('link', { name: 'Open the dashboard' })).toBeVisible();
-    const ox = await page.locator('.standby-ox').evaluate(el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; });
-    expect(Math.abs(ox - width / 2)).toBeLessThan(1);
+    const taurus = await page.locator('.standby-taurus').evaluate(el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; });
+    expect(Math.abs(taurus - width / 2)).toBeLessThan(1);
     await page.screenshot({ path: `${shots}/standby-shown-${width}.png` });
     await page.mouse.click(width / 2, height / 2);
     await expect(main).toHaveAttribute('data-chrome', 'off');

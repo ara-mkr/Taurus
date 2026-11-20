@@ -14,7 +14,7 @@ const checks = async (page: Page) => {
 
 for (const scheme of ['dark', 'light'] as const) {
   test(`Ask proposes a reply, shows it exactly, and sends only on Approve (${scheme})`, async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'auto'));
+    await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'auto'));
     await page.emulateMedia({ colorScheme: scheme });
     await mock(page);
     const approvals: unknown[] = [];
@@ -51,7 +51,7 @@ for (const width of [1440, 390]) {
     await expect(card.getByText('Harvest Bowl')).toBeVisible();
     await expect(card.getByText('About $18.45')).toBeVisible();
     await expect(card.getByRole('button', { name: 'Approve', exact: true })).toBeInViewport();
-    await expect(card.getByText(/No delivery app lets OXBOT place an order/)).toBeVisible();
+    await expect(card.getByText(/No delivery app lets Taurus place an order/)).toBeVisible();
     // The whole card, caution included, reads without scrolling inside the tray, and stays clear of the top bar.
     expect(await tray.evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true);
     expect((await tray.boundingBox())!.y).toBeGreaterThanOrEqual((await page.locator('header.topbar').boundingBox())!.y + (await page.locator('header.topbar').boundingBox())!.height);
@@ -81,7 +81,7 @@ test('the ring screen offers waiting actions in one tap', async ({ page }) => {
   await expect.poll(() => via).toBe('ring');
 });
 
-test('Settings, Actions lists each permission and what OXBOT did', async ({ page }) => {
+test('Settings, Actions lists each permission and what Taurus did', async ({ page }) => {
   await mock(page);
   await page.goto('/#actions');
   await expect(page.getByRole('heading', { level: 1, name: 'Actions' })).toBeVisible();

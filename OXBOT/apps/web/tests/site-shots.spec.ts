@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 //   for f in board-dark board-light ask tint-ember approve-reply; do cwebp -quiet -q 80 -resize 1600 0 $f.webp -o $f-1600.webp; done
 //   cwebp -quiet -q 82 -crop 1180 640 1700 1380 board-food.webp -o food-card.webp && rm board-food.webp
 // ring.jpg isn't used by the site; it's there to check the desktop ring screen by eye.
-// Every /api request is answered here, so nothing from a real OXBOT home can reach a picture.
+// Every /api request is answered here, so nothing from a real Taurus home can reach a picture.
 test.skip(!process.env.SITE_SHOTS, 'SITE_SHOTS=1 only');
 test.use({ timezoneId: 'America/New_York', deviceScaleFactor: 2 });
 
@@ -40,7 +40,7 @@ const dashboard = {
 };
 const day = (offset: number) => { const d = new Date(now); d.setDate(d.getDate() + offset); return d.toLocaleDateString('en-CA'); };
 const history = { sample: false, days: Array.from({ length: 30 }, (_, i) => ({ date: day(i - 29), recovery: Math.round(66 + Math.sin(i / 2.3) * 14 + Math.cos(i / 5) * 6), hrv: 52 + Math.round(Math.sin(i / 3) * 8), sleepMinutes: 400 + Math.round(Math.cos(i / 4) * 40) })) };
-const prefs = (ox = false, tint = 'graphite') => ({ tint, ambient: true, ox, people: [{ id: 'p1', name: 'Sam Okafor', everyDays: 14 }], todos: [{ id: 't1', text: 'Send board deck to Dana', done: false, at: iso(-60) }, { id: 't2', text: 'Book flights for the offsite', done: false, at: iso(-30) }], boards: [
+const prefs = (taurus = false, tint = 'graphite') => ({ tint, ambient: true, taurus, people: [{ id: 'p1', name: 'Sam Okafor', everyDays: 14 }], todos: [{ id: 't1', text: 'Send board deck to Dana', done: false, at: iso(-60) }, { id: 't2', text: 'Book flights for the offsite', done: false, at: iso(-30) }], boards: [
   { id: 'home', name: 'Home', widgets: [
     { id: 'w1', type: 'brief', size: 'wide' }, { id: 'w2', type: 'focus', size: 'medium' }, { id: 'w3', type: 'needs', size: 'tall' }, { id: 'w4', type: 'schedule', size: 'tall' },
     { id: 'w5', type: 'health', size: 'tall' }, { id: 'w6', type: 'numbers', size: 'medium' }, { id: 'w7', type: 'people', size: 'medium' }, { id: 'w8', type: 'trend', size: 'medium', config: { metric: 'recovery', days: 30 } },
@@ -58,19 +58,19 @@ const food = {
   id: '0b6f3c1e-2222-4000-8000-000000000002', kind: 'food.order', app: 'Food', title: 'Order from Larkspur Kitchen', to: 'Larkspur Kitchen',
   lines: [{ label: 'Why', value: 'Your usual lunch, light because recovery is 64%.' }, { label: 'App', value: 'DoorDash' }],
   purchase: { item: 'Harvest Bowl', place: 'Larkspur Kitchen', total: 'About $18.45' },
-  caution: 'No delivery app lets OXBOT place an order. Approving opens DoorDash at Larkspur Kitchen, where you check the final total and tap Place order.',
+  caution: 'No delivery app lets Taurus place an order. Approving opens DoorDash at Larkspur Kitchen, where you check the final total and tap Place order.',
   open: 'https://www.doordash.com/', editable: false, from: 'talk', createdAt: iso(-1), expiresAt: later(9), state: 'pending', digest: 'digest-food',
 };
 const answer = 'Two things before 10:00. Dana’s board seat clause is the only open item on the term sheet, and Priya needs the Q4 hiring plan approved by 3. Recovery is 64%, so keep the run for tomorrow.';
 
-async function setup(page: Page, opts: { light?: boolean; ox?: boolean; tint?: string; ringing?: boolean; waiting?: unknown[] } = {}) {
+async function setup(page: Page, opts: { light?: boolean; taurus?: boolean; tint?: string; ringing?: boolean; waiting?: unknown[] } = {}) {
   const waiting = opts.waiting ?? [];
   await page.clock.setFixedTime(now);
-  await page.addInitScript(light => { try { localStorage.setItem('oxbot-appearance', light ? 'light' : 'dark'); } catch { /* blocked */ } }, Boolean(opts.light));
+  await page.addInitScript(light => { try { localStorage.setItem('taurus-appearance', light ? 'light' : 'dark'); } catch { /* blocked */ } }, Boolean(opts.light));
   // Registered first so it is matched last: anything not answered below gets a 404, never the real server.
   await page.route('**/api/**', r => r.fulfill({ status: 404, json: { error: 'not in the screenshot set' } }));
   await page.route('**/api/dashboard*', r => r.fulfill({ json: dashboard }));
-  await page.route('**/api/prefs', r => r.fulfill({ json: r.request().method() === 'POST' ? r.request().postDataJSON() : prefs(opts.ox, opts.tint) }));
+  await page.route('**/api/prefs', r => r.fulfill({ json: r.request().method() === 'POST' ? r.request().postDataJSON() : prefs(opts.taurus, opts.tint) }));
   await page.route('**/api/history', r => r.fulfill({ json: history }));
   await page.route('**/api/approvals', r => r.fulfill({ json: { pending: waiting } }));
   await page.route('**/api/ask', r => r.fulfill({ json: { provider: 'Claude', text: answer } }));
@@ -107,7 +107,7 @@ test('board in the Ember tint', async ({ page }) => {
 
 test('ask', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setup(page, { ox: true });
+  await setup(page, { taurus: true });
   await page.goto('/#ask');
   await page.getByRole('textbox').fill('What do I need to do before the investor call?');
   await page.keyboard.press('Enter');

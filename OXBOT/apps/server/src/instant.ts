@@ -2,6 +2,8 @@ import { propose } from './actions/approvals.ts';
 import { note } from './activity.ts';
 import { prefs } from './boards.ts';
 import { greeting } from './greetings.ts';
+import { go } from './go.ts';
+import { emailRoutine } from './routines.ts';
 import { homeCommand } from './home.ts';
 import { appearance, findApp, findShortcut, macAllowed, isMac, openApp, runningApps, runShortcut, sleepDisplay, trustedShortcut, volume } from './mac.ts';
 import { forget, remember, showMemory } from './memory.ts';
@@ -9,17 +11,17 @@ import { canPlay, control, play, type Control } from './music.ts';
 import { cancelReminder, cancelTimer, DURATION, duration, remind, runningTimers, showReminders, spokenDuration, spokenTime, startFocus, startTimer, upcoming, WHEN, when } from './timers.ts';
 import { close, openWindows, show } from './windows.ts';
 
-// Instant commands (owner, November 4, 2026). "Hey Ox, play Juice WRLD on Spotify", "set a 10 minute pasta timer",
+// Instant commands (owner, November 4, 2026). "Hey Taurus, play Juice WRLD on Spotify", "set a 10 minute pasta timer",
 // "remind me at 6 to call mom", "lock in", "remember I hate early meetings", "open YouTube". Recognized here
 // without the AI, so they work in a fraction of a second, with no AI set up, and the same from Talk, Ask and a phone
-// call; each one shows an Ox window. Anything not recognized goes to the AI as before, which has the same powers as
+// call; each one shows a Taurus window. Anything not recognized goes to the AI as before, which has the same powers as
 // tools for when you put it some other way. Nothing here sends, posts or buys: those still need an approval card.
 
 type Via = 'ask' | 'talk' | 'phone';
 export interface Instant { text: string }
 
-// "Hey Ox", "Yo Ox", "Hi Ox", "Hello there Ox", "OXBOT" (owner, November 6, 2026: "anything like that not just hey ox").
-const wake = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up)[\s,]+(?:there[\s,]+)?)?(?:ox\s*bot|ox)\b[\s,.!?]*/;
+// "Hey Taurus", "Yo Taurus", "Hi Taurus", "Hello there Taurus", "Taurus" (owner, November 6, 2026: "anything like that not just hey taurus").
+const wake = /^(?:(?:hey|hi|hiya|hello|yo|ayo|ay|aye|oi|okay|ok|sup|what'?s up)[\s,]+(?:there[\s,]+)?)?(?:taurus|torus|tauris|taurous|tarus|toros|torres)(?:'s)?(?:\s*bot)?\b[\s,.!?]*/;
 const polite = /^(?:(?:can|could|would|will) you\s+|please\s+|i want you to\s+|go ahead and\s+|just\s+)+/;
 // What the owner said, ready to match: no wake word, no "please", no end punctuation.
 export function tidy(text: string) {
@@ -93,9 +95,9 @@ async function macCommand(said: string, heard: string, via: Via): Promise<Instan
   if (/^(?:turn on |switch to |go |enable |use )?light mode$|^(?:turn off |disable )dark mode$|^dark mode off$/.test(said)) return ok ? { text: await appearance(false, heard) } : notAllowed;
   if (/^(?:turn off|sleep|put to sleep|switch off)(?: the| my)? (?:display|screen|monitor)s?$/.test(said)) return ok ? { text: await sleepDisplay() } : notAllowed;
   if (/^what apps (?:are|do i have) (?:open|running)$|^what'?s (?:open|running) on (?:my|the|this) (?:mac|computer|laptop)$/.test(said)) {
-    if (!isMac()) return { text: 'OXBOT isn’t running on a Mac.' };
+    if (!isMac()) return { text: 'Taurus isn’t running on a Mac.' };
     const list = await runningApps();
-    return { text: list.length ? `Open now: ${list.slice(0, 8).join(', ')}${list.length > 8 ? `, and ${list.length - 8} more` : ''}.` : 'I can’t see which apps are open. macOS may need you to allow OXBOT under Automation.' };
+    return { text: list.length ? `Open now: ${list.slice(0, 8).join(', ')}${list.length > 8 ? `, and ${list.length - 8} more` : ''}.` : 'I can’t see which apps are open. macOS may need you to allow Taurus under Automation.' };
   }
   const shortcut = said.match(/^run (?:my |the )?(?:shortcut |shortcuts )?(?:called |named )?(.+?)(?: shortcut)?$/);
   if (shortcut) {
@@ -123,7 +125,7 @@ async function macCommand(said: string, heard: string, via: Via): Promise<Instan
 
 export async function instant(raw: string, via: Via): Promise<Instant | null> {
   const said = tidy(raw);
-  // "Hey Ox", "yo Ox, what's up", "how's it going": a hello back at once, no AI (November 7, 2026).
+  // "Hey Taurus", "yo Taurus, what's up", "how's it going": a hello back at once, no AI (November 7, 2026).
   const hello = greeting(said, prefs().profile.tone);
   if (hello) return { text: hello };
   if (!said || said.length > 220) return null;
@@ -140,7 +142,12 @@ export async function instant(raw: string, via: Via): Promise<Instant | null> {
 const OPEN_APP = /^(?:open(?: up)?|launch|pull up|bring up|fire up|boot up|switch to|jump to|go to|take me to)\s+(.+)$/;
 
 async function route(said: string, heard: string, via: Via): Promise<Instant | null> {
-  // Opening an app on this Mac comes first (owner, November 6, 2026: "hey ox open up my notes app and it wil literally
+  // Taurus's own pages come before Mac apps (November 19, 2026): "open the brain map", "show me my profile".
+  const page = go(said, via);
+  if (page) return page;
+  const routine = emailRoutine(said);
+  if (routine) return routine;
+  // Opening an app on this Mac comes first (owner, November 6, 2026: "hey taurus open up my notes app and it wil literally
   // open in like half a second"). Nothing else is checked before it: no smart-home hubs, no Shortcuts list, no AI.
   const appWanted = said.match(OPEN_APP);
   if (appWanted && via !== 'phone' && !/\b(?:website|site|in the browser|on the web|tab)\b/.test(appWanted[1])) {
@@ -177,7 +184,7 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
     startFocus(ms, heard);
     let music = '';
     if (canPlay()) { try { await play('playlist deep focus', heard); music = ' Focus music is on.'; } catch { /* the focus block still runs */ } }
-    note('ring', `Focus for ${spokenDuration(ms)}: VIP mail waits, meetings still ring`, { by: 'ox' });
+    note('ring', `Focus for ${spokenDuration(ms)}: VIP mail waits, meetings still ring`, { by: 'taurus' });
     return { text: `Locked in for ${spokenDuration(ms)}. I’ll hold VIP mail until you’re done; meetings still ring.${music}` };
   }
   if (/^(?:stop|end|cancel|quit) (?:the )?focus(?: mode| session| block)?$|^unlock$|^i'?m done focusing$/.test(said)) {

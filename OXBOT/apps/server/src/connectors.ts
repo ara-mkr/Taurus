@@ -152,7 +152,7 @@ const coreDefs: Def[] = [
   },
   {
     id: 'github', name: 'GitHub', group: 'Code', reads: 'Open pull requests waiting on your review.',
-    // Signed in, OXBOT reads only your notifications (review requests), never code: GitHub's sign-in has no
+    // Signed in, Taurus reads only your notifications (review requests), never code: GitHub's sign-in has no
     // read-only access to private repositories, so it asks for none. A personal token reads the same through search.
     oauth: { app: 'github', scopes: ['notifications', 'read:user'] },
     fields: [...appFields('github'), { key: 'GITHUB_TOKEN', label: 'Fine-grained personal access token', secret: true, instead: true }],
@@ -191,7 +191,7 @@ const coreDefs: Def[] = [
   },
   {
     id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose.',
-    // Notion's own sign-in screen asks which pages OXBOT may see; with no database named, it reads the first one shared.
+    // Notion's own sign-in screen asks which pages Taurus may see; with no database named, it reads the first one shared.
     oauth: { app: 'notion', scopes: ['pages'] },
     fields: [...appFields('notion'), { key: 'NOTION_TOKEN', label: 'Internal integration secret', secret: true, instead: true }, { key: 'NOTION_DATABASE_ID', label: 'Task database ID', optional: true, placeholder: 'The first database you share' }],
     setup: 'Create a public integration with the redirect URL below, or an internal one and share your task database with it (••• → Connections).', setupUrl: 'https://www.notion.so/profile/integrations',
@@ -222,7 +222,7 @@ const coreDefs: Def[] = [
   {
     id: 'google-sheets', name: 'Google Sheets', group: 'Numbers', reads: 'One range you choose, as rows of metric, value, change. Your company numbers, your way.',
     oauth: { app: 'google', scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] },
-    fields: [...appFields('google'), { key: 'SHEET_ID', label: 'Spreadsheet ID (from its URL)' }, { key: 'SHEET_RANGE', label: 'Range', optional: true, placeholder: 'OXBOT!A1:C12' }],
+    fields: [...appFields('google'), { key: 'SHEET_ID', label: 'Spreadsheet ID (from its URL)' }, { key: 'SHEET_RANGE', label: 'Range', optional: true, placeholder: 'Taurus!A1:C12' }],
     setup: 'Same Google OAuth client. Enable the Google Sheets API. Put metrics in three columns: name, value, change.', setupUrl: 'https://console.cloud.google.com/apis/library/sheets.googleapis.com',
     async pull({ token, field }) {
       const range = encodeURIComponent(field('SHEET_RANGE') || 'A1:C12');
@@ -342,7 +342,7 @@ const coreDefs: Def[] = [
       return { body: { restingHr: r && Number(r.beatsPerMinute), hrv: h?.averageHeartRateVariabilityMilliseconds && Math.round(h.averageHeartRateVariabilityMilliseconds), sleepMinutes: s?.summary && Number(s.summary.minutesAsleep) } };
     },
   },
-  // Every AI provider from ai.ts. They read nothing on their own: OXBOT sends the question and your dashboard's facts.
+  // Every AI provider from ai.ts. They read nothing on their own: Taurus sends the question and your dashboard's facts.
   ...aiProviders.map((p): Def => ({
     id: p.id, name: p.free ? `${p.name} (${p.maker})` : p.local ? `${p.name} (${p.maker})` : p.name === p.maker ? p.name : `${p.name} (${p.maker})`, group: 'AI',
     reads: p.local ? 'Nothing. Writes your brief and answers questions on this Mac.' : p.plan ? 'Nothing. Answers with your own plan, with the facts on your dashboard, sent when you ask.' : 'Nothing. Writes your brief and answers questions with the facts on your dashboard, sent when you ask.',
@@ -350,16 +350,16 @@ const coreDefs: Def[] = [
     setup: p.kind === 'cli' ? `${p.note} Install it, run it once in Terminal and sign in with your plan, then switch this on.` : p.plan ? `${p.note} Paste it here, then pick it in Settings, then AI.` : p.free ? `${p.note} Easiest: Settings, then AI, then Sign in with OpenRouter. Or paste a key.` : `${p.note} Create a key, paste it here, and pick it in Settings, then AI.`, setupUrl: p.keyUrl,
   })),
   {
-    id: 'twilio', name: 'Phone call (Twilio)', group: 'Phone', reads: 'Nothing. Places a real call to your phone when OXBOT rings and you have not answered.',
+    id: 'twilio', name: 'Phone call (Twilio)', group: 'Phone', reads: 'Nothing. Places a real call to your phone when Taurus rings and you have not answered.',
     fields: [
       { key: 'TWILIO_ACCOUNT_SID', label: 'Account SID' }, { key: 'TWILIO_AUTH_TOKEN', label: 'Auth token', secret: true },
       { key: 'TWILIO_FROM', label: 'Twilio number', placeholder: '+15551230000' }, { key: 'MY_PHONE', label: 'Your mobile number', placeholder: '+15557654321' },
     ],
-    setup: 'A free trial is enough to start: sign up with your own mobile (Twilio verifies it), then Get a phone number. Paste the Account SID and auth token from the console’s front page. On your iPhone, save the Twilio number as a contact named OXBOT and add it to Favorites so it rings through Focus. Trial calls start with a short Twilio message: press any key to hear OXBOT.', setupUrl: 'https://console.twilio.com/',
+    setup: 'A free trial is enough to start: sign up with your own mobile (Twilio verifies it), then Get a phone number. Paste the Account SID and auth token from the console’s front page. On your iPhone, save the Twilio number as a contact named Taurus and add it to Favorites so it rings through Focus. Trial calls start with a short Twilio message: press any key to hear Taurus.', setupUrl: 'https://console.twilio.com/',
   },
   {
-    id: 'ntfy', name: 'Push (ntfy)', group: 'Phone', reads: 'Nothing. Sends an urgent push to the ntfy app the moment OXBOT rings.',
-    fields: [{ key: 'NTFY_TOPIC', label: 'Private topic name', secret: true, placeholder: 'oxbot-7f3k9q…' }, { key: 'NTFY_SERVER', label: 'Server', optional: true, placeholder: 'https://ntfy.sh' }],
+    id: 'ntfy', name: 'Push (ntfy)', group: 'Phone', reads: 'Nothing. Sends an urgent push to the ntfy app the moment Taurus rings.',
+    fields: [{ key: 'NTFY_TOPIC', label: 'Private topic name', secret: true, placeholder: 'taurus-7f3k9q…' }, { key: 'NTFY_SERVER', label: 'Server', optional: true, placeholder: 'https://ntfy.sh' }],
     setup: 'Install ntfy on your phone, subscribe to a long random topic name, paste the same name here.', setupUrl: 'https://ntfy.sh/',
   },
 ];
@@ -368,13 +368,13 @@ const defs: Def[] = [...coreDefs, ...workDefs, ...numbersBodyDefs, ...filesFeeds
 // For tests: every definition, with its pull function.
 export const connectorDefs = (): readonly Def[] => defs;
 
-// Write grants (owner, November 1, 2026): what OXBOT may do once you approve each action. Each is its own sign-in
+// Write grants (owner, November 1, 2026): what Taurus may do once you approve each action. Each is its own sign-in
 // or token, separate from the read-only connection, so reading never carries the power to send.
 const switchField = (key: string): Field => ({ key, label: 'On' });
 const grants: Def[] = [
   { id: 'gmail-send', name: 'Gmail', group: 'Mail', write: true, reads: 'Sends and replies to email you approve, from your Gmail.',
     oauth: { app: 'google', scopes: writeScopes.google! }, fields: appFields('google'),
-    setup: 'Sending needs your own Google OAuth client (OXBOT’s one-click sign-in only ever asks to read). Use the same client as Gmail, enable the Gmail API, then Allow. Google asks only for “Send email on your behalf”.', setupUrl: 'https://console.cloud.google.com/apis/credentials' },
+    setup: 'Sending needs your own Google OAuth client (Taurus’s one-click sign-in only ever asks to read). Use the same client as Gmail, enable the Gmail API, then Allow. Google asks only for “Send email on your behalf”.', setupUrl: 'https://console.cloud.google.com/apis/credentials' },
   { id: 'outlook-send', name: 'Outlook Mail', group: 'Mail', write: true, reads: 'Sends and replies to email you approve, from Outlook.',
     oauth: { app: 'microsoft', scopes: writeScopes.microsoft! }, fields: appFields('microsoft'),
     setup: 'Use your own Microsoft Entra app (the same one as Outlook Mail), add the delegated permission Mail.Send, then Allow.', setupUrl: 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade' },
@@ -399,11 +399,11 @@ const grants: Def[] = [
 grants.push({ id: 'spotify-play', name: 'Spotify', group: 'Media', write: true, mockOnly: true, reads: 'Plays, pauses and skips music on your Spotify when you ask out loud, and shows it in a window. Starting music needs Spotify Premium.',
   oauth: { app: 'spotify', scopes: writeScopes.spotify! }, fields: appFields('spotify'),
   setup: 'Use the same Spotify app as the Spotify connection (Spotify for Developers, then your app, with this redirect URL), then Allow. Spotify asks to control playback and read your library and playlists.', setupUrl: 'https://developer.spotify.com/dashboard' });
-grants.push({ id: 'voice-in', name: 'Call OXBOT from your phone', group: 'Phone', write: true, reads: 'Answers when you call your Twilio number from your own mobile and type your PIN, then does what you say after reading it back and hearing yes.',
-  fields: [{ key: 'VOICE_PIN', label: 'PIN, 4 to 8 digits, typed on the keypad', secret: true }, { key: 'OXBOT_VOICE_URL', label: 'Public address that reaches this Mac', placeholder: 'https://oxbot-voice.example.com' }],
+grants.push({ id: 'voice-in', name: 'Call Taurus from your phone', group: 'Phone', write: true, reads: 'Answers when you call your Twilio number from your own mobile and type your PIN, then does what you say after reading it back and hearing yes.',
+  fields: [{ key: 'VOICE_PIN', label: 'PIN, 4 to 8 digits, typed on the keypad', secret: true }, { key: 'TAURUS_VOICE_URL', label: 'Public address that reaches this Mac', placeholder: 'https://taurus-voice.example.com' }],
   setup: 'Needs a public address for this Mac so Twilio can reach it, for example a Cloudflare Tunnel that you set up. That address only ever answers /api/voice, and only to requests signed by your Twilio account. Then in Twilio, set your number’s “A call comes in” webhook to that address plus /api/voice/incoming (HTTP POST).', setupUrl: 'https://console.twilio.com/' });
 // Home and this Mac (owner, November 5, 2026: "connect it to like smart lights or curtains" and "agentic actions on like
-// all ur apps"). Connecting a hub lets Ox change lights, plugs, curtains, fans, the thermostat and scenes the moment
+// all ur apps"). Connecting a hub lets Taurus change lights, plugs, curtains, fans, the thermostat and scenes the moment
 // you ask; locks, garage doors and gates always wait for an approval card. See home.ts and mac.ts.
 grants.push(
   { id: 'home-assistant', name: 'Home Assistant', group: 'Home', write: true, mockOnly: true, reads: 'Turns lights, plugs, curtains, fans, the thermostat and scenes on and off when you ask. Locks and garage doors wait for your OK.',
@@ -411,11 +411,11 @@ grants.push(
     setup: 'Home Assistant connects to almost every smart home brand. In Home Assistant open your profile (bottom left), then Security, then Long-lived access tokens, Create token, and paste it here with the address you open Home Assistant at.', setupUrl: 'https://www.home-assistant.io/docs/authentication/#your-account-profile' },
   { id: 'hue', name: 'Philips Hue', group: 'Home', write: true, mockOnly: true, reads: 'Turns your Hue lights on and off, dims them, changes their colour and runs Hue scenes when you ask.',
     fields: [{ key: 'HUE_BRIDGE', label: 'Bridge address', placeholder: '192.168.1.20' }, { key: 'HUE_KEY', label: 'Bridge key (Pair fills this in)', secret: true }],
-    setup: 'Press the round button on top of your Hue bridge, then Pair on the Home page within 30 seconds. OXBOT finds the bridge by itself; if it can’t, type its address from the Hue app (Settings, Bridges).', setupUrl: 'https://developers.meethue.com/develop/get-started-2/' },
+    setup: 'Press the round button on top of your Hue bridge, then Pair on the Home page within 30 seconds. Taurus finds the bridge by itself; if it can’t, type its address from the Hue app (Settings, Bridges).', setupUrl: 'https://developers.meethue.com/develop/get-started-2/' },
   { id: 'lifx', name: 'LIFX', group: 'Home', write: true, mockOnly: true, reads: 'Turns your LIFX lights on and off, dims them, changes their colour and runs LIFX scenes when you ask.',
     fields: [{ key: 'LIFX_TOKEN', label: 'Personal access token', secret: true }],
     setup: 'Sign in at cloud.lifx.com, open Settings, Generate New Token, and paste it here.', setupUrl: 'https://cloud.lifx.com/settings' },
-  // November 6, 2026: more brands (home-more.ts). Everything else reaches OXBOT through Home Assistant.
+  // November 6, 2026: more brands (home-more.ts). Everything else reaches Taurus through Home Assistant.
   { id: 'govee', name: 'Govee', group: 'Home', write: true, mockOnly: true, reads: 'Turns Govee lights, light strips, plugs, fans and heaters on and off, dims them and changes their colour when you ask.',
     fields: [{ key: 'GOVEE_API_KEY', label: 'Govee API key', secret: true }],
     setup: 'In the Govee Home app open Profile, then Settings, then Apply for API Key. Govee emails the key; paste it here.', setupUrl: 'https://developer.govee.com/docs/getting-started' },
@@ -430,16 +430,16 @@ grants.push(
     setup: 'Give each Shelly a name and its address from the Shelly app (Device, Settings, Device information). Gen2 and later devices.', setupUrl: 'https://shelly-api-docs.shelly.cloud/gen2/' },
   { id: 'nanoleaf', name: 'Nanoleaf', group: 'Home', write: true, mockOnly: true, reads: 'Turns your Nanoleaf panels on and off, dims them, changes their colour and plays their effects.',
     fields: [{ key: 'NANOLEAF_HOST', label: 'Panels’ address', placeholder: '192.168.1.50' }, { key: 'NANOLEAF_TOKEN', label: 'Auth token', secret: true }],
-    setup: 'Hold the power button on the controller for 5 to 7 seconds until the lights flash, then within 30 seconds ask OXBOT to pair (or use any Nanoleaf token tool) and paste the token.', setupUrl: 'https://nanoleaf.atlassian.net/wiki/spaces/nlapid/pages/1474592/Nanoleaf+Open+API' },
+    setup: 'Hold the power button on the controller for 5 to 7 seconds until the lights flash, then within 30 seconds ask Taurus to pair (or use any Nanoleaf token tool) and paste the token.', setupUrl: 'https://nanoleaf.atlassian.net/wiki/spaces/nlapid/pages/1474592/Nanoleaf+Open+API' },
   { id: 'wiz', name: 'WiZ', group: 'Home', write: true, mockOnly: true, reads: 'WiZ bulbs and lamps (including Philips WiZ) on your Wi-Fi: on, off, brightness, colour and white.',
     fields: [{ key: 'WIZ_HOSTS', label: 'Bulbs, one per line', placeholder: 'Bedroom lamp=192.168.1.61' }],
     setup: 'Find each bulb’s address in the WiZ app (Settings, Lights, the bulb, Model) and allow local communication in Settings, Security.', setupUrl: 'https://www.wizconnected.com/' },
   { id: 'yeelight', name: 'Yeelight', group: 'Home', write: true, mockOnly: true, reads: 'Yeelight bulbs and strips on your Wi-Fi: on, off, brightness, colour and white.',
     fields: [{ key: 'YEELIGHT_HOSTS', label: 'Bulbs, one per line', placeholder: 'Desk strip=192.168.1.70' }],
     setup: 'In the Yeelight app open each light, then Settings, and switch on LAN Control. Its address is in Device info.', setupUrl: 'https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf' },
-  { id: 'mac-control', name: 'Control this Mac', group: 'Mac', write: true, toggle: true, mockOnly: true, reads: 'Opens and switches apps, sets the volume, dark mode and display, and runs Shortcuts in your “OXBOT” and “Home” folders when you ask. Quitting apps, iMessages, notes and other Shortcuts wait for your OK.',
+  { id: 'mac-control', name: 'Control this Mac', group: 'Mac', write: true, toggle: true, mockOnly: true, reads: 'Opens and switches apps, sets the volume, dark mode and display, and runs Shortcuts in your “Taurus” and “Home” folders when you ask. Quitting apps, iMessages, notes and other Shortcuts wait for your OK.',
     fields: [switchField('MAC_CONTROL_ON')],
-    setup: 'macOS asks once per app the first time Ox controls it (Privacy & Security, Automation). Shortcuts in a folder named Home also show up as scenes on the Home page, which is how Apple Home scenes reach Ox.', setupUrl: 'https://support.apple.com/guide/shortcuts-mac/welcome/mac' },
+    setup: 'macOS asks once per app the first time Taurus controls it (Privacy & Security, Automation). Shortcuts in a folder named Home also show up as scenes on the Home page, which is how Apple Home scenes reach Taurus.', setupUrl: 'https://support.apple.com/guide/shortcuts-mac/welcome/mac' },
 );
 export const grantDefs = (): readonly Def[] => grants;
 
@@ -508,9 +508,9 @@ function occurrences(e: Record<string, Prop>, from: number, to: number): Calenda
 let publicUrl = 'http://localhost:8787';
 export const setPublicUrl = (url: string) => { publicUrl = url.replace(/\/$/, ''); };
 const redirectUri = () => `${publicUrl}/api/oauth/callback`;
-// OXBOT's own sign-in service. Set OXBOT_BROKER_URL to another deployment, or to empty to turn it off.
+// Taurus's own sign-in service. Set TAURUS_BROKER_URL to another deployment, or to empty to turn it off.
 const DEFAULT_BROKER = 'https://oxbot-signin.oxbot-signin.workers.dev';
-const brokerUrl = () => (process.env.OXBOT_BROKER_URL ?? DEFAULT_BROKER).replace(/\/$/, '');
+const brokerUrl = () => (process.env.TAURUS_BROKER_URL ?? DEFAULT_BROKER).replace(/\/$/, '');
 let brokerApps: Partial<Record<AppName, boolean>> = {};
 // Asks the sign-in service which providers it holds keys for; refreshed every 10 minutes.
 export async function checkBroker() {
@@ -586,7 +586,7 @@ export async function startOAuth(id: string, outside = false): Promise<string> {
   const def = byId(id);
   if (!def.oauth) throw new Error(`${def.name} uses a token, not sign-in`);
   const app = apps[def.oauth.app];
-  // One click: OXBOT's sign-in service holds the app keys and returns tokens encrypted to this Mac.
+  // One click: Taurus's sign-in service holds the app keys and returns tokens encrypted to this Mac.
   if (oneClick(def)) {
     const handoff = await newHandoffKey();
     const nonce = remember(id, { verifier: '', handoff: handoff.privateKey, outside });
@@ -601,7 +601,7 @@ export async function startOAuth(id: string, outside = false): Promise<string> {
 }
 
 // One sign-in, your whole account (owner, November 17, 2026: "a lot of things r sign in with gmail or apple account").
-// Google and Microsoft each hand out mail and calendar from a single consent, so OXBOT asks for both scopes at once and
+// Google and Microsoft each hand out mail and calendar from a single consent, so Taurus asks for both scopes at once and
 // saves the one token under each connector. Read-only, same scopes as the separate sign-ins — just one tap instead of two.
 export const providerBundles: { provider: AppName; name: string; ids: string[] }[] = [
   { provider: 'google', name: 'Google', ids: ['gmail', 'google-calendar'] },
@@ -632,7 +632,7 @@ export async function startOAuthBundle(provider: string, outside = false): Promi
   const scopes = [...new Set(picked.flatMap(d => d.oauth!.scopes))];
   const ids = picked.map(d => d.id);
   const primary = picked[0].id;
-  // One click through OXBOT's sign-in service, exactly like a single connector, but with the combined scopes and id list.
+  // One click through Taurus's sign-in service, exactly like a single connector, but with the combined scopes and id list.
   if (!ownKeys(app) && brokerUrl() && brokerApps[bundle.provider]) {
     const handoff = await newHandoffKey();
     const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids, outside });
@@ -666,7 +666,7 @@ export async function finishOAuth(state: string, code: string): Promise<{ name: 
 
 export async function finishHandoff(nonce: string, payload: string): Promise<string> {
   const entry = take(nonce);
-  if (!entry.handoff) throw new Error('Sign-in was not started through the OXBOT sign-in service.');
+  if (!entry.handoff) throw new Error('Sign-in was not started through the Taurus sign-in service.');
   const tokens = await openSealed<TokenSet>(entry.handoff, payload);
   if (!tokens.access_token) throw new Error('The sign-in service returned no token.');
   for (const id of entry.ids ?? [entry.id]) { store.setTokens(id, { ...tokens, meta: { via: 'broker' } }); errors.delete(id); }

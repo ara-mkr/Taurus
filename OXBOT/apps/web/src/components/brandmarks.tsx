@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-// Brands Simple Icons doesn't carry (Microsoft's apps, Slack, OpenAI, Twilio), drawn for OXBOT (owner, November 5,
+// Brands Simple Icons doesn't carry (Microsoft's apps, Slack, OpenAI, Twilio), drawn for Taurus (owner, November 5,
 // 2026: "some of the connections dont have icons next to them like outlook"). Each is a few plain shapes in the
 // brand's colours, drawn here from scratch so the app is recognisable next to its name; none is copied from a brand
 // asset file. Shown only on Connections tiles and sheets (docs/11-design-rules.md, November 2 update).

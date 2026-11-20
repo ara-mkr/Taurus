@@ -5,7 +5,7 @@ import { connectorsFor, markFor, siteName, websitesIn } from './logos';
 import { Qr } from './Qr';
 import { inDesktop } from './Voice';
 
-// In the order a day goes: what reaches you, what you owe, what you know, how you are, then OXBOT's own plumbing.
+// In the order a day goes: what reaches you, what you owe, what you know, how you are, then Taurus's own plumbing.
 const groups: [Group, string][] = [
   ['Mail', 'Mail'], ['Calendar', 'Calendar and meetings'], ['Chat', 'Chat'], ['Tasks', 'Tasks and projects'], ['Code', 'Code and incidents'],
   ['Files', 'Docs and files'], ['Sales', 'Sales and support'], ['Money', 'Money'], ['Numbers', 'Company numbers'], ['Body', 'Health'],
@@ -56,11 +56,11 @@ function ComposioApps({ connected }: { connected: boolean }) {
       {info.apps.length === 0 ? <p className="muted">None yet. Connect apps in Composio under the same user ID; they show here after the next refresh.</p>
         : <ul className="app-rows">{info.apps.map(app => <li key={app.slug}>
           <span>{app.name}</span>
-          <span className={app.error ? 'problem' : 'muted'}>{app.error ?? (app.reads ? `Reads: ${app.reads.toLowerCase()}` : 'Connected. OXBOT has no reader for it yet')}</span>
+          <span className={app.error ? 'problem' : 'muted'}>{app.error ?? (app.reads ? `Reads: ${app.reads.toLowerCase()}` : 'Connected. Taurus has no reader for it yet')}</span>
         </li>)}</ul>}
     </>}
     <label className="find">
-      <span>Look up any of Composio’s {info.catalog.length.toLocaleString('en-US')} apps. OXBOT reads {readCount} of them.</span>
+      <span>Look up any of Composio’s {info.catalog.length.toLocaleString('en-US')} apps. Taurus reads {readCount} of them.</span>
       <input type="search" placeholder="Pipedrive, Zendesk, Vercel…" value={query} onChange={e => setQuery(e.target.value)} />
     </label>
     {q && (found.length === 0 ? <p className="muted">Composio doesn’t list “{query}”.</p> : <ul className="app-rows">{found.map(([name, slug]) => <li key={slug}>
@@ -119,7 +119,7 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
     finally { setBusy(false); }
   }
   async function remove() {
-    if (!confirm(allow ? `Stop OXBOT acting in ${c.name}? It forgets that permission; reading is not affected.` : `Disconnect ${c.name}? OXBOT forgets its token. You can reconnect any time.`)) return;
+    if (!confirm(allow ? `Stop Taurus acting in ${c.name}? It forgets that permission; reading is not affected.` : `Disconnect ${c.name}? Taurus forgets its token. You can reconnect any time.`)) return;
     setBusy(true);
     try { onChange((await api.disconnect(c.id)).connectors); } finally { setBusy(false); }
   }
@@ -208,16 +208,16 @@ function PhoneLink({ target, name }: { target: string; name?: string }) {
   if (error) return <p className="problem">{error}</p>;
   if (!info) return <p className="muted">Getting this Mac’s Wi-Fi address…</p>;
   if (!info.pairing.length) return <div className="phone-off">
-    <p>Your phone can’t reach OXBOT yet: it’s only listening on this Mac.</p>
-    <p className="muted">{info.lanReady ? 'Open this page on the Mac itself to see the code.' : <>Turn on “Let my phone connect” in OXBOT’s menu bar item, or start it with <code>OXBOT_HOST=0.0.0.0 pnpm start</code>. The steps are on <a href="#phone">Phone</a>.</>}</p>
+    <p>Your phone can’t reach Taurus yet: it’s only listening on this Mac.</p>
+    <p className="muted">{info.lanReady ? 'Open this page on the Mac itself to see the code.' : <>Turn on “Let my phone connect” in Taurus’s menu bar item, or start it with <code>TAURUS_HOST=0.0.0.0 pnpm start</code>. The steps are on <a href="#phone">Phone</a>.</>}</p>
   </div>;
   const url = `${info.pairing[0]}#connections${target ? `/${target}` : ''}`;
   return <div className="phone-link">
-    <Qr value={url} label={`QR code that opens ${name ?? 'Connections'} in OXBOT on your phone`} />
+    <Qr value={url} label={`QR code that opens ${name ?? 'Connections'} in Taurus on your phone`} />
     <div>
       <p><strong>Point your phone’s camera at the code.</strong></p>
-      <p className="muted">It opens {name ?? 'Connections'} in OXBOT on your phone, on the same Wi-Fi, and pairs the phone so nobody else on the network can. Anything you save there lands on this Mac.</p>
-      <p className="muted">Easiest for keys: open the app’s key page on your phone, where you’re already signed in, copy the key, and paste it into OXBOT right there.</p>
+      <p className="muted">It opens {name ?? 'Connections'} in Taurus on your phone, on the same Wi-Fi, and pairs the phone so nobody else on the network can. Anything you save there lands on this Mac.</p>
+      <p className="muted">Easiest for keys: open the app’s key page on your phone, where you’re already signed in, copy the key, and paste it into Taurus right there.</p>
     </div>
   </div>;
 }
@@ -244,7 +244,7 @@ export function AppSheet({ c, onChange, onClose }: { c: ConnectorInfo; onChange:
     <div><h2>{c.name}</h2><span className={`connector-status ${c.connected ? 'on' : ''} ${c.lastError ? 'bad' : ''}`}>{status(c, false)}</span></div>
   </div>}>
     <p className="app-reads">{c.reads}</p>
-    <p className="muted">Reading only. Keys stay on this Mac and go only to {short(c)}. To let OXBOT act here, see <a href="#actions">Actions</a>.</p>
+    <p className="muted">Reading only. Keys stay on this Mac and go only to {short(c)}. To let Taurus act here, see <a href="#actions">Actions</a>.</p>
     {phoneUseful && <div className="seg" role="tablist" aria-label="Where to connect">
       <button type="button" role="tab" aria-selected={tab === 'mac'} onClick={() => setTab('mac')}>On this Mac</button>
       <button type="button" role="tab" aria-selected={tab === 'phone'} onClick={() => setTab('phone')}>With your phone</button>
@@ -259,7 +259,7 @@ export function AppSheet({ c, onChange, onClose }: { c: ConnectorInfo; onChange:
 // Find the apps you already use from a password-manager export (owner, November 2, 2026). Only the website column is
 // read, in this window; only the matching app ids are kept, in this browser.
 type Found = { ids: string[]; composio: [string, string][]; sites: number; at: string };
-const readFound = (): Found | null => { try { return JSON.parse(localStorage.getItem('oxbot-found') ?? 'null'); } catch { return null; } };
+const readFound = (): Found | null => { try { return JSON.parse(localStorage.getItem('taurus-found') ?? 'null'); } catch { return null; } };
 
 export type { Found };
 export function FindAccounts({ list, onFound, onOpen, onClose }: { list: ConnectorInfo[]; onFound: (f: Found | null) => void; onOpen: (id: string) => void; onClose: () => void }) {
@@ -280,18 +280,18 @@ export function FindAccounts({ list, onFound, onOpen, onClose }: { list: Connect
         const direct = connectorsFor(host).filter(id => known.has(id));
         if (direct.length) direct.forEach(id => ids.add(id)); else loose.add(siteName(host));
       }
-      // Sites OXBOT has no reader for may still be in Composio's catalog.
+      // Sites Taurus has no reader for may still be in Composio's catalog.
       const plain = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
       const catalog = await api.composio().then(r => r.catalog).catch(() => [] as [string, string][]);
       const composio = catalog.filter(([name, slug]) => loose.has(plain(slug)) || loose.has(plain(name)));
       const next = { ids: [...ids], composio, sites: hosts.size, at: new Date().toISOString() };
-      try { localStorage.setItem('oxbot-found', JSON.stringify(next)); } catch { /* storage blocked: results last this visit */ }
+      try { localStorage.setItem('taurus-found', JSON.stringify(next)); } catch { /* storage blocked: results last this visit */ }
       setFound(next); onFound(next); setFresh(true);
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
   function forget() {
-    try { localStorage.removeItem('oxbot-found'); } catch { /* nothing kept */ }
+    try { localStorage.removeItem('taurus-found'); } catch { /* nothing kept */ }
     setFound(null); onFound(null); setFresh(false);
   }
   const apps = found ? list.filter(c => found.ids.includes(c.id)).sort((a, b) => Number(a.connected) - Number(b.connected)) : [];
@@ -303,20 +303,20 @@ export function FindAccounts({ list, onFound, onOpen, onClose }: { list: Connect
 
   return <Sheet label="Find the apps you already use" wide onClose={onClose} head={<h2>Find the apps you already use</h2>}>
     {!found ? <>
-      <p>OXBOT can look through the sites in your saved passwords and show which of them it can connect.</p>
+      <p>Taurus can look through the sites in your saved passwords and show which of them it can connect.</p>
       <ol className="steps">
         <li>In <a href="https://passwords.google.com/options" target="_blank" rel="noreferrer">Google Password Manager settings</a>, choose Export passwords. Chrome, Safari, 1Password, Bitwarden, LastPass and Firefox exports work too.</li>
         <li>Choose that file here.</li>
       </ol>
       {chooser('Choose the exported CSV file', true)}
-      <p className="muted">The file is read in this window and nowhere else. OXBOT keeps only the website column; it never reads, saves or sends a password, and never signs in with one. Each app still connects through its own sign-in or key.</p>
+      <p className="muted">The file is read in this window and nowhere else. Taurus keeps only the website column; it never reads, saves or sends a password, and never signs in with one. Each app still connects through its own sign-in or key.</p>
     </> : <>
-      <p className="found-line">You have accounts at {found.sites} sites. {apps.length ? `${apps.length} connect to OXBOT directly${done ? `, ${done} already connected` : ''}.` : 'None of them connect to OXBOT directly yet.'}{found.composio.length ? ` ${found.composio.length} more are in Composio.` : ''}</p>
+      <p className="found-line">You have accounts at {found.sites} sites. {apps.length ? `${apps.length} connect to Taurus directly${done ? `, ${done} already connected` : ''}.` : 'None of them connect to Taurus directly yet.'}{found.composio.length ? ` ${found.composio.length} more are in Composio.` : ''}</p>
       {fresh && <p className="problem">Delete the exported file now. It holds every password in plain text.</p>}
       {apps.length > 0 && <div className="app-grid compact">{apps.map(c => <Tile key={c.id} c={c} onOpen={onOpen} />)}</div>}
       {found.composio.length > 0 && <>
         <h3>Through Composio</h3>
-        <p className="muted">Connect these in your Composio project and OXBOT lists them: {found.composio.map(([name]) => name).join(', ')}. <button type="button" className="text-button" onClick={() => onOpen('composio')}>Set up Composio</button></p>
+        <p className="muted">Connect these in your Composio project and Taurus lists them: {found.composio.map(([name]) => name).join(', ')}. <button type="button" className="text-button" onClick={() => onOpen('composio')}>Set up Composio</button></p>
       </>}
       <div className="actions">
         {chooser('Use a newer export')}
@@ -401,7 +401,7 @@ export function Connections() {
         <button type="button" className="primary" onClick={() => setSheet('find')}>Find my apps</button>
       </div>
     </div>
-    <p className="lede">OXBOT runs on this Mac. Keys and sign-ins are stored in {home ? <code>{home}</code> : 'a private folder'}, readable only by you, and are sent only to the service they belong to. Everything here only reads. To let OXBOT send, reply, call or act in your apps, see <a href="#actions">Actions</a>.</p>
+    <p className="lede">Taurus runs on this Mac. Keys and sign-ins are stored in {home ? <code>{home}</code> : 'a private folder'}, readable only by you, and are sent only to the service they belong to. Everything here only reads. To let Taurus send, reply, call or act in your apps, see <a href="#actions">Actions</a>.</p>
     {error && <p className="problem">{error}</p>}
 
     {list && suggested.length > 0 && grouped && <section aria-labelledby="g-suggested">

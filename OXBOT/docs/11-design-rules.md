@@ -1,6 +1,6 @@
 # 11. Design rules: no slop
 
-On October 30, 2026 the owner asked to strip every "AI slop" trait out of OXBOT. These rules replace the periwinkle-and-graphite direction in `03-ui-specification.md` and `design/ui-direction.html`, which are kept only as history.
+On October 30, 2026 the owner asked to strip every "AI slop" trait out of Taurus. These rules replace the periwinkle-and-graphite direction in `03-ui-specification.md` and `design/ui-direction.html`, which are kept only as history.
 
 ## What counts as slop
 
@@ -16,27 +16,27 @@ Research summary. The most useful source is Adrian Krebs' audit of 1,590 Show HN
 
 Akhil asked for a dashboard of floating, dark-tinted glass cards with graphs, customizable tabs and widgets, and an AI that builds boards. That replaces two rows below: **cards are now allowed** (one layer, never a card inside a card) and **glass is now the surface** (`apps/web/src/styles/glass.css`: blur over a slow light field in one of four tints, dark by default). Charts are one ink with a faint wash, a recessive grid and a hover readout. Market changes are the one place green and red mean gain and loss. Everything else on this page still holds: system typeface, nothing under 13 px, no icons, emoji, sparkles or badges, red for "needs you now", sample data marked per card.
 
-**Ox, added the same day.** The mascot (`design/logo/ox-mascot.svg`, eyes and horns only) is the one character in the product: he speaks in Ask, on the boards and when calling. His copy follows the copy rules: short, specific, from live data, no exclamation marks.
+**Taurus, added the same day.** The mascot (`design/logo/taurus-mascot.svg`, eyes and horns only) is the one character in the product: he speaks in Ask, on the boards and when calling. His copy follows the copy rules: short, specific, from live data, no exclamation marks.
 
-**Ox moves and listens (October 31, later).** Ox's charge carries meaning, so it is allowed motion: he turns around his horn tips, pinches his horns inward (each horn rotates, no squash; the eyes never change), runs along that heading and straightens up as he stops. Clicking a card's empty space or the board sends him there, and he says one line about that card from live data. Quick functions live in a small glass function bar labelled with words ("Talk" first): in the header on desktop, in the side rail on tablet, floating above the tab bar on phone. Under Reduce Motion he fades to the spot instead of travelling.
+**Taurus moves and listens (October 31, later).** Taurus's charge carries meaning, so it is allowed motion: he turns around his horn tips, pinches his horns inward (each horn rotates, no squash; the eyes never change), runs along that heading and straightens up as he stops. Clicking a card's empty space or the board sends him there, and he says one line about that card from live data. Quick functions live in a small glass function bar labelled with words ("Talk" first): in the header on desktop, in the side rail on tablet, floating above the tab bar on phone. Under Reduce Motion he fades to the spot instead of travelling.
 
 ## Owner update, November 2, 2026: brand marks on Connections
 
 Akhil asked for the Connections page to look like an AI app's connector directory, with each app's logo, name and a short description. Brand marks (Simple Icons, or the brand's initials on its colour) are allowed on Connections tiles and sheets only, as identity next to the name, never doing a word's job. Status stays a word in ink; red still means only "needs attention".
 
-## Owner update, November 5, 2026: Taurus, the cloud dashboard
+## Owner update, November 5, 2026: Hud, the cloud dashboard
 
-Akhil asked for "a rlly cool cloud looking jarvis dashboard ... cloud theme like those saas websites" with Ox in the middle, and made it the page OXBOT opens to (`docs/18-taurus.md`). On Taurus only, the sky behind everything may use soft gradients, volumetric clouds and the sky's blue as a second colour. The panels, type and copy on top follow every other rule here. The same day he asked for differently coloured cursors for the agent swarm, the one other place a second colour is allowed.
+Akhil asked for "a rlly cool cloud looking jarvis dashboard ... cloud theme like those saas websites" with Taurus in the middle, and made it the page Taurus opens to (`docs/18-hud.md`). On Hud only, the sky behind everything may use soft gradients, volumetric clouds and the sky's blue as a second colour. The panels, type and copy on top follow every other rule here. The same day he asked for differently coloured cursors for the agent swarm, the one other place a second colour is allowed.
 
 ## Owner update, November 5, 2026: coloured helper cursors
 
-Akhil asked for "a bunch of different colored cursors" when Ox splits a job across helpers (`docs/17-swarm.md`). For the swarm only, each helper gets its own colour: its cursor, the name tag on it ("Scout 3 · reading booking.com", dark text above 7:1 on the colour), the outline of its live page and the ring it sends through Ox when it comes home. Colour is identity there, never status: state is still a word, red still means "needs you now", and everything else in the swarm panel is ink on glass. Everything else on this page still holds: system typeface, nothing under 13 px, no icons, sparkles or badges.
+Akhil asked for "a bunch of different colored cursors" when Taurus splits a job across helpers (`docs/17-swarm.md`). For the swarm only, each helper gets its own colour: its cursor, the name tag on it ("Scout 3 · reading booking.com", dark text above 7:1 on the colour), the outline of its live page and the ring it sends through Taurus when it comes home. Colour is identity there, never status: state is still a word, red still means "needs you now", and everything else in the swarm panel is ink on glass. Everything else on this page still holds: system typeface, nothing under 13 px, no icons, sparkles or badges.
 
 ## Owner update, November 5, 2026: marks for every connection
 
-Akhil: "some of the connections dont have icons next to them like outlook". Simple Icons doesn't carry Microsoft's apps, Slack, OpenAI or Twilio, so those are drawn for OXBOT from a few plain shapes in the brand's colours (`apps/web/src/components/brandmarks.tsx`). None is copied from a brand asset file. They follow the November 2 rule: Connections tiles and sheets only, next to the name.
+Akhil: "some of the connections dont have icons next to them like outlook". Simple Icons doesn't carry Microsoft's apps, Slack, OpenAI or Twilio, so those are drawn for Taurus from a few plain shapes in the brand's colours (`apps/web/src/components/brandmarks.tsx`). None is copied from a brand asset file. They follow the November 2 rule: Connections tiles and sheets only, next to the name.
 
-## What OXBOT does instead
+## What Taurus does instead
 
 | Rule | In code |
 |---|---|
@@ -51,7 +51,7 @@ Akhil: "some of the connections dont have icons next to them like outlook". Simp
 | Copy is plain and specific. No "supercharge", no exclamation marks, no AI personality. | all copy |
 | Sample data is marked once, plainly, and per section. It is never used to ring or to write the brief. | `sections[*].live` |
 | Motion only where it carries meaning: the ring screen pulses (and stops under Reduce Motion). | `.ring` |
-| The mark is two horn strokes over a dot: an ox, not a robot head, not a monogram tile. | `public/mark.svg` |
+| The mark is two horn strokes over a dot: a taurus, not a robot head, not a monogram tile. | `public/mark.svg` |
 
 ## Checklist for every new screen
 

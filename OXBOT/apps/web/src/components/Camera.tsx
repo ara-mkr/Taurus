@@ -19,7 +19,7 @@ export function Camera({ question, note, onSend, onClose }: { question: string; 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState('');
   const insecure = !window.isSecureContext || !navigator.mediaDevices?.getUserMedia;
-  const problem = insecure ? 'The camera needs a secure page. On your phone over plain Wi-Fi it can’t open; use OXBOT on your Mac.' : failed;
+  const problem = insecure ? 'The camera needs a secure page. On your phone over plain Wi-Fi it can’t open; use Taurus on your Mac.' : failed;
   const stop = () => { stream.current?.getTracks().forEach(t => t.stop()); stream.current = null; };
 
   useEffect(() => {

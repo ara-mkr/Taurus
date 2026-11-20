@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-call-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-call-'));
+process.env.TAURUS_BROKER_URL = '';
 const { channelStatus, phoneNumber, ring, testCall } = await import('../src/ring.ts');
 const { store } = await import('../src/store.ts');
 
@@ -45,7 +45,7 @@ test('Call me now places one call from your Twilio number to your mobile and rea
   assert.equal(c.headers.get('Authorization'), `Basic ${Buffer.from(`${sid}:token-test`).toString('base64')}`);
   assert.equal(c.body.get('To'), '+15557654321');
   assert.equal(c.body.get('From'), '+15551230000');
-  assert.match(c.body.get('Twiml')!, /<Say>This is OXBOT\. Test call\. If you can hear this, OXBOT can reach you\.<\/Say>/);
+  assert.match(c.body.get('Twiml')!, /<Say>This is Taurus\. Test call\. If you can hear this, Taurus can reach you\.<\/Say>/);
   assert.equal(result.message, 'Called +•••••••4321.');
   assert.equal(channelStatus().lastCall?.ok, true);
 });

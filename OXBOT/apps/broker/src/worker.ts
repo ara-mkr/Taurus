@@ -1,4 +1,4 @@
-// OXBOT sign-in service. Holds OXBOT's own app keys so anyone can click "Sign in with WHOOP"
+// Taurus sign-in service. Holds Taurus's own app keys so anyone can click "Sign in with WHOOP"
 // (or Google, Microsoft, Strava, Oura) without registering a developer app. It stores nothing:
 // state is an encrypted blob, and tokens are encrypted to a key that only the user's Mac holds.
 import { apps, authorizeUrl, readScopes, tokenRequest, type AppName } from '../../server/src/providers.ts';
@@ -13,7 +13,7 @@ const reply = (status: number, body: string) => new Response(body, { status, hea
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json' } });
 const redirect = (location: string) => new Response(null, { status: 302, headers: { ...headers, Location: location } });
 
-// Tokens may only be handed to OXBOT on the user's own computer, never to another website.
+// Tokens may only be handed to Taurus on the user's own computer, never to another website.
 const onThisComputer = (url: URL) => url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
 const configured = (env: Env, provider: AppName) => Boolean(env[apps[provider].id] && env[apps[provider].secret]);
 const allowed = (provider: AppName, scopes: string[]) => scopes.length > 0 && scopes.every(s => readScopes[provider].includes(s));
@@ -41,10 +41,10 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     if (!(provider in apps)) return reply(400, 'Unknown provider.');
     if (!configured(env, provider)) return reply(501, `Signing in with ${apps[provider].name} isn’t ready yet. Try again soon.`);
     const scopes = (q.get('scopes') ?? '').split(' ').filter(Boolean);
-    if (!allowed(provider, scopes)) return reply(400, 'OXBOT only asks for read-only access.');
+    if (!allowed(provider, scopes)) return reply(400, 'Taurus only asks for read-only access.');
     let back: URL;
     try { back = new URL(q.get('return_to') ?? ''); } catch { return reply(400, 'Missing return address.'); }
-    if (!onThisComputer(back)) return reply(400, 'Sign-in can only return to OXBOT running on your own computer.');
+    if (!onThisComputer(back)) return reply(400, 'Sign-in can only return to Taurus running on your own computer.');
     const nonce = q.get('nonce') ?? '', key = q.get('key') ?? '';
     if (nonce.length < 16 || key.length < 40) return reply(400, 'Missing handoff key.');
     const app = apps[provider], verifier = randomToken(48);
@@ -54,8 +54,8 @@ export async function handle(request: Request, env: Env): Promise<Response> {
 
   if (request.method === 'GET' && url.pathname === '/callback') {
     let state: State;
-    try { state = await openState<State>(env.STATE_SECRET, url.searchParams.get('state') ?? ''); } catch { return reply(400, 'This sign-in link is not valid. Start again from OXBOT.'); }
-    if (state.exp < Date.now()) return reply(400, 'This sign-in took too long. Start again from OXBOT.');
+    try { state = await openState<State>(env.STATE_SECRET, url.searchParams.get('state') ?? ''); } catch { return reply(400, 'This sign-in link is not valid. Start again from Taurus.'); }
+    if (state.exp < Date.now()) return reply(400, 'This sign-in took too long. Start again from Taurus.');
     const back = new URL(state.back);
     back.searchParams.set('nonce', state.nonce);
     const providerError = url.searchParams.get('error');
@@ -71,7 +71,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     return redirect(back.href);
   }
 
-  // Refreshing needs the client secret, so OXBOT asks here. The refresh token passes through, never stored.
+  // Refreshing needs the client secret, so Taurus asks here. The refresh token passes through, never stored.
   if (request.method === 'POST' && url.pathname === '/refresh') {
     const body = await request.json().catch(() => null) as { provider?: AppName; refresh_token?: string; scopes?: string[] } | null;
     const provider = body?.provider;

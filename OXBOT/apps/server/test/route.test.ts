@@ -7,10 +7,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-route-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-route-'));
+process.env.TAURUS_BROKER_URL = '';
 // No plan apps on this "Mac", so Claude and ChatGPT mean their API keys here.
-process.env.OXBOT_CLI_DIR = mkdtempSync(join(tmpdir(), 'oxbot-no-cli-'));
+process.env.TAURUS_CLI_DIR = mkdtempSync(join(tmpdir(), 'taurus-no-cli-'));
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'OPENROUTER_MODEL']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const { settingsCommand, getRoute } = await import('../src/route.ts');
@@ -42,7 +42,7 @@ beforeEach(() => { sent = []; busy = new Set(); openai = []; resetSpeeds(); stor
 
 test('saying it: who answers what, and the main scan', () => {
   assert.deepEqual(settingsCommand('use claude for everything'), { route: [{ brand: 'claude', tiers: ['simple', 'medium', 'hard'] }] });
-  assert.deepEqual(settingsCommand('Hey Ox, use the free ones for quick stuff and ChatGPT for big jobs.'), { route: [{ brand: 'free', tiers: ['simple'] }, { brand: 'chatgpt', tiers: ['hard'] }] });
+  assert.deepEqual(settingsCommand('Hey Taurus, use the free ones for quick stuff and ChatGPT for big jobs.'), { route: [{ brand: 'free', tiers: ['simple'] }, { brand: 'chatgpt', tiers: ['hard'] }] });
   assert.deepEqual(settingsCommand('make it all free'), { route: [{ brand: 'free', tiers: ['simple', 'medium', 'hard'] }] });
   assert.deepEqual(settingsCommand('switch to chatgpt'), { route: [{ brand: 'chatgpt', tiers: ['simple', 'medium', 'hard'] }] });
   assert.deepEqual(settingsCommand('turn off scans'), { scans: { on: false } });
@@ -54,7 +54,7 @@ test('saying it: who answers what, and the main scan', () => {
 test('a setting said out loud changes at once, with no AI; an AI that isn’t connected says how to connect it', async () => {
   store.setSecrets({ OPENAI_API_KEY: 'sk-test' });
   const r = await converse([{ role: 'user', text: 'use free for quick asks and chatgpt for big jobs' }], 'talk');
-  assert.equal(r.text, 'Done. OXBOT takes quick asks; ChatGPT takes big jobs.');
+  assert.equal(r.text, 'Done. Taurus takes quick asks; ChatGPT takes big jobs.');
   assert.equal(sent.length + openai.length, 0, 'no AI was asked');
   assert.deepEqual(getRoute(), { simple: 'free', hard: 'chatgpt' });
   assert.match(applySettings('use claude for everything')!, /Claude isn’t connected yet/);
@@ -104,18 +104,18 @@ test('a big job goes where the owner routed it', async () => {
   assert.equal(big.provider, 'ChatGPT');
   assert.equal(openai.length, 1);
   const everyday = await converse([{ role: 'user', text: 'what is on my calendar today' }], 'ask');
-  assert.equal(everyday.provider, 'OXBOT');
+  assert.equal(everyday.provider, 'Taurus');
   store.setSecrets({ OPENAI_API_KEY: '' });
 });
 
-test('when the day’s free asks are used up, Ox says so plainly and doesn’t try every other free model', async () => {
+test('when the day’s free asks are used up, Taurus says so plainly and doesn’t try every other free model', async () => {
   const real = globalThis.fetch;
   let tries = 0;
   globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
     if (String(input) === 'https://openrouter.ai/api/v1/chat/completions') { tries++; return json({ error: { message: 'Rate limit exceeded: free-models-per-day. Add 5 credits to unlock 1000 free model requests per day', code: 429 } }, 429); }
     return real(input, init);
   }) as typeof fetch;
-  await assert.rejects(ask('sys', [{ role: 'user', text: 'hi' }], false, { tier: 'simple' }), /free OXBOT asks are used up.*50 a day.*use Claude for everything/s);
+  await assert.rejects(ask('sys', [{ role: 'user', text: 'hi' }], false, { tier: 'simple' }), /free Taurus asks are used up.*50 a day.*use Claude for everything/s);
   assert.equal(tries, 1);
   globalThis.fetch = real;
 });

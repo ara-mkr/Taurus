@@ -3,10 +3,10 @@ import { register, type Args } from './actions/approvals.ts';
 import { HttpError, store } from './store.ts';
 
 // MCP servers (owner, November 6, 2026: "make it so u can add skills for the ai not just plugins and also mcp servers").
-// OXBOT speaks the Model Context Protocol's Streamable HTTP transport to servers the owner adds by address: remote ones
+// Taurus speaks the Model Context Protocol's Streamable HTTP transport to servers the owner adds by address: remote ones
 // over https, or one running on this Mac at localhost. It never starts a program to run a server (there is still no
-// shell). A tool the server marks read-only (readOnlyHint, and not destructive) runs when Ox asks; every other tool is
-// an approval card showing each argument. What tools return is data, not instructions. Saved in ~/.oxbot/mcp.json;
+// shell). A tool the server marks read-only (readOnlyHint, and not destructive) runs when Taurus asks; every other tool is
+// an approval card showing each argument. What tools return is data, not instructions. Saved in ~/.taurus/mcp.json;
 // a server's token is a secret like every other key. Built from the MCP specification (2025-06-18) and tested against
 // a mock server only.
 
@@ -45,7 +45,7 @@ class Session {
     const sid = res.headers.get('mcp-session-id'); if (sid) this.id = sid;
     if (notify) { await res.text().catch(() => ''); return undefined; }
     const text = await res.text();
-    if (res.status === 401 || res.status === 403) throw new HttpError(409, 'The server turned OXBOT away. Check its token.');
+    if (res.status === 401 || res.status === 403) throw new HttpError(409, 'The server turned Taurus away. Check its token.');
     if (!res.ok) throw new HttpError(502, `The MCP server answered ${res.status}: ${text.slice(0, 160)}`);
     let msg: any;
     if ((res.headers.get('content-type') ?? '').includes('text/event-stream')) {
@@ -60,7 +60,7 @@ class Session {
     return msg.result;
   }
   async open() {
-    await this.rpc('initialize', { protocolVersion: VERSION, capabilities: {}, clientInfo: { name: 'OXBOT', version: '1.0' } });
+    await this.rpc('initialize', { protocolVersion: VERSION, capabilities: {}, clientInfo: { name: 'Taurus', version: '1.0' } });
     await this.rpc('notifications/initialized', undefined, true);
     return this;
   }
@@ -77,7 +77,7 @@ const toTool = (t: any): McpTool => {
   };
 };
 
-// Connects, lists the tools and saves them, so Ox knows what each server offers without asking every time.
+// Connects, lists the tools and saves them, so Taurus knows what each server offers without asking every time.
 export async function refreshServer(id: string): Promise<McpServer> {
   const all = list(); const s = all.find(x => x.id === id);
   if (!s) throw new HttpError(404, 'No such MCP server.');

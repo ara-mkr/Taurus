@@ -58,7 +58,7 @@ export const filesFeedsDefs: Def[] = [
     id: 'google-drive', name: 'Google Drive and Docs', group: 'Files', mockOnly: true,
     reads: 'Names of files changed in the last three days and who changed them. File contents are never read.',
     oauth: { app: 'google', scopes: ['https://www.googleapis.com/auth/drive.metadata.readonly'] }, fields: appFields('google'),
-    setup: 'Same Google OAuth client as Gmail. Enable the Google Drive API. OXBOT asks only for drive.metadata.readonly.', setupUrl: 'https://console.cloud.google.com/apis/library/drive.googleapis.com',
+    setup: 'Same Google OAuth client as Gmail. Enable the Google Drive API. Taurus asks only for drive.metadata.readonly.', setupUrl: 'https://console.cloud.google.com/apis/library/drive.googleapis.com',
     async pull({ token }) {
       const q = encodeURIComponent(`modifiedTime > '${ago(3)}' and trashed = false and mimeType != 'application/vnd.google-apps.folder'`);
       const data = await api<any>(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime%20desc&pageSize=8&fields=${encodeURIComponent('files(id,name,modifiedTime,webViewLink,lastModifyingUser(displayName,me))')}`, { token: await token() });
@@ -121,7 +121,7 @@ export const filesFeedsDefs: Def[] = [
     id: 'spotify', name: 'Spotify', group: 'Media', mockOnly: true,
     reads: 'What you’re playing now and the last few tracks you played.',
     oauth: { app: 'spotify', scopes: ['user-read-currently-playing', 'user-read-recently-played'] }, fields: appFields('spotify'),
-    setup: 'Spotify for Developers → Create app → Web API. Add the redirect URL. OXBOT asks only for user-read-currently-playing and user-read-recently-played.', setupUrl: 'https://developer.spotify.com/dashboard',
+    setup: 'Spotify for Developers → Create app → Web API. Add the redirect URL. Taurus asks only for user-read-currently-playing and user-read-recently-played.', setupUrl: 'https://developer.spotify.com/dashboard',
     async pull({ token }) {
       const t = await token();
       const [now, recent] = await Promise.all([

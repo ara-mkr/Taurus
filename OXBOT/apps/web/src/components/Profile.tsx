@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { Prefs, Profile } from '../api';
 import { Logo } from './Logo';
-import { Ox } from './Ox';
+import { Taurus } from './Taurus';
 import { shrink } from './Settings';
 import { Avatar, brandColors, languages } from './Shell';
 
 // Your profile, apart from Settings (owner, November 6, 2026: "seperate ur profile from settings so if u click profile it
 // brings u to a seperate menu where u choose ur name email profile pic and stuff, make it so u can also choose what icon u
-// want like the ox mascot or the O X letter logo and what color u want just simple black white, or certain colors").
+// want like the taurus mascot or the O X letter logo and what color u want just simple black white, or certain colors").
 export function ProfilePage({ prefs, setPrefs }: { prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void }) {
   const profile = prefs.profile;
   const [note, setNote] = useState('');
@@ -31,7 +31,7 @@ export function ProfilePage({ prefs, setPrefs }: { prefs: Prefs; setPrefs: (u: (
 
     <fieldset className="choice">
       <legend>You</legend>
-      <label>Name<input type="text" defaultValue={profile.name} maxLength={60} placeholder="What Ox calls you" onBlur={e => setProfile({ name: e.target.value.trim() })} /></label>
+      <label>Name<input type="text" defaultValue={profile.name} maxLength={60} placeholder="What Taurus calls you" onBlur={e => setProfile({ name: e.target.value.trim() })} /></label>
       <label>Email<input type="email" defaultValue={profile.email ?? ''} maxLength={254} placeholder="you@example.com" autoComplete="email"
         onBlur={e => { const v = e.target.value.trim(); if (!v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setProfile({ email: v || undefined }); setNote(''); } else setNote('That email doesn’t look right.'); }} /></label>
       <label>Language
@@ -39,17 +39,17 @@ export function ProfilePage({ prefs, setPrefs }: { prefs: Prefs; setPrefs: (u: (
           {languages.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
         </select>
       </label>
-      <p className="muted">Ox answers in the language you pick.</p>
+      <p className="muted">Taurus answers in the language you pick.</p>
       <label className="check"><input type="checkbox" checked={profile.greet} onChange={e => setProfile({ greet: e.target.checked })} />Greet me by name with the time of day</label>
     </fieldset>
 
     <fieldset className="choice">
-      <legend>OXBOT’s icon</legend>
+      <legend>Taurus’s icon</legend>
       <div className="icon-choices" role="radiogroup" aria-label="Icon">
         {(['letters', 'mascot'] as const).map(kind => <button key={kind} type="button" role="radio" aria-checked={(profile.icon ?? 'letters') === kind} className="icon-choice"
           style={{ color: hex }} onClick={() => setProfile({ icon: kind === 'letters' ? undefined : kind })}>
-          {kind === 'letters' ? <Logo height={34} /> : <Ox size={40} label="Ox" />}
-          <span>{kind === 'letters' ? 'OX letters' : 'Ox'}</span>
+          {kind === 'letters' ? <Logo height={34} /> : <Taurus size={40} label="Taurus" />}
+          <span>{kind === 'letters' ? 'TAURUS letters' : 'Taurus'}</span>
         </button>)}
       </div>
       <div className="icon-colors" role="radiogroup" aria-label="Icon colour">
@@ -61,9 +61,9 @@ export function ProfilePage({ prefs, setPrefs }: { prefs: Prefs; setPrefs: (u: (
 
     <fieldset className="choice">
       <legend>Welcome</legend>
-      <p className="muted">Replay Ox’s voice-guided setup and tour, the one from the first launch.</p>
+      <p className="muted">Replay Taurus’s voice-guided setup and tour, the one from the first launch.</p>
       <div className="actions">
-        <button type="button" onClick={() => { try { localStorage.removeItem('oxbot-onboarded'); } catch { /* storage blocked */ } location.reload(); }}>Replay the welcome</button>
+        <button type="button" onClick={() => { try { localStorage.removeItem('taurus-onboarded'); } catch { /* storage blocked */ } location.reload(); }}>Replay the welcome</button>
       </div>
     </fieldset>
   </main>;

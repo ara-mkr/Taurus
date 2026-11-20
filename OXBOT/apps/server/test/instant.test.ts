@@ -1,4 +1,4 @@
-// Instant commands and Ox windows (owner, November 4, 2026): "hey ox play juice wrld on spotify", timers, reminders,
+// Instant commands and Taurus windows (owner, November 4, 2026): "hey taurus play juice wrld on spotify", timers, reminders,
 // focus, memory and opening apps. Against a mocked Spotify and a scripted fake AI only; nothing real plays or sends.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-instant-'));
-process.env.OXBOT_BROKER_URL = '';
-process.env.OXBOT_FAST = '1';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-instant-'));
+process.env.TAURUS_BROKER_URL = '';
+process.env.TAURUS_FAST = '1';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const { converse } = await import('../src/agent.ts');
@@ -67,12 +67,12 @@ beforeEach(() => {
 });
 
 test('the wake word, "please" and punctuation come off before matching', () => {
-  assert.equal(tidy('Hey Ox, play Juice WRLD on Spotify.'), 'play juice wrld on spotify');
-  assert.equal(tidy('ok oxbot can you please pause'), 'pause');
+  assert.equal(tidy('Hey Taurus, play Juice WRLD on Spotify.'), 'play juice wrld on spotify');
+  assert.equal(tidy('ok taurus can you please pause'), 'pause');
 });
 
-test('"hey ox play juice wrld on spotify" plays the artist and pops up the music window, without the AI', async () => {
-  const answer = await talk('Hey Ox, play Juice WRLD on Spotify');
+test('"hey taurus play juice wrld on spotify" plays the artist and pops up the music window, without the AI', async () => {
+  const answer = await talk('Hey Taurus, play Juice WRLD on Spotify');
   assert.equal(answer.text, 'Playing Juice WRLD.');
   assert.equal(seen.length, 0, 'no AI call for an instant command');
   const put = spotify().find(c => c.method === 'PUT' && c.url.includes('/me/player/play'))!;
@@ -84,7 +84,7 @@ test('"hey ox play juice wrld on spotify" plays the artist and pops up the music
   assert.equal(w.music.track.title, 'Lucid Dreams');
   assert.equal(w.music.context.name, 'Juice WRLD');
   assert.equal(w.music.device, 'Example MacBook');
-  assert.equal(w.said, 'Hey Ox, play Juice WRLD on Spotify');
+  assert.equal(w.said, 'Hey Taurus, play Juice WRLD on Spotify');
 });
 
 test('a song "by" an artist plays that one track', async () => {
@@ -97,7 +97,7 @@ test('without Premium, or with no Spotify open, the window shows Spotify’s own
   playStatus = 403;
   let answer = await talk('play juice wrld');
   assert.match(answer.text, /Premium/);
-  assert.equal(win('music').music.embed, 'https://open.spotify.com/embed/artist/ar1?utm_source=oxbot');
+  assert.equal(win('music').music.embed, 'https://open.spotify.com/embed/artist/ar1?utm_source=taurus');
   devices = [];
   answer = await talk('play juice wrld');
   assert.match(answer.text, /no Spotify app is open/);
@@ -225,9 +225,9 @@ test('"open youtube" shows a window with the link; unknown words go to the AI', 
   assert.equal((await talk('open the thing from yesterday')).text, 'Which one?');
 });
 
-// November 6, 2026: "hey ox open up my notes app and it wil literally open in like half a second". Every way of
+// November 6, 2026: "hey taurus open up my notes app and it wil literally open in like half a second". Every way of
 // saying it reaches `open` straight away: no AI, no network, no smart-home hubs or Shortcuts list first. The time
-// logged is OXBOT's own, from the words arriving to `open` returning (faked here); `open` by path itself takes about
+// logged is Taurus's own, from the words arriving to `open` returning (faked here); `open` by path itself takes about
 // 70 ms on the owner's Mac.
 test('"open up my notes app" and every other way of saying it opens Notes at once, without the AI', async () => {
   const { useRunner } = await import('../src/mac.ts');
@@ -235,7 +235,7 @@ test('"open up my notes app" and every other way of saying it opens Notes at onc
   useRunner(async (program, args) => { ran.push([program, args]); return ''; }, ['Notes', 'Google Chrome', 'Spotify', 'Calendar']);
   store.setSecrets({ MAC_CONTROL_ON: '1' });
   try {
-    const phrases = ['Hey Ox, open up my notes app', 'open notes', 'pull up notes', 'can you pull up my notes for me', 'launch the notes app on my mac', 'hey ox open apple notes please', 'bring up notes real quick', 'ok ox, open my notes'];
+    const phrases = ['Hey Taurus, open up my notes app', 'open notes', 'pull up notes', 'can you pull up my notes for me', 'launch the notes app on my mac', 'hey taurus open apple notes please', 'bring up notes real quick', 'ok taurus, open my notes'];
     const times: number[] = [];
     for (const phrase of phrases) {
       calls = []; ran.length = 0;

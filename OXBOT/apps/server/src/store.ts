@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -8,8 +8,15 @@ import type { PhoneSettings } from './types.ts';
 export const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 try { process.loadEnvFile(join(root, '.env')); } catch { /* .env is optional */ }
 
+// Renamed from OXBOT (owner, November 19, 2026). Old OXBOT_* settings still count, and the first start moves
+// ~/.oxbot (keys, sign-ins, brain, certificates) to ~/.taurus as it is, so nothing has to be set up again.
+for (const [k, v] of Object.entries(process.env)) {
+  if (k.startsWith('OXBOT_') && process.env[`TAURUS_${k.slice(6)}`] === undefined) process.env[`TAURUS_${k.slice(6)}`] = v;
+}
+const dir = process.env.TAURUS_HOME ?? join(homedir(), '.taurus');
+const before = join(homedir(), '.oxbot');
+if (!process.env.TAURUS_HOME && !existsSync(dir) && existsSync(before)) { try { renameSync(before, dir); } catch { /* starts fresh */ } }
 // Everything private lives outside the repo, owner-only.
-const dir = process.env.OXBOT_HOME ?? join(homedir(), '.oxbot');
 mkdirSync(dir, { recursive: true, mode: 0o700 });
 
 function read<T>(name: string, fallback: T): T {

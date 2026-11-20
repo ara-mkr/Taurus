@@ -1,8 +1,8 @@
 export {};
 
 // Draws the helpers working on this screen (owner, November 5, 2026: "travel through the different screens pull up
-// tabs"). Each one arrives from the side facing OXBOT's own screen, flies to a card showing the picture of its page in
-// OXBOT's browser, points where it is reading, and heads back the way it came when it is done. Draw only: the window
+// tabs"). Each one arrives from the side facing Taurus's own screen, flies to a card showing the picture of its page in
+// Taurus's browser, points where it is reading, and heads back the way it came when it is done. Draw only: the window
 // can't be clicked and this script reaches nothing; everything comes from the main process.
 
 interface Helper { id: string; n: number; name: string; colour: string; doing: string; state: string; host?: string; title?: string; label?: string; point?: { x: number; y: number }; act?: string; moves: number }
@@ -10,7 +10,7 @@ interface Swarm { id: string; state: string; helpers: Helper[]; width: number; h
 interface Hello { index: number; others: number; toHome: { dx: number; dy: number }; swarm: Swarm | null; frames: Record<string, string> }
 interface Body { x: number; y: number; vx: number; vy: number; o: number; moves: number; loud: number }
 
-const overlay = (window as unknown as { oxbotOverlay: { on(cb: (m: { event: string; data: unknown }) => void): void } }).oxbotOverlay;
+const overlay = (window as unknown as { taurusOverlay: { on(cb: (m: { event: string; data: unknown }) => void): void } }).taurusOverlay;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const screenFor = (n: number, others: number) => (others ? ((n - 1) % (others + 1)) - 1 : -1);
 const atWork = (s: string) => s === 'opening' || s === 'working';
@@ -25,7 +25,7 @@ const bodies = new Map<string, Body>();
 let top = 1;
 
 const mine = () => (swarm && me ? swarm.helpers.filter(h => screenFor(h.n, me!.others) === me!.index) : []);
-// Just past this screen's edge on the side facing OXBOT's screen: where helpers come in and leave.
+// Just past this screen's edge on the side facing Taurus's screen: where helpers come in and leave.
 function door() {
   const { dx, dy } = me?.toHome ?? { dx: -1, dy: 0 };
   const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, cx = innerWidth / 2, cy = innerHeight / 2;

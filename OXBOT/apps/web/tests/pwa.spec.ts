@@ -21,12 +21,12 @@ test('the manifest lists PNG icons, and they load at their stated sizes', async 
   expect(pngSize(await (await request.get(touch!)).body())).toBe('180x180');
 });
 
-test('with the server unreachable it says so, with Ox asleep, and recovers on retry', async ({ page }) => {
+test('with the server unreachable it says so, with Taurus asleep, and recovers on retry', async ({ page }) => {
   await page.route('**/api/**', route => route.abort('connectionrefused'));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Can’t reach your Mac.' })).toBeVisible();
-  await expect(page.getByText('OXBOT runs on your Mac; open it there, then pull to retry.')).toBeVisible();
-  await expect(page.locator('main.unreachable svg.ox[data-mood="sleep"]')).toBeVisible();
+  await expect(page.getByText('Taurus runs on your Mac; open it there, then pull to retry.')).toBeVisible();
+  await expect(page.locator('main.unreachable svg.taurus[data-mood="sleep"]')).toBeVisible();
   await page.unrouteAll();
   await mock(page);
   await page.getByRole('button', { name: 'Try again' }).click();

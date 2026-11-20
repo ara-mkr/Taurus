@@ -2,12 +2,12 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mock, shots } from './fixtures';
 
-// Ox windows (owner, November 4, 2026): "hey ox play juice wrld on spotify" pops up a liquid glass window with the
+// Taurus windows (owner, November 4, 2026): "hey taurus play juice wrld on spotify" pops up a liquid glass window with the
 // music playing. Fictional data, a drawn cover and mocked /api only; nothing reaches Spotify.
 const cover = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#2B3A67"/><circle cx="210" cy="96" r="70" fill="#E07A5F"/><rect x="30" y="170" width="240" height="90" fill="#F2CC8F"/></svg>')}`;
 const iso = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 const music = {
-  id: 'music', kind: 'music', at: iso(0), said: 'Hey Ox, play Example Artist on Spotify',
+  id: 'music', kind: 'music', at: iso(0), said: 'Hey Taurus, play Example Artist on Spotify',
   music: { playing: true, progressMs: 61_000, at: iso(0), device: 'Example MacBook', volume: 60,
     track: { title: 'Northern Lights', artist: 'Example Artist', album: 'Long Night Drive', art: cover, url: 'https://open.spotify.com/track/example', durationMs: 214_000 },
     context: { kind: 'artist', name: 'Example Artist', url: 'https://open.spotify.com/artist/example' } },
@@ -22,13 +22,13 @@ async function withWindows(page: Page, wins: unknown[]) {
   await page.route('**/api/windows/close', r => r.fulfill({ json: { ok: true } }));
 }
 
-test('the music window shows what Ox heard, the song, and works its buttons', async ({ page }) => {
+test('the music window shows what Taurus heard, the song, and works its buttons', async ({ page }) => {
   await withWindows(page, [music]);
   const posted: unknown[] = [];
   await page.route('**/api/music', r => { if (r.request().method() === 'POST') { posted.push(r.request().postDataJSON()); return r.fulfill({ json: { text: 'Paused.', music: { ...music.music, playing: false } } }); } return r.fulfill({ json: music.music }); });
   await page.goto('/');
   const win = page.getByRole('article', { name: 'Spotify' });
-  await expect(win).toContainText('“Hey Ox, play Example Artist on Spotify”');
+  await expect(win).toContainText('“Hey Taurus, play Example Artist on Spotify”');
   await expect(win.getByRole('heading', { name: 'Northern Lights' })).toBeVisible();
   await expect(win).toContainText('Long Night Drive · on Example MacBook');
   await expect(win.getByRole('progressbar', { name: 'Song progress' })).toBeVisible();
@@ -73,13 +73,13 @@ test('on a phone the windows sit under the header, full width', async ({ page })
   await page.screenshot({ path: `${shots}/windows-390-dark.png` });
 });
 
-test('typing the command in the chat bar sends it to Ox', async ({ page }) => {
+test('typing the command in the chat bar sends it to Taurus', async ({ page }) => {
   await withWindows(page, []);
   let asked = '';
   await page.route('**/api/ask', r => { asked = r.request().postDataJSON().turns.at(-1).text; return r.fulfill({ json: { provider: '', text: 'Playing Example Artist.', proposals: [] } }); });
   await page.goto('/');
-  await page.getByLabel('Message Ox').fill('hey ox play example artist on spotify');
-  await page.getByLabel('Message Ox').press('Enter');
-  await expect(page.getByRole('region', { name: 'Conversation with Ox' })).toContainText('Playing Example Artist.');
-  expect(asked).toBe('hey ox play example artist on spotify');
+  await page.getByLabel('Message Taurus').fill('hey taurus play example artist on spotify');
+  await page.getByLabel('Message Taurus').press('Enter');
+  await expect(page.getByRole('region', { name: 'Conversation with Taurus' })).toContainText('Playing Example Artist.');
+  expect(asked).toBe('hey taurus play example artist on spotify');
 });

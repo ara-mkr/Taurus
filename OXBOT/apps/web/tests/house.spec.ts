@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mock, shots } from './fixtures';
 
-// House and Ox's voice (owner, November 5, 2026). Fictional devices and mocked /api only: no hub, no lights, no model.
+// House and Taurus's voice (owner, November 5, 2026). Fictional devices and mocked /api only: no hub, no lights, no model.
 const devices = [
   { id: 'sample:lamp', name: 'Floor lamp', room: 'Living room', kind: 'light', on: true, brightness: 60, color: '#ffc58a', source: 'Sample' },
   { id: 'sample:curtains', name: 'Curtains', room: 'Living room', kind: 'cover', on: true, position: 100, source: 'Sample' },
@@ -47,9 +47,9 @@ test('the House page shows rooms, changes a light at once, and a lock only asks'
   expect(axe.violations.map(v => v.id)).toEqual([]);
 });
 
-test('a home window shows the tiles Ox changed', async ({ page }) => {
+test('a home window shows the tiles Taurus changed', async ({ page }) => {
   await mock(page);
-  const win = { id: 'home-1', kind: 'home', at: new Date().toISOString(), said: 'Hey Ox, movie time', text: 'Movie time.', devices: devices.slice(0, 3), sample: true };
+  const win = { id: 'home-1', kind: 'home', at: new Date().toISOString(), said: 'Hey Taurus, movie time', text: 'Movie time.', devices: devices.slice(0, 3), sample: true };
   await page.route('**/api/ring/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: `retry: 600000\nevent: window\ndata: ${JSON.stringify(win)}\n\n` }));
   await page.goto('/');
   const box = page.getByRole('article', { name: 'House' });
@@ -60,7 +60,7 @@ test('a home window shows the tiles Ox changed', async ({ page }) => {
   await page.screenshot({ path: `${shots}/house-window-1440-dark.png` });
 });
 
-test('Ox’s voice can be turned on and a voice picked', async ({ page }) => {
+test('Taurus’s voice can be turned on and a voice picked', async ({ page }) => {
   await mock(page);
   let on = false;
   const voices = [{ id: 'am_michael', name: 'Michael', accent: 'American', gender: 'Male', note: 'Calm, low and steady.' }, { id: 'af_heart', name: 'Heart', accent: 'American', gender: 'Female', note: 'Warm and natural.' }];
@@ -69,14 +69,14 @@ test('Ox’s voice can be turned on and a voice picked', async ({ page }) => {
     return r.fulfill({ json: { status: on ? 'ready' : 'off', progress: on ? 1 : 0, on, voices } });
   });
   await page.goto('/#look');
-  const box = page.getByRole('group', { name: 'Ox’s voice' });
+  const box = page.getByRole('group', { name: 'Taurus’s voice' });
   await expect(box).toContainText('Off');
   await box.getByRole('button', { name: 'Turn on' }).click();
   await expect(box).toContainText('Ready');
   await box.getByRole('radio', { name: /Heart/ }).check();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('oxbot-speech') ?? '{}').voice)).toBe('af_heart');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('taurus-speech') ?? '{}').voice)).toBe('af_heart');
   await expect(box.getByRole('button', { name: 'Hear Heart' })).toBeEnabled();
   expect(await smallest(page)).toBeGreaterThanOrEqual(13);
-  const axe = await new AxeBuilder({ page }).include('.ox-voice').analyze();
+  const axe = await new AxeBuilder({ page }).include('.taurus-voice').analyze();
   expect(axe.violations.map(v => v.id)).toEqual([]);
 });

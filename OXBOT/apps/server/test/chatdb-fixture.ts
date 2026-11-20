@@ -1,4 +1,4 @@
-// A small stand-in for ~/Library/Messages/chat.db, with the same tables and columns OXBOT reads. Example numbers
+// A small stand-in for ~/Library/Messages/chat.db, with the same tables and columns Taurus reads. Example numbers
 // and addresses only. One message keeps its words only in attributedBody, the way newer macOS stores them.
 import { join } from 'node:path';
 

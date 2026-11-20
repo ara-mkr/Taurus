@@ -1,5 +1,0 @@
-interface:
-  display_name: "OXBOT UI Builder"
-  short_description: "Build one polished, phase-scoped Ox interface slice."
-  brand_color: "#4C54C9"
-  default_prompt: "Use the oxbot-ui skill for this OXBOT task. Read the project phase and constraints first."

@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-loop-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-loop-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'MAC_MESSAGES_ON']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const { converse, Holdback, simpleTurn } = await import('../src/agent.ts');
@@ -76,7 +76,7 @@ test('a reply that only says what it will do gets a nudge, then works; a second 
   assert.equal(stuck.text, 'Checking now…');
 });
 
-test('Ox saying a default out loud is not an empty promise', () => {
+test('Taurus saying a default out loud is not an empty promise', () => {
   assert.equal(announcesAction('I’ll tell Dana Thursday at 10 works.'), false);
   assert.equal(announcesAction('Let me check your calendar.'), true);
   assert.equal(announcesAction('I’ll look at your inbox now.'), true);

@@ -6,18 +6,18 @@ import { join } from 'node:path';
 
 // Phone screenshots against the real server and the production build (pnpm --dir apps/web build first):
 //   SHOTS=1 pnpm exec playwright test phone-shots
-// Chromium at iPhone size stands in for the iOS Simulator, which needs Xcode. Temporary OXBOT_HOME, sample data,
-// port 8799, so nothing touches ~/.oxbot or a running OXBOT.
+// Chromium at iPhone size stands in for the iOS Simulator, which needs Xcode. Temporary TAURUS_HOME, sample data,
+// port 8799, so nothing touches ~/.taurus or a running Taurus.
 test.skip(!process.env.SHOTS, 'SHOTS=1 only');
 test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'allow' });
 
-const out = '../../qa-local/oxbot/phone';
+const out = '../../qa-local/taurus/phone';
 const port = 8799;
 let home: string;
 let server: ChildProcess | null = null;
 
 async function start(host = '127.0.0.1') {
-  server = spawn(process.execPath, ['../server/src/index.ts'], { env: { ...process.env, OXBOT_HOME: home, OXBOT_PORT: String(port), OXBOT_HOST: host, OXBOT_BROKER_URL: '' }, stdio: 'ignore' });
+  server = spawn(process.execPath, ['../server/src/index.ts'], { env: { ...process.env, TAURUS_HOME: home, TAURUS_PORT: String(port), TAURUS_HOST: host, TAURUS_BROKER_URL: '' }, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { if ((await fetch(`http://127.0.0.1:${port}/api/health`)).ok) return; } catch { /* starting */ } await new Promise(r => setTimeout(r, 200)); }
   throw new Error('server did not start');
 }
@@ -29,7 +29,7 @@ const quiet = (page: Page) => Promise.all([
 
 test.beforeAll(() => {
   mkdirSync(out, { recursive: true });
-  home = mkdtempSync(join(tmpdir(), 'oxbot-phone-'));
+  home = mkdtempSync(join(tmpdir(), 'taurus-phone-'));
   writeFileSync(join(home, 'settings.json'), JSON.stringify({ ringMeetings: false, ringVip: false }));
 });
 test.afterAll(async () => { await stop(); rmSync(home, { recursive: true, force: true }); });
@@ -42,7 +42,7 @@ test('phone: board, standby, offline screen', async ({ page }) => {
   await page.goto(`http://localhost:${port}/`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
-  await expect(page.getByRole('complementary', { name: 'Chat with Ox' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Chat with Taurus' })).toBeVisible();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${out}/board.png` });
   await page.goto(`http://localhost:${port}/#phone`);

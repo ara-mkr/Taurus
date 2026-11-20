@@ -1,0 +1,127 @@
+/* The HUD (owner, November 19, 2026: "update the dashboard so its exactly like his"). Luke's Jarvis screen: deep navy,
+   thin cyan lines, framed panels with corner brackets, a ticked ring around Taurus's particle orb, readouts and a live
+   log in monospace. Always dark, whatever the theme elsewhere; while it's open the rail and chat bar take the same
+   colours. Red still means only "this needs you". Loaded after cloud.css and overrides it. */
+
+:root:has(.hud-page) {
+  --hud-rgb: 125, 232, 255;
+  --hud: rgb(var(--hud-rgb));
+  --hud-dim: rgba(var(--hud-rgb), .6);
+  --hud-faint: rgba(var(--hud-rgb), .16);
+  --bg: #020A12; --surface: rgba(10, 32, 46, .55); --ink: #E3F8FF; --ink-2: #8DB5C6;
+  --rule: rgba(var(--hud-rgb), .16); --rule-strong: rgba(var(--hud-rgb), .6);
+  --glass: rgba(5, 20, 31, .66); --glass-strong: rgba(5, 18, 28, .94); --glass-border: rgba(var(--hud-rgb), .2);
+  --glass-edge: rgba(0, 0, 0, .45); --glass-shine: rgba(var(--hud-rgb), .07); --wash: rgba(var(--hud-rgb), .07);
+  --shadow: 0 24px 60px -30px rgba(0, 0, 0, .9);
+  --sky-ink: #E3F8FF; --sky-ink-2: #8DB5C6; --sky-ring: rgba(var(--hud-rgb), .4); --sky-disc: transparent;
+  --orb-rgb: var(--hud-rgb);
+  color-scheme: dark;
+  background: #020A12;
+}
+
+/* ---------- Backdrop: a faint grid under a slow radar sweep, darker at the edges ---------- */
+.sky.hud-sky { background: radial-gradient(120% 90% at 50% 42%, #0B2C40 0%, #05141F 42%, #01070C 100%); }
+.hud-grid { position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(var(--hud-rgb), .055) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--hud-rgb), .055) 1px, transparent 1px);
+  background-size: 46px 46px; background-position: center;
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 45%, #000 30%, transparent 100%); mask-image: radial-gradient(70% 70% at 50% 45%, #000 30%, transparent 100%); }
+.hud-sweep { position: absolute; left: 50%; top: 45%; width: 160vmax; aspect-ratio: 1; translate: -50% -50%; opacity: .5;
+  background: conic-gradient(from 0deg, rgba(var(--hud-rgb), .1), transparent 14%, transparent); animation: hud-sweep 14s linear infinite; }
+.sky[data-clouds="lively"] .hud-sweep { animation-duration: 6s; opacity: .65; }
+.sky[data-clouds="off"] .hud-sweep { display: none; }
+@keyframes hud-sweep { to { rotate: 360deg; } }
+.hud-scan { position: absolute; inset: 0; background: repeating-linear-gradient(180deg, rgba(var(--hud-rgb), .025) 0 1px, transparent 1px 4px); }
+.hud-vignette { position: absolute; inset: 0; background: radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, .65) 100%);
+  opacity: calc(1 - var(--part) * .3); transition: opacity 1s ease; }
+:root[data-resting] .hud-sweep, :root[data-ambient="false"] .hud-sweep { animation-play-state: paused; }
+
+/* ---------- Panels: framed screens with cyan corner brackets ---------- */
+.hud-page .cloud-panel { --b: 14px; --t: 1.5px; border-color: var(--glass-border);
+  background:
+    linear-gradient(var(--hud) 0 0) top left / var(--b) var(--t) no-repeat, linear-gradient(var(--hud) 0 0) top left / var(--t) var(--b) no-repeat,
+    linear-gradient(var(--hud) 0 0) top right / var(--b) var(--t) no-repeat, linear-gradient(var(--hud) 0 0) top right / var(--t) var(--b) no-repeat,
+    linear-gradient(var(--hud) 0 0) bottom left / var(--b) var(--t) no-repeat, linear-gradient(var(--hud) 0 0) bottom left / var(--t) var(--b) no-repeat,
+    linear-gradient(var(--hud) 0 0) bottom right / var(--b) var(--t) no-repeat, linear-gradient(var(--hud) 0 0) bottom right / var(--t) var(--b) no-repeat,
+    var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 0 40px -20px rgba(var(--hud-rgb), .25), var(--shadow); }
+.hud-page .cloud-panel .card-head h2, .hud-page .cloud-panel .card-head h3 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--hud); }
+.hud-page .cloud-panel .card-head { border-bottom: 1px solid var(--hud-faint); }
+.hud-page .cloud-add-button { border-color: var(--hud-faint); font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+
+/* ---------- The middle ---------- */
+.hud-page .cloud-center { color: var(--ink); }
+.hud-status { display: flex; align-items: center; justify-content: center; gap: 18px; font-family: var(--mono); font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--hud-dim); }
+.hud-status .hud-name { color: var(--hud); font-weight: 700; letter-spacing: .32em; }
+.hud-status .hud-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hud); box-shadow: 0 0 10px var(--hud); animation: hud-blink 2.4s ease-in-out infinite; }
+.hud-page[data-phase="listening"] .hud-dot, .hud-page[data-phase="thinking"] .hud-dot { animation-duration: .7s; }
+.hud-page[data-phase="error"] .hud-dot { background: var(--signal); box-shadow: 0 0 10px var(--signal); }
+@keyframes hud-blink { 50% { opacity: .3; } }
+.hud-clock { margin-top: 6px; font-family: var(--mono); font-size: clamp(30px, 3.2vw, 44px); font-weight: 300; letter-spacing: .08em; font-variant-numeric: tabular-nums; color: var(--ink);
+  text-shadow: 0 0 18px rgba(var(--hud-rgb), .45); }
+.hud-clock small { margin-left: 6px; font-size: max(13px, .42em); color: var(--hud-dim); letter-spacing: .1em; }
+.hud-date { font-family: var(--mono); font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-2); }
+.hud-page .cloud-hello { margin-top: 10px; font-size: clamp(18px, 1.7vw, 24px); font-weight: 500; letter-spacing: .01em; color: var(--ink-2); animation: none; }
+
+/* The ring: ticks all the way round, two arcs turning opposite ways, a fine inner circle. */
+.hud-page .cloud-core { margin: 14px 0 4px; }
+.hud-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.hud-ring .tick { stroke: var(--hud-dim); stroke-width: 1; }
+.hud-ring .tick.major { stroke: var(--hud); stroke-width: 1.6; }
+.hud-ring circle { fill: none; transform-origin: 200px 200px; }
+.hud-ring .hr-edge { stroke: var(--hud-faint); stroke-width: 1; }
+.hud-ring .hr-arc-a { stroke: var(--hud); stroke-width: 2; stroke-dasharray: 70 38 18 38 120 30 8 30; animation: ring-turn 38s linear infinite; filter: drop-shadow(0 0 4px rgba(var(--hud-rgb), .7)); }
+.hud-ring .hr-arc-b { stroke: var(--hud-dim); stroke-width: 1; stroke-dasharray: 3 7; animation: ring-turn 80s linear infinite reverse; }
+.hud-ring .hr-inner { stroke: var(--hud-faint); stroke-width: 1; }
+.hud-ring .ticks { transform-origin: 200px 200px; animation: ring-turn 240s linear infinite; }
+.hud-page[data-phase="listening"] .hr-arc-a { animation-duration: 8s; }
+.hud-page[data-phase="thinking"] .hr-arc-a { animation-duration: 4s; }
+.hud-page[data-phase="thinking"] .hr-arc-b { animation-duration: 12s; stroke: var(--hud); }
+:root[data-resting] .hud-page[data-phase="idle"] :is(.hr-arc-a, .hr-arc-b, .ticks) { animation-play-state: paused; }
+
+.particle-orb { position: absolute; inset: 6%; width: 88%; height: 88%; pointer-events: none; transition: opacity .5s ease; }
+.hud-page[data-widget] .particle-orb { opacity: .18; }
+.hud-page .cloud-pulse, .hud-page .core-clouds { display: none; }
+.hud-page .cloud-taurus { width: 70%; }
+.hud-page .cloud-taurus:focus-visible { outline-color: var(--hud); }
+
+/* Readouts on the four diagonals, like the labels round Luke's ring. */
+.hud-readout { position: absolute; display: grid; gap: 1px; font-family: var(--mono); font-size: 13px; line-height: 1.25; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; pointer-events: none; }
+.hud-readout span { color: var(--hud-dim); font-size: 13px; }
+.hud-readout strong { color: var(--ink); font-weight: 600; letter-spacing: .06em; }
+.hud-readout.nw { left: -18%; top: 4%; text-align: right; }
+.hud-readout.ne { right: -18%; top: 4%; text-align: left; }
+.hud-readout.sw { left: -18%; bottom: 4%; text-align: right; }
+.hud-readout.se { right: -18%; bottom: 4%; text-align: left; }
+.hud-readout.signal strong { color: var(--signal); }
+
+.hud-page .cloud-said { font-family: var(--font); color: var(--ink); }
+.hud-page[data-phase="idle"] .cloud-said { color: var(--ink-2); }
+.hud-page .cloud-facts { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--hud-dim); }
+
+/* The live log: what Taurus is doing, newest last. */
+.hud-log { display: grid; gap: 3px; width: min(520px, 100%); margin-top: 14px; padding: 10px 12px; border-top: 1px solid var(--hud-faint); border-bottom: 1px solid var(--hud-faint);
+  font-family: var(--mono); font-size: 13px; line-height: 1.35; text-align: left; list-style: none; }
+.hud-log li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 10px; align-items: baseline; color: var(--ink-2); animation: hud-line .4s ease both; }
+.hud-log time { color: var(--hud-dim); font-variant-numeric: tabular-nums; }
+.hud-log .kind { min-width: 5ch; color: var(--hud); text-transform: uppercase; letter-spacing: .08em; }
+.hud-log .text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hud-log li.running .text::after { content: " …"; color: var(--hud); }
+.hud-log li.failed .text { color: var(--signal); }
+.hud-log .empty { display: block; color: var(--hud-dim); }
+@keyframes hud-line { from { opacity: 0; translate: -6px 0; } }
+
+/* The command line underneath. */
+.shell:has(.hud-page) + .chatbar :is(input, textarea) { font-family: var(--mono); }
+
+@media (max-width: 980px) {
+  .hud-readout.nw, .hud-readout.sw { left: -6%; }
+  .hud-readout.ne, .hud-readout.se { right: -6%; }
+}
+@media (max-width: 700px) {
+  .hud-readout { display: none; }
+  .hud-log { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-sweep, .hud-ring .hr-arc-a, .hud-ring .hr-arc-b, .hud-ring .ticks, .hud-status .hud-dot, .hud-log li { animation: none; }
+}

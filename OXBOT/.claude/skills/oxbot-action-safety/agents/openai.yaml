@@ -1,5 +1,0 @@
-interface:
-  display_name: "OXBOT Action Safety"
-  short_description: "Review permission, disclosure and real-action failure paths."
-  brand_color: "#4C54C9"
-  default_prompt: "Use the oxbot-action-safety skill for this OXBOT task. Read the project phase and constraints first."

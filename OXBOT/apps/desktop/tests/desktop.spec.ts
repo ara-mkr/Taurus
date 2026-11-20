@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The desktop app against a throwaway OXBOT_HOME on port 8790, so the real ~/.oxbot and any running
-// OXBOT on 8787 are never touched. Fictional settings only; every address is example.com.
+// The desktop app against a throwaway TAURUS_HOME on port 8790, so the real ~/.taurus and any running
+// Taurus on 8787 are never touched. Fictional settings only; every address is example.com.
 const here = dirname(fileURLToPath(import.meta.url));
 const main = join(here, '../dist/main.mjs');
 const electronBinary = createRequire(import.meta.url)('electron') as unknown as string;
@@ -32,18 +32,18 @@ const opened = () => app.evaluate(() => (globalThis as { opened?: string[] }).op
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), 'oxbot-desktop-'));
+  home = mkdtempSync(join(tmpdir(), 'taurus-desktop-'));
   writeFileSync(join(home, 'settings.json'), JSON.stringify({ vipSenders: ['dana@example.com'], ringMeetings: false, ringVip: false }));
   // A board without market or news widgets, so the server makes no outside calls.
-  writeFileSync(join(home, 'prefs.json'), JSON.stringify({ tint: 'graphite', ambient: false, ox: true, todos: [], people: [], boards: [{ id: 'home', name: 'Home', widgets: [
+  writeFileSync(join(home, 'prefs.json'), JSON.stringify({ tint: 'graphite', ambient: false, taurus: true, todos: [], people: [], boards: [{ id: 'home', name: 'Home', widgets: [
     { id: 'w1', type: 'brief', size: 'wide' }, { id: 'w2', type: 'needs', size: 'tall' }, { id: 'w3', type: 'schedule', size: 'tall' }, { id: 'w4', type: 'todo', size: 'medium' },
   ] }] }));
-  env = { ...process.env, OXBOT_HOME: home, OXBOT_PORT: String(port), OXBOT_BROKER_URL: '', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' } as Record<string, string>;
+  env = { ...process.env, TAURUS_HOME: home, TAURUS_PORT: String(port), TAURUS_BROKER_URL: '', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' } as Record<string, string>;
   app = await electron.launch({ args: [main], env });
   page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   // Past the first-run welcome, which covers the window until it's done (the web tests start past it the same way).
-  await page.evaluate(() => localStorage.setItem('oxbot-onboarded', '1'));
+  await page.evaluate(() => localStorage.setItem('taurus-onboarded', '1'));
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   // Every link that leaves the app goes through shell.openExternal; record instead of opening a browser.
@@ -59,12 +59,12 @@ test.afterAll(async () => {
   rmSync(home, { recursive: true, force: true });
 });
 
-// Since November 5, 2026 OXBOT opens to Taurus, Ox among the clouds, with the boards in the rail.
-test('the window opens on Taurus', async () => {
+// Since November 5, 2026 Taurus opens to Hud, Taurus among the clouds, with the boards in the rail.
+test('the window opens on Hud', async () => {
   await expect(page).toHaveURL(`${origin}/`);
-  await expect(page.locator('[data-ox-center]')).toBeVisible();
+  await expect(page.locator('[data-taurus-center]')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home', exact: true })).toBeVisible();
-  expect(await page.evaluate(() => (window as { oxbotDesktop?: { platform: string } }).oxbotDesktop?.platform)).toBe(process.platform);
+  expect(await page.evaluate(() => (window as { taurusDesktop?: { platform: string } }).taurusDesktop?.platform)).toBe(process.platform);
   expect(await page.evaluate(() => typeof (window as { require?: unknown }).require)).toBe('undefined');
   expect((await windowState())?.visible).toBe(true);
 });
@@ -79,12 +79,12 @@ test('an external link opens in the default browser, not in the window', async (
   });
   await expect.poll(opened).toContain('https://example.com/report');
   expect((await opened()).length).toBe(before + 1);
-  // Ox in the notch and Ox anywhere are windows of their own (local files); the link opened no other page.
+  // Taurus in the notch and Taurus anywhere are windows of their own (local files); the link opened no other page.
   expect(app.windows().filter(p => p.url().startsWith('http')).length).toBe(1);
   await expect(page).toHaveURL(`${origin}/`);
 });
 
-// Since November 7, 2026 the microphone alone may open without a tap ("Hey Ox" and double clap in the desktop app);
+// Since November 7, 2026 the microphone alone may open without a tap ("Hey Taurus" and double clap in the desktop app);
 // it is not asked for here, so no macOS prompt appears during tests. The camera still needs a tap, and the two
 // together never open.
 test('an unprompted camera, camera with microphone, screen, location and notifications are denied', async () => {
@@ -104,10 +104,10 @@ test('Talk listens on this Mac and says plainly when macOS blocks the microphone
   // The desktop window now hears through the local server (November 7, 2026), not "use the browser". Fake macOS
   // saying no, so the test never opens the real microphone.
   await page.evaluate(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('blocked'), { name: 'NotAllowedError' })); });
-  // Talk is on the chat bar; on Taurus, Ox's words appear under him (#ox-says).
-  await page.getByRole('complementary', { name: 'Chat with Ox' }).getByRole('button', { name: 'Talk' }).click();
-  await expect(page.locator('#ox-says')).toContainText('macOS is blocking the microphone');
-  await expect(page.locator('#ox-says')).not.toContainText('Voice needs Chrome or Safari');
+  // Talk is on the chat bar; on Hud, Taurus's words appear under him (#taurus-says).
+  await page.getByRole('complementary', { name: 'Chat with Taurus' }).getByRole('button', { name: 'Talk' }).click();
+  await expect(page.locator('#taurus-says')).toContainText('macOS is blocking the microphone');
+  await expect(page.locator('#taurus-says')).not.toContainText('Voice needs Chrome or Safari');
 });
 
 test('a ring takes over the screen from a hidden window, and "I\'m on it" gives it back', async () => {
@@ -116,7 +116,7 @@ test('a ring takes over the screen from a hidden window, and "I\'m on it" gives 
   await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().startsWith('http'))!.getBounds())).toEqual(before);
   await hide();
   expect((await windowState())?.visible).toBe(false);
-  const response = await fetch(`${local}/api/ring`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: '{}' });
+  const response = await fetch(`${local}/api/ring`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: '{}' });
   const { ring } = await response.json() as { ring: { id: string } };
   await expect.poll(windowState).toMatchObject({ visible: true, onTop: true, full: true, everySpace: true });
   if (process.platform === 'darwin') await expect.poll(async () => (await windowState())?.focused).toBe(true);
@@ -132,7 +132,7 @@ test('closing the window keeps the server answering', async () => {
   await expect.poll(async () => (await windowState())?.visible).toBe(false);
   expect((await windowState())?.destroyed).toBe(false);
   const health = await (await fetch(`${local}/api/health`)).json();
-  expect(health).toMatchObject({ app: 'oxbot' });
+  expect(health).toMatchObject({ app: 'taurus' });
 });
 
 test('a second launch focuses the first window and exits', async () => {
@@ -144,13 +144,13 @@ test('a second launch focuses the first window and exits', async () => {
 });
 
 test('another program on the port gets a plain message, not a second server', async () => {
-  const other = createServer((_req, res) => res.end('not oxbot'));
+  const other = createServer((_req, res) => res.end('not taurus'));
   await new Promise<void>(resolve => other.listen(8791, '127.0.0.1', resolve));
-  const busyHome = mkdtempSync(join(tmpdir(), 'oxbot-busy-'));
-  const busy = await electron.launch({ args: [main], env: { ...env, OXBOT_HOME: busyHome, OXBOT_PORT: '8791' } });
+  const busyHome = mkdtempSync(join(tmpdir(), 'taurus-busy-'));
+  const busy = await electron.launch({ args: [main], env: { ...env, TAURUS_HOME: busyHome, TAURUS_PORT: '8791' } });
   try {
     const page = await busy.firstWindow();
-    await expect(page.locator('body')).toContainText('Port 8791 is in use by another program. Close it and reopen OXBOT.');
+    await expect(page.locator('body')).toContainText('Port 8791 is in use by another program. Close it and reopen Taurus.');
   } finally {
     await busy.close();
     other.close();

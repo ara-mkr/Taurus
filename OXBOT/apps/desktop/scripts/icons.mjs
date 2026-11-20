@@ -1,4 +1,4 @@
-// Generates every icon from design/logo/ox-mark.svg: the app icons (.icns, .ico, PNGs 16 to 1024),
+// Generates every icon from design/logo/taurus-mark.svg: the app icons (.icns, .ico, PNGs 16 to 1024),
 // the menu bar template image and tray image, and the phone home-screen PNGs in apps/web/public/icons.
 // Renders with Playwright's Chromium (already a dev dependency) and macOS iconutil. The mark is not
 // trademark-cleared; fine for personal builds.
@@ -15,8 +15,8 @@ const webIcons = join(repo, 'apps/web/public/icons');
 mkdirSync(assets, { recursive: true });
 mkdirSync(webIcons, { recursive: true });
 
-const mark = readFileSync(join(repo, 'design/logo/ox-mark.svg'), 'utf8').trim();
-// The O and X strokes on their own, from the same file, for the monochrome and maskable versions.
+const mark = readFileSync(join(repo, 'design/logo/taurus-mark.svg'), 'utf8').trim();
+// The Taurus sign's strokes on their own, from the same file, for the monochrome and maskable versions.
 const glyph = mark.match(/<g[\s\S]*<\/g>/)[0];
 const svg = {
   // The tile as drawn.
@@ -26,7 +26,7 @@ const svg = {
   // Full-bleed square with the glyph inside the 80% safe circle, for Android's maskable icon.
   maskable: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="#141413"/><g transform="translate(180 180) scale(.7)">${glyph}</g></svg>`,
   // Black on transparent: macOS tints template images for light and dark menu bars.
-  template: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="60 330 1080 540">${glyph.replace('stroke="#F7F6F3"', 'stroke="#000"')}</svg>`,
+  template: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="190 280 820 640">${glyph.replace('stroke="#F7F6F3"', 'stroke="#000"')}</svg>`,
 };
 
 const browser = await chromium.launch();

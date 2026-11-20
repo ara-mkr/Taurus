@@ -1,12 +1,12 @@
-/* The shell (owner, November 1, 2026): tabs on the left, a top bar that greets you and shows Ox at work, your
-   profile at the top right, a chat bar pinned to the bottom, Ox's browser and activity in a panel on the right,
+/* The shell (owner, November 1, 2026): tabs on the left, a top bar that greets you and shows Taurus at work, your
+   profile at the top right, a chat bar pinned to the bottom, Taurus's browser and activity in a panel on the right,
    and any background you like. On the phone the tabs slide in from the left and the panel covers the screen. */
 
 :root { --rail-w: 232px; --dock-w: min(520px, 36vw); --bar-bottom: max(16px, env(safe-area-inset-bottom));
-  /* One corner and one gap for every floating panel: the rail, Taurus's panels, the dock, the chat bar, Ox's windows. */
+  /* One corner and one gap for every floating panel: the rail, Hud's panels, the dock, the chat bar, Taurus's windows. */
   --r-panel: 22px; --gap: 12px; }
 
-/* Nothing may widen the page sideways (Ox's bubble near an edge would make a phone zoom out and lose the chat bar). */
+/* Nothing may widen the page sideways (Taurus's bubble near an edge would make a phone zoom out and lose the chat bar). */
 body, #root { overflow-x: clip; }
 
 .shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100dvh; }
@@ -23,9 +23,9 @@ body, #root { overflow-x: clip; }
 .rail-list a:active, .rail-list button:active { transform: scale(.98); }
 .rail-list [aria-current="page"], .rail-list [aria-pressed="true"] { color: var(--ink); background: var(--wash); box-shadow: inset 0 0 0 1px var(--glass-border); font-weight: 600; }
 .rail-list .rail-quiet { min-height: 32px; font-size: 13px; }
-.rail-ox { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.rail-taurus { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
 .rail-foot { margin-top: auto; padding-top: 12px; }
-.rail .brand .ox, .tabs-button .ox, .icon-choice .ox { color: inherit; }
+.rail .brand .taurus, .tabs-button .taurus, .icon-choice .taurus { color: inherit; }
 .profile-foot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }
 
 /* Stage: everything between the rail and the panel */
@@ -39,7 +39,7 @@ body, #root { overflow-x: clip; }
 
 .top-line { flex: none; max-width: min(380px, 34vw); overflow: hidden; color: var(--ink-2); font-size: 14px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
 
-/* What Ox is doing now, in the rail: running jobs, timers, Spotify, the page open in his browser. */
+/* What Taurus is doing now, in the rail: running jobs, timers, Spotify, the page open in his browser. */
 .rail-now { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
 .rail-doing { display: flex; align-items: center; gap: 2px; }
 .rail-list .rail-doing > button:first-child { flex: 1; min-width: 0; min-height: 34px; font-size: 13px; }
@@ -147,7 +147,7 @@ main.board { width: 100%; max-width: 1480px; margin: 0; padding: 4px 20px 24px; 
 .chat-panel .transcript { gap: 18px; margin-top: 14px; padding-bottom: 0; }
 .approval-tray { bottom: calc(var(--bar-bottom) + 78px); }
 
-/* The panel on the right: Ox's browser and his activity */
+/* The panel on the right: Taurus's browser and his activity */
 .dock { position: sticky; top: 12px; z-index: 30; display: flex; flex-direction: column; height: calc(100dvh - var(--gap) * 2); margin: var(--gap) var(--gap) var(--gap) 0; overflow: hidden; border-radius: var(--r-panel); background: var(--glass-strong); animation: dock-in .35s cubic-bezier(.2, .7, .2, 1); }
 @keyframes dock-in { from { opacity: 0; transform: translateX(24px); } }
 .dock-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--rule); }
@@ -243,7 +243,7 @@ main.board { width: 100%; max-width: 1480px; margin: 0; padding: 4px 20px 24px; 
   .composer-bar { padding: 6px; border-radius: 18px; }
   .composer-bar .look-button { display: none; }
   .chat-panel { max-height: 62dvh; }
-  /* Full screen, with the chat bar still on top so you can talk to Ox while you watch him browse. */
+  /* Full screen, with the chat bar still on top so you can talk to Taurus while you watch him browse. */
   .dock { position: fixed; inset: 0; z-index: 58; width: auto; height: auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--bar-bottom) + 64px); border-radius: 0; }
   .shell.with-dock + .chatbar { z-index: 59; }
   .you { flex-direction: column; align-items: flex-start; }

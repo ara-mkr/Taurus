@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import '../styles/swarm.css';
 
 // The swarm (owner, November 5, 2026): "a bunch of different colored cursors go around and do things ... they all
-// leave the dashboard and start doing stuff and then they come back and nest into the center and disapear". When Ox
+// leave the dashboard and start doing stuff and then they come back and nest into the center and disapear". When Taurus
 // splits a job across helpers (apps/server/src/swarm.ts), each one is drawn as its own coloured cursor. They burst
-// out of Ox, the ones waiting for a page leave the screen, the ones at work fly to their live page in the Swarm
+// out of Taurus, the ones waiting for a page leave the screen, the ones at work fly to their live page in the Swarm
 // panel and point, scroll and click there where the server says they are acting, and when a helper is done it
-// streams back and folds into Ox. Under Reduce Motion they fade in and out where they are instead of travelling.
-// The cursors only draw what OXBOT's own browser pages are doing; nothing on your screen is read or moved.
+// streams back and folds into Taurus. Under Reduce Motion they fade in and out where they are instead of travelling.
+// The cursors only draw what Taurus's own browser pages are doing; nothing on your screen is read or moved.
 
 type HelperState = 'waiting' | 'opening' | 'working' | 'done' | 'failed' | 'stopped';
 export interface SwarmHelper {
@@ -60,15 +60,15 @@ function useSwarm() {
 function useAway() {
   const [away, setAway] = useState<Away>([]);
   useEffect(() => {
-    const desktop = (window as { oxbotDesktop?: Desktop }).oxbotDesktop;
+    const desktop = (window as { taurusDesktop?: Desktop }).taurusDesktop;
     return desktop?.onSwarmScreens?.(setAway);
   }, []);
   return away;
 }
 
-// Where Ox is: the cloud dashboard's centre mark, else Ox himself, else the middle of the window.
-function oxCentre() {
-  const el = document.querySelector('[data-ox-center]') ?? document.querySelector('.ox-buddy .ox-button') ?? document.querySelector('.ox-buddy');
+// Where Taurus is: the cloud dashboard's centre mark, else Taurus himself, else the middle of the window.
+function taurusCentre() {
+  const el = document.querySelector('[data-taurus-center]') ?? document.querySelector('.taurus-buddy .taurus-button') ?? document.querySelector('.taurus-buddy');
   const r = el?.getBoundingClientRect();
   if (r && r.width && r.bottom > 0 && r.top < innerHeight) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   return { x: innerWidth / 2, y: innerHeight / 2 };
@@ -88,14 +88,14 @@ interface Body {
   home: number; nest: number; gone: boolean; moves: number; loud: number;
 }
 
-// Coming home (owner, November 6, 2026: "make it so they all gorup together before flying back to the main ox circle
+// Coming home (owner, November 6, 2026: "make it so they all gorup together before flying back to the main taurus circle
 // and then they js hit the center one after the other and disapear ... they all fly together like a flock after").
-// A helper that finishes early roosts in a loose, slowly turning flock above Ox. When the job ends, every cursor
-// gathers there, the flock flies in to Ox as one, and then they dive into his centre one after another.
+// A helper that finishes early roosts in a loose, slowly turning flock above Taurus. When the job ends, every cursor
+// gathers there, the flock flies in to Taurus as one, and then they dive into his centre one after another.
 interface Flock { phase: 'none' | 'gather' | 'travel' | 'dive'; from: { x: number; y: number }; at: number; order: string[] }
 // A sunflower: each cursor's place in the flock, close but never on top of another.
 const slot = (k: number, spread = 17) => { const r = spread * Math.sqrt(k + 0.6), a = k * 2.39996; return { x: Math.cos(a) * r, y: Math.sin(a) * r * 0.72 }; };
-// Where they roost: above Ox, kept on screen.
+// Where they roost: above Taurus, kept on screen.
 const roostFor = (c: { x: number; y: number }) => ({ x: Math.max(90, Math.min(innerWidth - 90, c.x)), y: Math.max(90, c.y - Math.min(230, innerHeight * 0.27)) });
 const ease = (p: number) => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
 const TRAVEL_MS = 950, DIVE_GAP_MS = 120;
@@ -159,8 +159,8 @@ export function Swarm() {
     return () => window.clearTimeout(t);
   }, [swarm, busy]);
 
-  // The motion: a spring per cursor, a curve through a waypoint on long trips, and a fold into Ox at the end.
-  // A finished swarm whose panel has gone stops drawing too, instead of running until OXBOT restarts.
+  // The motion: a spring per cursor, a curve through a waypoint on long trips, and a fold into Taurus at the end.
+  // A finished swarm whose panel has gone stops drawing too, instead of running until Taurus restarts.
   const drawn = swarm && hidden !== swarm.id ? swarm.id : null;
   useEffect(() => {
     if (!drawn) return;
@@ -174,7 +174,7 @@ export function Swarm() {
       const { swarm: s, away: screens } = latest.current;
       if (!s) return;
       if (swarmId.current !== s.id) { swarmId.current = s.id; bodies.current.clear(); nextHome.current = 0; flock.current = { phase: 'none', from: { x: 0, y: 0 }, at: 0, order: [] }; }
-      const centre = oxCentre();
+      const centre = taurusCentre();
       const ending = s.state !== 'running';
       const goneNow: string[] = [];
       const roost = roostFor(centre);
@@ -188,7 +188,7 @@ export function Swarm() {
       }
       if (f.phase === 'travel' && t - f.at > TRAVEL_MS) {
         f.phase = 'dive'; f.at = t;
-        // Closest to Ox goes first, so they file into him like a queue.
+        // Closest to Taurus goes first, so they file into him like a queue.
         f.order = live.map(h => h.id).sort((a, b) => { const A = bodies.current.get(a)!, B = bodies.current.get(b)!; return Math.hypot(A.x - centre.x, A.y - centre.y) - Math.hypot(B.x - centre.x, B.y - centre.y); });
       }
       const flockAt = f.phase === 'travel' ? (() => { const p = ease(Math.min(1, (t - f.at) / TRAVEL_MS)); const bend = Math.sin(p * Math.PI) * 60; return { x: f.from.x + (centre.x - f.from.x) * p + bend, y: f.from.y + (centre.y - f.from.y) * p }; })() : null;
@@ -220,7 +220,7 @@ export function Swarm() {
         let flocking = false;
         if (homing) target = centre;
         else if (!reduce && returning && f.phase !== 'dive' && t - b.born >= 420) {
-          // Roosting or gathering: a place in the flock above Ox, the whole flock slowly turning.
+          // Roosting or gathering: a place in the flock above Taurus, the whole flock slowly turning.
           flocking = true;
           const p = slot(k), turn = f.phase === 'none' ? t / 2400 : 0, cos = Math.cos(turn), sin = Math.sin(turn);
           const o = flockAt ?? roost, squeeze = flockAt ? 1 - ease(Math.min(1, (t - f.at) / TRAVEL_MS)) * 0.45 : 1;
@@ -265,7 +265,7 @@ export function Swarm() {
             const dt = Math.min(1 / 120, left);
             const goal = b.via ?? target;
             if (b.via && Math.hypot(b.via.x - b.x, b.via.y - b.y) < 70) b.via = null;
-            // Flying as a flock they hold formation tightly; diving in, they snap to Ox's centre.
+            // Flying as a flock they hold formation tightly; diving in, they snap to Taurus's centre.
             const k = homing ? b.k * 2.2 : flocking ? b.k * (f.phase === 'travel' ? 1.9 : 1.2) : b.k, c = 2 * Math.sqrt(k) * (flocking ? 0.8 : 0.6);
             b.vx += (k * (goal.x - b.x) - c * b.vx) * dt;
             b.vy += (k * (goal.y - b.y) - c * b.vy) * dt;
@@ -281,7 +281,7 @@ export function Swarm() {
           }
           b.o = Math.min(1, b.o + elapsed * 5);
           b.s += (1 - b.s) * Math.min(1, elapsed * 8);
-          // Home: it slows into Ox, shrinks and fades.
+          // Home: it slows into Taurus, shrinks and fades.
           if (homing && Math.hypot(centre.x - b.x, centre.y - b.y) < 22) {
             b.nest = Math.min(1, b.nest + elapsed * 7);
             if (b.nest >= 1) { b.gone = true; goneNow.push(h.id); }
@@ -290,7 +290,7 @@ export function Swarm() {
         if (b.gone) {
           el.style.opacity = '0';
           el.dataset.phase = 'gone';
-          // Each one that folds in sends a ring through Ox in its colour.
+          // Each one that folds in sends a ring through Taurus in its colour.
           const ring = rings.current[ringAt.current++ % rings.current.length];
           if (ring && !reduce) { ring.style.setProperty('--c', h.colour); ring.style.left = `${centre.x}px`; ring.style.top = `${centre.y}px`; ring.classList.remove('ping'); void ring.offsetWidth; ring.classList.add('ping'); }
           return;
@@ -317,7 +317,7 @@ export function Swarm() {
   const stop = async () => {
     setStopping(true); setError('');
     try {
-      const r = await fetch('/api/swarm/stop', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: '{}' });
+      const r = await fetch('/api/swarm/stop', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: '{}' });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'The helpers didn’t stop.');
     } catch (e) { setError((e as Error).message); }
     finally { setStopping(false); }
@@ -330,7 +330,7 @@ export function Swarm() {
   const elsewhere = helpers.filter(h => atWork(h.state) && !isHome(h)).length;
   const panel = hidden !== swarm.id;
   const status = swarm.state === 'running' ? `${working} at work${elsewhere ? `, ${elsewhere} on your other ${away.length === 1 ? 'screen' : 'screens'}` : ''} · ${back} of ${helpers.length} done`
-    : swarm.state === 'merging' ? 'Ox is putting it together' : swarm.state === 'stopped' ? `Stopped · ${back} of ${helpers.length} back` : `Done · ${helpers.length} helpers back`;
+    : swarm.state === 'merging' ? 'Taurus is putting it together' : swarm.state === 'stopped' ? `Stopped · ${back} of ${helpers.length} back` : `Done · ${helpers.length} helpers back`;
   const byId = new Map(helpers.map(h => [h.id, h]));
   const allGone = gone.swarm === swarm.id && helpers.every(h => gone.ids.includes(h.id));
 

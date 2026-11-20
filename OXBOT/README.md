@@ -1,8 +1,8 @@
-# OXBOT
+# Taurus
 
 A local chief of staff. One page with what needs you, your schedule, your body and your company numbers, pulled live from the tools you already use. When something can't wait, it takes over your screen and rings like an alarm, then pushes to your phone, then calls it.
 
-Everything runs on your Mac. Connectors are read-only. Keys live in `~/.oxbot`, readable only by you.
+Everything runs on your Mac. Connectors are read-only. Keys live in `~/.taurus`, readable only by you.
 
 ## Run it
 
@@ -27,7 +27,7 @@ With nothing connected, every section shows labelled sample data. Open **Connect
 | `apps/broker` | The sign-in service that makes Google, Microsoft, WHOOP, Strava and Oura one click for anyone. Stores nothing. Deploy once; see its README. |
 | `apps/web` | React app: Today, Ask, Connections, Phone, and the full-screen ring/standby screen at `#ring`. Installable on a phone's home screen. |
 | `apps/desktop` | Electron app: starts the server as a child process, opens one window on `http://localhost:8787`, menu bar or tray, rings while hidden. |
-| `docs/10-phone-app.md` | The phone app plan: alarm-style rings (AlarmKit), "OXBOT is calling" (CallKit), screens, timings, test matrix. |
+| `docs/10-phone-app.md` | The phone app plan: alarm-style rings (AlarmKit), "Taurus is calling" (CallKit), screens, timings, test matrix. |
 | `docs/11-design-rules.md` | The no-slop design rules and the research behind them. |
 | `docs/12-connections.md` | Every connector: what it reads, its scopes, how to set it up, and which were tested only against mocks. |
 | `docs/13-desktop-and-install.md` | The desktop app and the home-screen phone app: build, install on macOS, Windows and Linux, remove. |
@@ -41,23 +41,23 @@ Register one redirect URL with every OAuth provider: `http://localhost:8787/api/
 
 ## Use it on your phone today
 
-Turn on **Let my phone connect** in the desktop app's menu (or start with `OXBOT_HOST=0.0.0.0 pnpm start`), open the **Phone** page on the Mac, open the pairing link on your phone, add it to the home screen, tap once to allow sound, leave it on the charger. Details and the native-app plan: `docs/10-phone-app.md`.
+Turn on **Let my phone connect** in the desktop app's menu (or start with `TAURUS_HOST=0.0.0.0 pnpm start`), open the **Phone** page on the Mac, open the pairing link on your phone, add it to the home screen, tap once to allow sound, leave it on the charger. Details and the native-app plan: `docs/10-phone-app.md`.
 
 ## Checks
 
 ```sh
 pnpm check                 # typecheck server, web and desktop, mocked connector tests, lint, build
 pnpm --dir apps/web test   # browser tests with a mocked API: both themes, 1440 and 390, axe, ring screen, home-screen app
-pnpm --dir apps/desktop test   # the Electron app on port 8790 with a throwaway OXBOT_HOME
+pnpm --dir apps/desktop test   # the Electron app on port 8790 with a throwaway TAURUS_HOME
 ```
 
-Screenshots from the tests go to `qa-local/oxbot/`.
+Screenshots from the tests go to `qa-local/taurus/`.
 
 ## Security
 
-- The server answers only to `localhost`, `127.0.0.1`, this Mac's LAN addresses and `OXBOT_PUBLIC_URL` (DNS-rebinding guard).
+- The server answers only to `localhost`, `127.0.0.1`, this Mac's LAN addresses and `TAURUS_PUBLIC_URL` (DNS-rebinding guard).
 - Requests from other devices need the pairing key (set once as an HttpOnly cookie).
-- Every write needs an `x-oxbot: 1` header, which other websites can't send.
+- Every write needs an `x-taurus: 1` header, which other websites can't send.
 - OAuth uses `state` and, where the provider supports it, PKCE.
 - Nothing is sent, changed or bought on your behalf. Ask writes drafts; you send them.
 
@@ -67,4 +67,4 @@ This started as the Mule Bot blueprint. The original phase documents (`docs/00`â
 
 ## License and naming
 
-See `LICENSE-DECISION.md`. "OXBOT" has not been trademark-cleared.
+See `LICENSE-DECISION.md`. "Taurus" has not been trademark-cleared.

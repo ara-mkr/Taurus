@@ -1,7 +1,7 @@
 import type { Tone } from './types.ts';
 
-// "Hey Ox" on its own answers at once, with no AI (owner, November 7, 2026: "like I say hey ox it says hey back
-// within a second"). Short lines, so Ox's voice can say them as fast as it shows them; the witty set is the default.
+// "Hey Taurus" on its own answers at once, with no AI (owner, November 7, 2026: "like I say hey taurus it says hey back
+// within a second"). Short lines, so Taurus's voice can say them as fast as it shows them; the witty set is the default.
 
 const GREETING = /^(?:|hey|hi|hiya|hello|yo|ayo|sup|what'?s up|wassup|whaddup|hey there|you there|are you there|you up|are you up|wake up|morning|good (?:morning|afternoon|evening))$/;
 const HOW = /^(?:how are you(?: doing)?|how'?s it going|how you doing|how are things|you good|you alright)$/;
@@ -32,5 +32,5 @@ export function greeting(said: string, tone: Tone = 'witty', now = new Date(), r
   return pick(sharp ? witty : plain, random);
 }
 
-// Every line it can say, so Ox's voice can have them ready before the first "Hey Ox".
+// Every line it can say, so Taurus's voice can have them ready before the first "Hey Taurus".
 export const allGreetings = [...new Set([...witty, ...plain, ...wittyHow, ...plainHow, ...lateNight, ...earlyMorning])];

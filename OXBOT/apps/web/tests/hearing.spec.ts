@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mock } from './fixtures';
 
-// The desktop app's own ears (November 7, 2026: "i said hey ox nothing happened"). Chromium's fake microphone plays a
+// The desktop app's own ears (November 7, 2026: "i said hey taurus nothing happened"). Chromium's fake microphone plays a
 // phrase spoken by macOS `say` on a loop; the page is told it is the desktop app, so it uses ../src/hearing.ts. The
 // words are faked at /api/voice/hear (the real model is tested in apps/server/test/hearing.test.ts), but the audio
 // that reaches it is real: cut from the microphone by loudness and sent as 16 kHz, 16-bit PCM.
-const dir = mkdtempSync(join(tmpdir(), 'oxbot-mic-'));
-const wav = join(dir, 'hey-ox.wav');
+const dir = mkdtempSync(join(tmpdir(), 'taurus-mic-'));
+const wav = join(dir, 'hey-taurus.wav');
 if (process.platform === 'darwin') {
-  execFileSync('say', ['-o', join(dir, 'p.aiff'), '[[slnc 1200]] Hey Ox, open my notes app. [[slnc 3000]]']);
+  execFileSync('say', ['-o', join(dir, 'p.aiff'), '[[slnc 1200]] Hey Taurus, open my notes app. [[slnc 3000]]']);
   execFileSync('afconvert', ['-f', 'WAVE', '-d', 'LEI16@16000', '-c', '1', join(dir, 'p.aiff'), wav]);
 }
 test.skip(!existsSync(wav), 'needs macOS say to make the spoken phrase');
@@ -21,7 +21,7 @@ test.use({ permissions: ['microphone'], launchOptions: { args: ['--use-fake-devi
 
 const answer = 'Opening Notes.';
 async function open(page: import('@playwright/test').Page, voice: string) {
-  await page.addInitScript(v => { localStorage.setItem('oxbot-voice', v); Object.assign(window, { oxbotDesktop: { platform: 'darwin', ...(window as { oxbotDesktop?: object }).oxbotDesktop } }); }, voice);
+  await page.addInitScript(v => { localStorage.setItem('taurus-voice', v); Object.assign(window, { taurusDesktop: { platform: 'darwin', ...(window as { taurusDesktop?: object }).taurusDesktop } }); }, voice);
   await mock(page);
   const asked: string[] = [], heard: number[] = [];
   await page.route('**/api/ask', r => { asked.push((r.request().postDataJSON().turns as { text: string }[]).at(-1)!.text); return r.fulfill({ json: { provider: 'Claude', text: answer } }); });
@@ -31,13 +31,13 @@ async function open(page: import('@playwright/test').Page, voice: string) {
     const bytes = r.request().postDataBuffer()?.length ?? 0;
     heard.push(bytes);
     // The phrase is about 2 s: anything that long is it, anything shorter is a stray noise.
-    return r.fulfill({ json: { text: bytes > 16_000 * 2 ? 'Hey Ox, open my notes app.' : '' } });
+    return r.fulfill({ json: { text: bytes > 16_000 * 2 ? 'Hey Taurus, open my notes app.' : '' } });
   });
   await page.goto('/');
   return { asked, heard };
 }
 
-test('in the desktop app, “Hey Ox” is heard on this Mac and the rest goes to Ask', async ({ page }) => {
+test('in the desktop app, “Hey Taurus” is heard on this Mac and the rest goes to Ask', async ({ page }) => {
   const { asked, heard } = await open(page, '{"wake":true}');
   await expect.poll(() => asked.length, { timeout: 15_000 }).toBeGreaterThan(0);
   expect(asked[0].replace(/[.!?]$/, '')).toBe('open my notes app');
@@ -53,7 +53,7 @@ test('in the desktop app, Talk listens on this Mac instead of saying to use a br
   await page.getByRole('button', { name: 'Talk', exact: true }).first().click();
   await expect.poll(() => asked.length, { timeout: 15_000 }).toBe(1);
   // Push-to-talk sends everything said, wake word and all; Ask gets it as spoken.
-  expect(asked[0]).toBe('Hey Ox, open my notes app.');
+  expect(asked[0]).toBe('Hey Taurus, open my notes app.');
   await expect(page.getByText('Voice needs Chrome or Safari')).toHaveCount(0);
 });
 
@@ -79,25 +79,25 @@ test('phrases are cut by loudness: a pause ends one, a click is ignored', async 
   expect(result.pcm).toBe(8);
 });
 
-// November 19, 2026: "anything with ox in it", and nothing without it.
-test('the Mac’s run-together forms of “Ox” wake him, and sound-alikes without “ox” do not', async ({ page }) => {
+// November 19, 2026: "anything with taurus in it", and nothing without it.
+test('the Mac’s run-together forms of “Taurus” wake him, and sound-alikes without “taurus” do not', async ({ page }) => {
   await page.goto('/');
   const got = await page.evaluate(async () => {
     const path = '/src/components/Voice.tsx';
     const { afterWake } = await import(/* @vite-ignore */ path) as typeof import('../src/components/Voice');
-    return ['Yoox, what’s next?', 'I ox.', 'Iox, open notes', 'Yo-Ox, open notes', 'Hey, Ox, open my notes app.', 'Oxbot, pause', 'Hey ox bot next song',
-      '6. Ochs set a timer for 5 minutes.', 'Hey box what is next', 'Box.', 'Ax', 'Okay, ox in a box', 'Oxford is lovely', 'I think so', 'Oh.'].map(afterWake);
+    return ['Yotaurus, what’s next?', 'I taurus.', 'Heytaurus, open notes', 'Yo-Taurus, open notes', 'Hey, Taurus, open my notes app.', 'Taurus, pause', 'Hey taurus bot next song',
+      'Torus, set a timer for 5 minutes.', 'Hey box what is next', 'Thesaurus.', 'Tower', 'Okay, taurus in a box', 'Taurusville is lovely', 'I think so', 'Oh.'].map(afterWake);
   });
   expect(got).toEqual(['what’s next?', '', 'open notes', 'open notes', 'open my notes app.', 'pause', 'next song',
-    null, null, null, null, 'in a box', null, null, null]);
+    'set a timer for 5 minutes.', null, null, null, 'in a box', null, null, null]);
 });
 
-// Ox anywhere (November 16, 2026; docs/21-ox-anywhere.md): with "Hey Ox" or the clap on, the desktop window asks to keep
+// Taurus anywhere (November 16, 2026; docs/21-taurus-anywhere.md): with "Hey Taurus" or the clap on, the desktop window asks to keep
 // hearing while it is hidden or behind other apps; with both off, it asks to rest again.
-test('the desktop window keeps hearing in the background only while “Hey Ox” or the clap is on', async ({ page, context }) => {
+test('the desktop window keeps hearing in the background only while “Hey Taurus” or the clap is on', async ({ page, context }) => {
   const watch = (p: import('@playwright/test').Page) => p.addInitScript(() => {
     const calls: boolean[] = [];
-    Object.assign(window, { keepCalls: calls, oxbotDesktop: { platform: 'darwin', keepHearing: (on: boolean) => calls.push(on) } });
+    Object.assign(window, { keepCalls: calls, taurusDesktop: { platform: 'darwin', keepHearing: (on: boolean) => calls.push(on) } });
   });
   // The distinct values asked for (React's development mode runs the effect twice).
   const calls = (p: import('@playwright/test').Page) => p.evaluate(() => [...new Set((window as unknown as { keepCalls: boolean[] }).keepCalls)]);

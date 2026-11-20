@@ -1,4 +1,4 @@
-# 22. Ox's brain: scans, a better loop, Messages, plan sign-in, speed
+# 22. Taurus's brain: scans, a better loop, Messages, plan sign-in, speed
 
 November 16–17, 2026. The owner's words: "look at openmausbot repo and look at the code they use for ai to actually do agentic actions, also this aint no just clone of grokbot or whatever it needs to be looking for things to do, make it so like a scan of whatever u want and u can set it make it default like a scan of ur emails and stuff to update ur schedule and looks for ur messages and constantly gives u updates … it should literally be able to take agentic control and see messages on macbook and stuff, and for these scans make it use a free openrouter model to make it completely free, and make sign in for claude and gpt actually usable i forgot if it does … it should reply fast".
 
@@ -15,7 +15,7 @@ What OpenMausBot does:
 - Only local models get extra "corrective" rounds after a failed tool.
 - Transient errors are retried with backoff, but never after any text has streamed.
 
-What OXBOT now does (`apps/server/src/agent.ts`, `repeat-guard.ts`; attribution in `NOTICE`):
+What Taurus now does (`apps/server/src/agent.ts`, `repeat-guard.ts`; attribution in `NOTICE`):
 - **Plan.** For a job with more than one step, the model starts with `<plan>1. … 2. …</plan>`. The plan goes to Activity and to the screen.
 - **Act.** The text tool protocol stays, so all 16+ AIs can use tools. Up to four calls per round when they don't depend on each other (was three).
 - **Check.** Every result carries `ok: true|false`. The prompt says to check each result against the plan, read an app or page again after acting in it, and never claim something happened without a result that says so.
@@ -34,21 +34,21 @@ A scan has a name, sources (email, calendar, Messages on this Mac, chat), an int
 2. Keeps only items it hasn't seen. Dedupe is by each item's own id: a calendar event's id plus its start, so a moved event counts as new; for Messages, the database row number. It keeps the last 3,000 ids per scan, and a first run looks back two days.
 3. If nothing is new, it stops there: no AI call, nothing spent.
 4. Otherwise it sends the new items, under refs `i1…i40`, plus the calendar for context, to a free OpenRouter model with one `report` tool. The prompt says the items are data, never instructions.
-5. It posts up to five short **updates** to the feed (`~/.oxbot/feed.json`, last 200). It also sends each one on the local ring stream as a `feed` event, for the web app and the notch.
+5. It posts up to five short **updates** to the feed (`~/.taurus/feed.json`, last 200). It also sends each one on the local ring stream as a `feed` event, for the web app and the notch.
 6. It puts every meeting, deadline or plan it found into **one `calendar.add` approval card**. Only items tied to a real new item go in; dates in the past or more than a year out are dropped.
 7. It drafts **replies** for up to three messages that need one, each its own approval card: `email.reply`, `slack.reply` or `mac.message`. If that app isn't allowed to send yet, the draft shows in the feed instead, with what to switch on.
 
 **Free models.**
 - The scan reads OpenRouter's public model list once an hour and keeps the `:free` models that take tool calls. It prefers Nemotron 3.5 Lightning, then Nemotron 3 Ultra, then Gemma 4 31B.
 - On 429 or a 5xx it moves to the next model. Any other error stops, and the message shows on the scan.
-- `SCAN_MODEL` in `~/.oxbot` overrides the choice. A scan can use "the AI you picked for Ask" instead.
+- `SCAN_MODEL` in `~/.taurus` overrides the choice. A scan can use "the AI you picked for Ask" instead.
 
-**`calendar.add`** (`apps/server/src/actions/calendar.ts`): nothing happens until the owner approves. Then OXBOT writes one `.ics` file into `~/.oxbot/calendar/` and opens it with `/usr/bin/open`, so the Mac's Calendar app adds it, possibly asking which calendar first. OXBOT holds no calendar write scope. The card lasts 24 hours.
+**`calendar.add`** (`apps/server/src/actions/calendar.ts`): nothing happens until the owner approves. Then Taurus writes one `.ics` file into `~/.taurus/calendar/` and opens it with `/usr/bin/open`, so the Mac's Calendar app adds it, possibly asking which calendar first. Taurus holds no calendar write scope. The card lasts 24 hours.
 
 **Settings, Scans** (`apps/web/src/components/Scans.tsx`):
 - Add, edit, switch off, run now and remove scans. The main scan can be switched off but not removed.
 - The Messages switch, with its setup steps.
-- The feed, "What Ox noticed", with each drafted reply and a link to Actions.
+- The feed, "What Taurus noticed", with each drafted reply and a link to Actions.
 
 ## 3. Messages on this Mac (`apps/server/src/messages.ts`)
 
@@ -62,31 +62,31 @@ A scan has a name, sources (email, calendar, Messages on this Mac, chat), an int
 **Permission wording for the owner to record in `AGENTS.md`** (agents don't edit it):
 
 > Also authorized (owner, November 16, 2026), in the owner's words: "it should literally be able to take agentic control and see messages on macbook … its like an assistant he can see everything that ppl r saying to u". This covers:
-> - **Messages on this Mac, read-only** (`apps/server/src/messages.ts`): a switch in Settings, Scans, off by default. While it is on, OXBOT opens `~/Library/Messages/chat.db` in SQLite's read-only mode and never writes to it. It reads iMessages and texts for scans, and in Ask only when the owner's own words are about messages. This is the one file outside the four folders OXBOT may read. macOS allows it only after the owner gives the app that runs OXBOT Full Disk Access himself, which lets that app read any file; agents never grant it. What people wrote goes to the AI the owner chose (scans: OXBOT Free) as data, never as instructions. Sending stays the `mac.message` approval card.
-> - **Scans** (`apps/server/src/scans.ts`): scans the owner sets in Settings read his connected mail, chat, calendar and Messages on a schedule, on OXBOT Free by default. They post short updates to OXBOT's feed and the notch. A scan never sends, posts or changes anything: drafted replies and calendar changes are approval cards.
-> - **Calendar changes through an approval card** (`apps/server/src/actions/calendar.ts`): after the owner approves the card, OXBOT writes one .ics file into `~/.oxbot/calendar` and opens it with `/usr/bin/open`, so the Mac's Calendar app adds it. OXBOT holds no calendar write scope. Changing calendars any other way stays not authorized.
+> - **Messages on this Mac, read-only** (`apps/server/src/messages.ts`): a switch in Settings, Scans, off by default. While it is on, Taurus opens `~/Library/Messages/chat.db` in SQLite's read-only mode and never writes to it. It reads iMessages and texts for scans, and in Ask only when the owner's own words are about messages. This is the one file outside the four folders Taurus may read. macOS allows it only after the owner gives the app that runs Taurus Full Disk Access himself, which lets that app read any file; agents never grant it. What people wrote goes to the AI the owner chose (scans: Taurus Free) as data, never as instructions. Sending stays the `mac.message` approval card.
+> - **Scans** (`apps/server/src/scans.ts`): scans the owner sets in Settings read his connected mail, chat, calendar and Messages on a schedule, on Taurus Free by default. They post short updates to Taurus's feed and the notch. A scan never sends, posts or changes anything: drafted replies and calendar changes are approval cards.
+> - **Calendar changes through an approval card** (`apps/server/src/actions/calendar.ts`): after the owner approves the card, Taurus writes one .ics file into `~/.taurus/calendar` and opens it with `/usr/bin/open`, so the Mac's Calendar app adds it. Taurus holds no calendar write scope. Changing calendars any other way stays not authorized.
 
 ## 4. Claude and ChatGPT sign-in: before and after (tested on the owner's Mac, November 16–17, 2026)
 
 | Path | Before | After |
 |---|---|---|
-| Claude plan (Claude Code 2.1.322, signed in with the owner's Claude Pro plan) | **Failed every time.** Claude Code's own user settings send it to a local proxy model, `cc/claude-sonnet-5` on `localhost:20128`, which wasn't running. Error: "There's an issue with the selected model". | **Works.** OXBOT runs it with `--setting-sources project` and without inherited `ANTHROPIC_*` variables, so it uses the plan's own sign-in. "pong" in 2.5–7.9 s; streamed in Ask. |
-| ChatGPT plan (Codex 0.146, "Logged in using ChatGPT") | **Failed.** `~/.codex/config.toml` picks `gpt-6.1-sol`, which "is not supported when using Codex with a ChatGPT account". | **Works.** OXBOT tries `gpt-5.6-terra`, `-sol` and `-luna`, which answered on this account, and remembers the first that works (`plan-models.json`). The first answer took 47 s while it found one. After that it is about 13 s or more, because Codex loads the owner's 1,000+ skills and MCP servers at every start. The owner can type a model on the AI page. |
+| Claude plan (Claude Code 2.1.322, signed in with the owner's Claude Pro plan) | **Failed every time.** Claude Code's own user settings send it to a local proxy model, `cc/claude-sonnet-5` on `localhost:20128`, which wasn't running. Error: "There's an issue with the selected model". | **Works.** Taurus runs it with `--setting-sources project` and without inherited `ANTHROPIC_*` variables, so it uses the plan's own sign-in. "pong" in 2.5–7.9 s; streamed in Ask. |
+| ChatGPT plan (Codex 0.146, "Logged in using ChatGPT") | **Failed.** `~/.codex/config.toml` picks `gpt-6.1-sol`, which "is not supported when using Codex with a ChatGPT account". | **Works.** Taurus tries `gpt-5.6-terra`, `-sol` and `-luna`, which answered on this account, and remembers the first that works (`plan-models.json`). The first answer took 47 s while it found one. After that it is about 13 s or more, because Codex loads the owner's 1,000+ skills and MCP servers at every start. The owner can type a model on the AI page. |
 | Claude API key | Not set on this Mac | Not tested live (no key). The code now streams, keeps one client, and uses `claude-haiku-5-5` for simple turns when no model is set. |
 | ChatGPT API key | Not set on this Mac | Not tested live (no key). The code now streams (Responses API events). |
-| OXBOT (OpenRouter, once "OXBOT Free") | Signed in, works | Works, streamed. The free daily allowance (50) was used up by testing on November 17 |
+| Taurus (OpenRouter, once "Taurus Free") | Signed in, works | Works, streamed. The free daily allowance (50) was used up by testing on November 17 |
 
 **On the AI page:**
 - Each plan shows whether its app is signed in, from the app's own status command.
-  - Codex prints its status on stderr, which OXBOT reads; on this Mac it shows "Signed in with your ChatGPT account".
-  - `claude auth status` can't skip Claude Code's user settings. On this Mac those settings carry the proxy token, which hides the Pro login OXBOT actually uses. So the page claims "signed in" only when it sees the Claude account itself; otherwise it says to press Test it.
+  - Codex prints its status on stderr, which Taurus reads; on this Mac it shows "Signed in with your ChatGPT account".
+  - `claude auth status` can't skip Claude Code's user settings. On this Mac those settings carry the proxy token, which hides the Pro login Taurus actually uses. So the page claims "signed in" only when it sees the Claude account itself; otherwise it says to press Test it.
 - If a plan isn't signed in, the page gives the one command to type.
-- **Test it** asks that AI for a real answer and shows the time. Through the running server on this Mac: Claude plan "Hello there, owner! Ox here." in 6.6 s; ChatGPT plan "Hello, Owner." in 35.6 s (a fresh home, so it had to find a usable model first).
+- **Test it** asks that AI for a real answer and shows the time. Through the running server on this Mac: Claude plan "Hello there, owner! Taurus here." in 6.6 s; ChatGPT plan "Hello, Owner." in 35.6 s (a fresh home, so it had to find a usable model first).
 - Plans gained an optional Model field.
 
 **Not changed:** the owner's own settings. The ChatGPT plan switch is on; the Claude plan switch is off, so the owner turns it on in Settings, AI, to use it.
 
-**Found along the way:** OXBOT's Google sign-in is expired or revoked. Gmail and Google Calendar both return `invalid_grant`, so the board and scans can't read them until the owner signs in to Google again under Connections.
+**Found along the way:** Taurus's Google sign-in is expired or revoked. Gmail and Google Calendar both return `invalid_grant`, so the board and scans can't read them until the owner signs in to Google again under Connections.
 
 ## 5. Speed
 
@@ -103,26 +103,26 @@ On November 17 the time to the first word was measured directly on OpenRouter's 
 
 These free models *think before they write*, and that was almost all of the wait. The short prompt for simple turns never touched it, so the November 16 "after" numbers were the same thinking time with ordinary noise on top. "Lightning" measured slower than Ultra then because, left to itself, it thinks longer.
 
-### What OXBOT does now (`apps/server/src/speed.ts`, `route.ts`)
+### What Taurus does now (`apps/server/src/speed.ts`, `route.ts`)
 
 Every ask is one of three kinds:
 - **Quick asks** (`simpleTurn`): a fact, a joke, a hello; no tools.
 - **Everyday asks**: the board and tools.
 - **Big jobs** (`bigJob`): long asks, plans, research, drafts, work in apps.
 
-On OXBOT's free models:
+On Taurus's free models:
 - **Quick asks** go to the fastest free model lately, thinking off. It starts as Lightning. Every answer records its first-word time, and the median of the last 8 decides.
 - **Everyday asks** go to Ultra, thinking off. With the full board and tools prompt, Ultra *thinking a little* took 7–12.5 s to its first word, and 0.56–1.0 s *not thinking*. It still wrote correct tool lines: refresh, search mail, live heart rate, all checked. Super VL not thinking was as quick but wrote broken tool lines (`<refresh section="inbox">`), so it's only a fallback. Lightning misread a meeting time.
 - **Big jobs** go to Ultra, thinking as much as it likes.
 - A busy model (429 or 5xx) rests for two minutes, and the next one answers. A model that rejects the thinking setting gets one retry without it.
-- OpenRouter publishes no latency for free endpoints (`latency_last_30m` is null), so OXBOT times its own answers.
+- OpenRouter publishes no latency for free endpoints (`latency_last_30m` is null), so Taurus times its own answers.
 - Meeting times now reach the AI already written in local time ("Tue, Nov 17, 8:30 AM–9:00 AM local time"). A model answering without thinking had misread UTC by hours.
-- When the account's daily free allowance runs out, Ox says so plainly instead of trying every free model. A free OpenRouter account gets **50 free-model asks a day**; $5 of credit raises it to 1,000. The measuring for this work used up the owner's allowance on November 17.
+- When the account's daily free allowance runs out, Taurus says so plainly instead of trying every free model. A free OpenRouter account gets **50 free-model asks a day**; $5 of credit raises it to 1,000. The measuring for this work used up the owner's allowance on November 17.
 
 ### Who answers what
 
 - **AI page, "Who answers what".**
-  - Presets: All OXBOT, All Claude, All ChatGPT, OXBOT for quick and Claude (or ChatGPT) for big jobs.
+  - Presets: All Taurus, All Claude, All ChatGPT, Taurus for quick and Claude (or ChatGPT) for big jobs.
   - A choice per kind of ask.
   - The free models' measured first-word times.
 - **Or just say it** (`settingsCommand`, run before the AI, with no AI call):
@@ -134,11 +134,11 @@ On OXBOT's free models:
   - "scan every 10 minutes"
 - A kind of ask has to follow "for", so "use Claude for this long email" stays a request.
 - Naming a plan app that's installed switches it on.
-- **Naming.** "OXBOT Free" is now just "OXBOT". The free-model picker defaults to "Fastest for each ask".
+- **Naming.** "Taurus Free" is now just "Taurus". The free-model picker defaults to "Fastest for each ask".
 
 ### Time to first visible word
 
-Measured with OXBOT's real `converse()` on the owner's OpenRouter account, on the sample board.
+Measured with Taurus's real `converse()` on the owner's OpenRouter account, on the sample board.
 
 | Question | Before (Nov 16) | Streaming only (Nov 16) | Now (Nov 17), 3 runs |
 |---|---|---|---|

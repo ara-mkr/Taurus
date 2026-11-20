@@ -1,8 +1,8 @@
-// Packages OXBOT for each platform, then proves the package holds code and assets only.
+// Packages Taurus for each platform, then proves the package holds code and assets only.
 //   node scripts/package.mjs            mac, win and linux
 //   node scripts/package.mjs mac win    just those
 // After each platform its app.asar and web folder are searched for secrets; any match fails the build.
-// Unpacked folders are then removed to save disk, except release/mac-arm64/OXBOT.app.
+// Unpacked folders are then removed to save disk, except release/mac-arm64/Taurus.app.
 import { execFileSync } from 'node:child_process';
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -13,9 +13,9 @@ const release = join(here, 'release');
 const platforms = process.argv.slice(2).length ? process.argv.slice(2) : ['mac', 'win', 'linux'];
 if (!existsSync(join(here, '../web/dist/index.html'))) throw new Error('Build the web app first: pnpm --dir apps/web build');
 
-// The server's own code names ~/.oxbot, .env and refresh_token, so plain words would always match.
+// The server's own code names ~/.taurus, .env and refresh_token, so plain words would always match.
 // These patterns match the things that must never ship: files from those places and secret-shaped values.
-const owner = (process.env.OXBOT_OWNER_EMAILS ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+const owner = (process.env.TAURUS_OWNER_EMAILS ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 const patterns = [
   ['an OpenAI or Anthropic key', /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{24,}/],
   ['an AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
@@ -26,10 +26,10 @@ const patterns = [
 ];
 function localIdentity() {
   if (process.platform !== 'darwin') return undefined;
-  try { return execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' }).includes('"OXBOT Local"') ? 'OXBOT Local' : undefined; }
+  try { return execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' }).includes('"Taurus Local"') ? 'Taurus Local' : undefined; }
   catch { return undefined; }
 }
-const badPath = /(^|\/)(\.oxbot|\.env(\.[^/]*)?|secrets\.json|tokens\.json|pairing\.json)(\/|$)/;
+const badPath = /(^|\/)(\.taurus|\.env(\.[^/]*)?|secrets\.json|tokens\.json|pairing\.json)(\/|$)/;
 
 // asar: [4: 4][4: header pickle size][pickle: [4: payload size][4: json length][json]] then file data.
 function* asarFiles(file) {
@@ -88,7 +88,7 @@ const failures = [];
 for (const platform of platforms) {
   if (!flags[platform]) throw new Error(`Unknown platform ${platform}; use mac, win or linux`);
   console.log(`\n== Packaging for ${platform}`);
-  // With the owner's "OXBOT Local" certificate (scripts/signing-cert.sh), macOS keeps Screen Recording and Accessibility
+  // With the owner's "Taurus Local" certificate (scripts/signing-cert.sh), macOS keeps Screen Recording and Accessibility
   // across builds; without it, builds stay signed ad hoc as before.
   const identity = platform === 'mac' ? localIdentity() : undefined;
   try { execFileSync(join(here, 'node_modules/.bin/electron-builder'), [flags[platform], '--config', 'electron-builder.json', '--publish', 'never', ...(identity ? [`-c.mac.identity=${identity}`] : [])], { cwd: here, stdio: 'inherit' }); }
@@ -97,7 +97,7 @@ for (const platform of platforms) {
   for (const dir of unpacked) {
     for (const asar of findAll(join(release, dir), 'app.asar')) {
       const r = scan(relative(release, asar), asarFiles(asar));
-      // playwright-core is the one library the bundled server loads from node_modules (OXBOT's own browser).
+      // playwright-core is the one library the bundled server loads from node_modules (Taurus's own browser).
       const names = [...asarFiles(asar)].map(([p]) => p).filter(p => !p.startsWith('dist/') && p !== 'package.json' && !p.startsWith('node_modules/playwright-core/'));
       if (names.length) r.problems.push(`${relative(release, asar)}: unexpected files ${names.join(', ')}`);
       console.log(`Checked ${relative(release, asar)}: ${r.count} files, ${r.problems.length ? 'PROBLEMS' : 'clean'}`);

@@ -1,11 +1,11 @@
-OxNotch, OXBOT's native notch
+TaurusNotch, Taurus's native notch
 Licensed GPL-3.0-or-later (see LICENSE), because it is ported from Vorssaint.
 
 Source: https://github.com/vorssaint/vorssaint-utils (GPL-3.0-or-later, Copyright (C) 2026 Vorssaint)
 Commit read and ported from: 89d2626089d693bf0462ba29ea5d047d80c9da2e
 
 Ported (rewritten and trimmed, not copied whole):
-- Sources/NowPlayingAdapter/NowPlayingAdapter.swift and Resources/now-playing.pl -> Sources/OxNowPlaying, NowPlaying.swift
+- Sources/NowPlayingAdapter/NowPlayingAdapter.swift and Resources/now-playing.pl -> Sources/TaurusNowPlaying, NowPlaying.swift
   (MediaRemote read through /usr/bin/perl; play/pause/next/previous only)
 - Services/AgentUsage (ClaudeReader, CodexReader, AgentLogParser) -> Agents.swift (open turns, tokens today, Codex limits)
 - Services/Notch/NotchWindowHost.swift NotchPanel, NotchService display choice and camera width,
@@ -19,9 +19,9 @@ Ported (rewritten and trimmed, not copied whole):
   NotchMusicView.swift and NotchMusicStrip.swift, NotchAgentsView.swift and NotchAgentComponents.swift (cards,
   colours) -> IslandView.swift; Settings > Notch wording -> apps/web/src/components/NotchSettings.tsx
 
-Not used: Vorssaint's mascot, name, icons, strings, artwork or any other asset. Ox comes from OXBOT's
-design/logo/ox-mascot.svg; agent marks are read at run time from the makers' installed apps. Not ported:
+Not used: Vorssaint's mascot, name, icons, strings, artwork or any other asset. Taurus comes from Taurus's
+design/logo/taurus-mascot.svg; agent marks are read at run time from the makers' installed apps. Not ported:
 brightness, screenshots/recording, clipboard history, notifications, calendar, downloads, lyrics, queue, mixer,
 lock screen, prices, update checks.
 
-OXBOT builds are personal. If OXBOT is ever distributed with this notch, OXBOT must be GPL-3.0 (see ../../LICENSE-DECISION.md).
+Taurus builds are personal. If Taurus is ever distributed with this notch, Taurus must be GPL-3.0 (see ../../LICENSE-DECISION.md).

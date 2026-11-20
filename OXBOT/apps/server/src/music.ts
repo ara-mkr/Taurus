@@ -4,7 +4,7 @@ import { api, HttpError } from './store.ts';
 import type { MusicState, Track } from './types.ts';
 import { show, shown } from './windows.ts';
 
-// Spotify playback (owner, November 4, 2026: "hey ox play juice wrld on spotify"). Playing, pausing and skipping on
+// Spotify playback (owner, November 4, 2026: "hey taurus play juice wrld on spotify"). Playing, pausing and skipping on
 // your own Spotify are instant: they change nothing anyone else sees and are undone with one word, so they don't
 // wait for an approval card. Needs its own sign-in (spotify-play) with the playback scopes; the read-only Spotify
 // connection stays as it was. Spotify only lets Premium accounts start playback through its API; otherwise, or with
@@ -78,7 +78,7 @@ async function find(said: string): Promise<Found> {
   throw new HttpError(404, `Spotify found nothing for “${said}”.`);
 }
 
-const embedOf = (f: Found) => f.kind === 'liked' ? undefined : `https://open.spotify.com/embed/${f.kind}/${f.id}?utm_source=oxbot`;
+const embedOf = (f: Found) => f.kind === 'liked' ? undefined : `https://open.spotify.com/embed/${f.kind}/${f.id}?utm_source=taurus`;
 
 // The device to play on: the one already playing, else the computer, else whatever is open.
 async function device(t: string): Promise<{ id: string; name: string } | undefined> {
@@ -104,7 +104,7 @@ export async function state(): Promise<MusicState> {
 }
 
 // Spotify takes a moment to switch tracks; read back once it has.
-const settle = () => new Promise(r => setTimeout(r, process.env.OXBOT_FAST ? 0 : 700));
+const settle = () => new Promise(r => setTimeout(r, process.env.TAURUS_FAST ? 0 : 700));
 const window = (music: MusicState, said?: string) => show({ id: 'music', kind: 'music', music, said });
 
 export async function play(said: string, heard?: string): Promise<{ text: string; music: MusicState }> {
@@ -116,7 +116,7 @@ export async function play(said: string, heard?: string): Promise<{ text: string
     window(music, heard);
     return { text: 'I need Spotify connected first. The button is on screen.', music };
   }
-  const step = begin('action', `Spotify: finding ${said.slice(0, 60)}`, { by: 'ox' });
+  const step = begin('action', `Spotify: finding ${said.slice(0, 60)}`, { by: 'taurus' });
   try {
     // The song and the speaker are looked up at the same time (November 7, 2026: "if i said play this song boom 2
     // seconds and its done"); one after the other cost a whole Spotify round trip.
@@ -165,7 +165,7 @@ export async function control(what: Control, value?: number, heard?: string): Pr
     return { text: 'I can’t control Spotify yet. Allow playback in Settings, then Actions.', music };
   }
   const t = await token();
-  const step = begin('action', `Spotify: ${what}`, { by: 'ox' });
+  const step = begin('action', `Spotify: ${what}`, { by: 'taurus' });
   try {
     const p = what === 'now' ? undefined : await api<any>(`${BASE}/me/player`, { token: t });
     if (what !== 'now' && !p?.device) throw new HttpError(409, 'Nothing is open on Spotify right now.');

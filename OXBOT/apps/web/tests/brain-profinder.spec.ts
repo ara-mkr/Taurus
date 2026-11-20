@@ -37,7 +37,7 @@ const notes: Record<string, ReturnType<typeof note>> = {
 
 async function mockBrain(page: Page) {
   const posted: { url: string; body: unknown }[] = [];
-  await page.route('**/api/brain', r => r.fulfill({ json: { graph, suggestions: [{ id: 's-0a1b2c3d', fact: 'Plays chess at the Example Club on Sundays', note: 'Chess club', at: iso(-5) }], added: 0, folder: '~/.oxbot/brain' } }));
+  await page.route('**/api/brain', r => r.fulfill({ json: { graph, suggestions: [{ id: 's-0a1b2c3d', fact: 'Plays chess at the Example Club on Sundays', note: 'Chess club', at: iso(-5) }], added: 0, folder: '~/.taurus/brain' } }));
   await page.route('**/api/brain/note?**', r => { const t = new URL(r.request().url()).searchParams.get('title')!; return r.fulfill({ json: { note: notes[t] ?? note(t, graph.nodes.find(n => n.id === t)?.up, `Notes about ${t}.\n`) } }); });
   await page.route('**/api/brain/file?**', r => { posted.push({ url: r.request().url(), body: r.request().method() }); return r.fulfill({ json: { note: { ...notes.Resume, files: [...notes.Resume.files, 'cover.txt'] }, file: 'cover.txt', graph } }); });
   await page.route('**/api/brain/suggestions/*', r => { posted.push({ url: r.request().url(), body: r.request().postDataJSON() }); return r.fulfill({ json: { suggestions: [], graph } }); });
@@ -51,8 +51,8 @@ test('the Brain draws every note as a dot, opens a note with its files, finds, a
   await expect(page.getByRole('heading', { name: 'Brain', level: 1 })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Brain graph: 21 notes and 3 files. Every note is also listed beside it.' })).toBeVisible();
   await expect(page.locator('.brain-graph canvas').first()).toBeVisible();
-  await expect(page.getByText('21 notes, 3 files in ~/.oxbot/brain.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Ox learned one thing. Add it to your Brain?' })).toBeVisible();
+  await expect(page.getByText('21 notes, 3 files in ~/.taurus/brain.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Taurus learned one thing. Add it to your Brain?' })).toBeVisible();
 
   // The whole map, fitted, before any note is open.
   await page.waitForTimeout(2000);
@@ -65,7 +65,7 @@ test('the Brain draws every note as a dot, opens a note with its files, finds, a
   await expect(side.getByRole('button', { name: 'Example Corp', exact: true })).toBeVisible();
   await expect(side.getByText('Alex Example Resume.pdf')).toBeVisible();
   await expect(side.getByRole('link', { name: 'Download' })).toHaveAttribute('href', '/api/brain/file?name=Alex%20Example%20Resume.pdf');
-  await expect(side.getByRole('button', { name: 'Ask Ox about it' })).toBeVisible();
+  await expect(side.getByRole('button', { name: 'Ask Taurus about it' })).toBeVisible();
   await expect(page).toHaveURL(/#brain\/Resume$/);
   await page.waitForTimeout(1500);
   expect(await smallest(page)).toBeGreaterThanOrEqual(13);
@@ -92,7 +92,7 @@ test('the Brain draws every note as a dot, opens a note with its files, finds, a
   expect(posted.some(p => p.url.includes('/api/brain/file?note=Resume&name=cover.txt') && p.body === 'POST')).toBe(true);
 
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /Ox learned/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /Taurus learned/ })).toHaveCount(0);
   expect(posted.at(-1)).toEqual({ url: expect.stringContaining('/api/brain/suggestions/s-0a1b2c3d'), body: { add: true } });
 });
 
@@ -117,7 +117,7 @@ const jobs = [
   job('a00000000001', 'Software Engineering Intern', 'Example Corp', 'ready', 92),
   job('a00000000002', 'Backend Engineer Intern', 'Example Labs', 'ready', 86, { location: 'Remote, US', remote: true, sources: ['Lever'] }),
   job('a00000000003', 'Data Engineering Intern', 'Example Analytics', 'ready', 81, { sources: ['Ashby', 'Simplify'], pay: '$48/hr' }),
-  job('a00000000004', 'Software Engineer Intern', 'Example Robotics', 'needs-you', 77, { needs: 'This site wants you to sign in. Ox doesn’t sign in or make accounts: apply there yourself, then mark it applied.', sources: ['Simplify'], location: 'Austin, TX' }),
+  job('a00000000004', 'Software Engineer Intern', 'Example Robotics', 'needs-you', 77, { needs: 'This site wants you to sign in. Taurus doesn’t sign in or make accounts: apply there yourself, then mark it applied.', sources: ['Simplify'], location: 'Austin, TX' }),
   job('a00000000005', 'Platform Engineering Intern', 'Example Cloud', 'shortlisted', 79),
   job('a00000000006', 'Machine Learning Intern', 'Example AI', 'shortlisted', 74, { location: 'New York, NY' }),
   job('a00000000007', 'Software Engineer Intern', 'Example Health', 'applied', 83, { appliedAt: iso(-60 * 24 * 2) }),
@@ -172,7 +172,7 @@ test('ProFinder shows the pipeline and one batch card that sends only the checke
 });
 
 test('ProFinder on a phone, light, fits the screen', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   await page.setViewportSize({ width: 390, height: 844 });
   await mock(page, false, [batch]);
   await page.route('**/api/profinder', r => r.fulfill({ json: info }));

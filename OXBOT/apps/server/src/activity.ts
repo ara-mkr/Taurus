@@ -1,8 +1,8 @@
 import type { ServerResponse } from 'node:http';
 import type { Activity, ActivityKind } from './types.ts';
 
-// What Ox is doing, as it happens (owner, November 1, 2026): every pull, AI call, tool, browser step and action,
-// streamed to the Activity terminal and the "Ox is working" line. Kept in memory only, the last 300 lines.
+// What Taurus is doing, as it happens (owner, November 1, 2026): every pull, AI call, tool, browser step and action,
+// streamed to the Activity terminal and the "Taurus is working" line. Kept in memory only, the last 300 lines.
 
 const MAX = 300;
 const entries: Activity[] = [];
@@ -27,7 +27,7 @@ const quiet: Step = { done: () => undefined, fail: () => undefined };
 
 // A line that starts running and then finishes in place. `every` skips repeats of the same key inside that window,
 // so widgets that poll every minute don't flood the log.
-export function begin(kind: ActivityKind, text: string, options: { every?: number; key?: string; by?: 'ox' | 'you' } = {}): Step {
+export function begin(kind: ActivityKind, text: string, options: { every?: number; key?: string; by?: 'taurus' | 'you' } = {}): Step {
   if (options.every) {
     const key = options.key ?? `${kind}:${text}`;
     const last = lastSeen.get(key) ?? 0;

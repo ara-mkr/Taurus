@@ -25,7 +25,7 @@ No Git initialization, commit, remote creation, push or publication is included 
 | Today | The only full destination; Needs you, Up next, Tomorrow plan, simulated activity | More scenarios may be added within P1 acceptance |
 | Email details | One accessible overlay drawer on desktop, full-width sheet at narrow widths | No provider execution or attachment download |
 | Compact navigation | Keyboard-accessible menu on mobile; active Today and clearly unavailable destinations | No empty route pretending to implement another page |
-| Ask Ox | Clearly unavailable destination; optional bounded command entry opens only the existing email drawer | Conversational scenarios belong to P2 |
+| Ask Taurus | Clearly unavailable destination; optional bounded command entry opens only the existing email drawer | Conversational scenarios belong to P2 |
 | Tasks, Memory, Connections, Settings | Labeled preview/unavailable, with an explanation when selected | Their pages and workflows belong to P2 |
 | Tomorrow plan | Inline fictional meeting/preparation/wake suggestion with source and explicit no-alarm statement | No second action drawer, calendar edit or alarm operation |
 

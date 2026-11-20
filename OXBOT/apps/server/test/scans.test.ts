@@ -8,10 +8,10 @@ import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 import { makeChatDb } from './chatdb-fixture.ts';
 
-const home = process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-scans-'));
-process.env.OXBOT_BROKER_URL = '';
+const home = process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-scans-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'MAC_MESSAGES_ON', 'SCAN_MODEL']) delete process.env[key];
-process.env.OXBOT_CHAT_DB = await makeChatDb(mkdtempSync(join(tmpdir(), 'oxbot-chatdb-')), [
+process.env.TAURUS_CHAT_DB = await makeChatDb(mkdtempSync(join(tmpdir(), 'taurus-chatdb-')), [
   { from: '+15550100', text: 'Can we do the design review Thursday at 3pm?', minutesAgo: 30 },
   { from: '+15550199', text: 'Your code is 448812', minutesAgo: 20 },
 ]);

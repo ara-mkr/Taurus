@@ -4,7 +4,7 @@ import type { CalendarEvent, Metric, Need, Update } from '../types.ts';
 import { DAY, endOfToday, iso, money, startOfToday, type Def, type Pull } from './kit.ts';
 
 // Composio (added November 1, 2026 at the owner's request, docs/decision-log.md): one key reaches the apps you
-// connect in your own Composio project, about 1,700 of them. Composio keeps those sign-ins in its cloud; OXBOT keeps
+// connect in your own Composio project, about 1,700 of them. Composio keeps those sign-ins in its cloud; Taurus keeps
 // only your Composio API key. Reading the board never runs a Composio tool: it lists your connected accounts and sends
 // each app one documented read through Composio's proxy, always GET (the test fails otherwise). Since November 1,
 // 2026, Composio tools run as actions (src/actions/composio.ts), and only after the owner approves each one.
@@ -35,7 +35,7 @@ const pipeline = (source: string, deals: { value: number; close?: string }[], cu
 };
 const sevenDays = (source: string, label: string, amounts: number[], currency = 'USD'): Metric => ({ label, value: money(sum(amounts), currency), change: `${amounts.length} in 7 days`, source });
 
-// One reader per app OXBOT understands, keyed by Composio's toolkit slug. Each one only reads.
+// One reader per app Taurus understands, keyed by Composio's toolkit slug. Each one only reads.
 export const readers: Record<string, Reader> = {
   clickup: {
     name: 'ClickUp', reads: 'Your open tasks due today or overdue',
@@ -214,7 +214,7 @@ export const readers: Record<string, Reader> = {
   reddit: {
     name: 'Reddit', reads: 'Unread replies and messages',
     async read(get) {
-      const data = await get('https://oauth.reddit.com/message/unread', { limit: '10' }, { 'User-Agent': 'OXBOT/0.2 (read-only dashboard)' });
+      const data = await get('https://oauth.reddit.com/message/unread', { limit: '10' }, { 'User-Agent': 'Taurus/0.2 (read-only dashboard)' });
       return { needs: (data.data?.children ?? []).map(({ data: m }: any): Need => ({ id: `reddit:${m.name}`, title: m.subject, who: m.author, detail: String(m.body ?? '').slice(0, 160), source: 'Reddit', at: iso(m.created_utc * 1000), url: m.context ? `https://www.reddit.com${m.context}` : 'https://www.reddit.com/message/unread/' })) };
     },
   },
@@ -276,7 +276,7 @@ export const composioDefs: Def[] = [{
     { key: 'COMPOSIO_API_KEY', label: 'Project API key', secret: true },
     { key: 'COMPOSIO_USER_ID', label: 'User ID you connected apps under', optional: true, placeholder: 'default' },
   ],
-  setup: 'Sign in at platform.composio.dev, connect the apps you want under one user ID (blank here means "default"), then copy the project API key from Settings → Project Settings. Composio keeps those sign-ins in its cloud and may ask an app for more than read access; OXBOT only ever sends reads through it.',
+  setup: 'Sign in at platform.composio.dev, connect the apps you want under one user ID (blank here means "default"), then copy the project API key from Settings → Project Settings. Composio keeps those sign-ins in its cloud and may ask an app for more than read access; Taurus only ever sends reads through it.',
   setupUrl: 'https://platform.composio.dev/',
   async pull({ field }) {
     const user = field('COMPOSIO_USER_ID') || 'default';
@@ -291,7 +291,7 @@ export const composioDefs: Def[] = [{
       if (!reader) return {};
       const get: Get = async (endpoint, query = {}, extra = {}) => {
         const parameters = [...Object.entries(query).map(([name, value]) => ({ name, value, type: 'query' })), ...Object.entries(extra).map(([name, value]) => ({ name, value, type: 'header' }))];
-        // Always GET: OXBOT reads through Composio and never asks it to change anything.
+        // Always GET: Taurus reads through Composio and never asks it to change anything.
         const reply = await api<any>(`${BASE}/tools/execute/proxy`, { method: 'POST', headers, body: JSON.stringify({ connected_account_id: account.id, user_id: user, endpoint, method: 'GET', parameters }) });
         if (reply.status >= 400) throw new Error(`${reader.name} ${reply.status}: ${JSON.stringify(reply.data ?? '').slice(0, 160)}`);
         return reply.data ?? {};

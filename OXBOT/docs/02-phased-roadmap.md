@@ -38,7 +38,7 @@ Create component states before multiplying pages: default, hover, focus, disable
 
 ## P2 - Complete interactive simulation
 
-**Purpose:** make the core experience believable without claiming operational capabilities. Extend the approved shell to Ask Ox, Tasks, Memory, Connections, Settings, onboarding, and contextual dialogs. Reuse tokens and components; do not reinvent a new layout language per screen.
+**Purpose:** make the core experience believable without claiming operational capabilities. Extend the approved shell to Ask Taurus, Tasks, Memory, Connections, Settings, onboarding, and contextual dialogs. Reuse tokens and components; do not reinvent a new layout language per screen.
 
 Implement deterministic simulated workflows for ready-for-tomorrow, recipient disambiguation, approval/rejection, task progression, pause, source disconnection, memory correction/deletion, quiet hours, and notification preferences. A reset control restores the same fixtures. Provide an accessible "Demo scenario" selector for testing empty, busy, disconnected, failed, and uncertain states.
 
@@ -116,7 +116,7 @@ Add Fitbit, Garmin, WHOOP, or Apple Health separately after current documentatio
 
 **Purpose:** reduce interaction friction without pretending to control the operating system. Implement push-to-talk or a supported system invocation first. App Intents can provide approved Siri/Shortcuts-style entry points; an always-available arbitrary custom wake word is not a baseline promise. [R47]
 
-Implement native app-managed alarms with authorization and local scheduling acknowledgment. Validate OS support and behavior in a real native test app. Do not claim that Ox can inspect every Apple Clock alarm. If a phone is offline, the backend cannot promise it successfully scheduled a local alarm simply because it queued a push. [R44-R45]
+Implement native app-managed alarms with authorization and local scheduling acknowledgment. Validate OS support and behavior in a real native test app. Do not claim that Taurus can inspect every Apple Clock alarm. If a phone is offline, the backend cannot promise it successfully scheduled a local alarm simply because it queued a push. [R44-R45]
 
 Add opt-in outbound calls only for named categories with escalation rules, cost limits, quiet exceptions, and an acknowledgment stop. Twilio is one possible provider, not a guarantee the phone rings or the user answers. Audio to earbuds must obey routing, current calls, permissions, and user preferences. [R48-R50]
 
@@ -144,7 +144,7 @@ Require recording consent appropriate to participants and jurisdictions, a persi
 
 Test transcript confidence, speaker attribution errors, capture of unrelated speech, sensitive content, opt-out handling, and interruption quality. Prefer local processing where practical and disclose any audio sent to a provider. Raw audio retention should default to the minimum needed for the chosen feature, not permanent storage.
 
-Study Omi and the Chief prototype for architecture lessons. Their existence does not prove consent compliance, robustness, or fitness for Ox's use case. Do not import a hackathon's risk assumptions into a production app. [R10, R12]
+Study Omi and the Chief prototype for architecture lessons. Their existence does not prove consent compliance, robustness, or fitness for Taurus's use case. Do not import a hackathon's risk assumptions into a production app. [R10, R12]
 
 **Exit evidence:** participants can understand and stop capture; uncertain transcripts do not create irreversible actions; live hints have strong evidence and low interruption rate; privacy review is complete. If those gates fail, keep the feature experimental or do not ship it.
 
@@ -152,7 +152,7 @@ Study Omi and the Chief prototype for architecture lessons. Their existence does
 
 This is a release track that begins when a narrow core is ready; it is not a requirement to complete all advanced phases. Before inviting real users, finish the applicable privacy, platform, security, and support gates. Before a public announcement, clear the product/company names, establish the legal publisher, and decide the code/asset license.
 
-Build the Ox product website around a recorded real workflow, an honest support matrix, download/waitlist paths, documentation, privacy, security, and a clear limitations page. Build the parent-company site later as a small company/mission/contact page. Avoid two elaborate marketing sites for one unfinished product.
+Build the Taurus product website around a recorded real workflow, an honest support matrix, download/waitlist paths, documentation, privacy, security, and a clear limitations page. Build the parent-company site later as a small company/mission/contact page. Avoid two elaborate marketing sites for one unfinished product.
 
 Commission or finalize original logo/mascot assets after the product direction is stable. Prepare launch screenshots using synthetic accounts; never expose private source messages, tokens, bank balances, or health records for a convincing demo.
 

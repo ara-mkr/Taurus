@@ -4,19 +4,19 @@ import { existsSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { cleanNotch, geometry, notchScreens, type Geometry, type NotchSettings, type NotchState, type Screen } from './notch-settings';
 
-// Ox in the notch (owner, November 6, 2026). A black pill hugging the MacBook's camera notch, with Ox beside it; on
+// Taurus in the notch (owner, November 6, 2026). A black pill hugging the MacBook's camera notch, with Taurus beside it; on
 // hover or click it opens into a small assistant: what's new, his last answer, what's playing, timers,
 // and a box to ask him something. On a screen without a notch it is a small pill at the top centre.
 //
 // Each chosen screen gets one transparent window above the menu bar, on every Space. Clicks fall through it except
-// on the pill itself. Its page reaches nothing on its own: the main process reads OXBOT's local stream, hands it
-// what to draw, and asks OXBOT's local server for it. Nothing here sends, posts or buys: asking goes through the same
+// on the pill itself. Its page reaches nothing on its own: the main process reads Taurus's local stream, hands it
+// what to draw, and asks Taurus's local server for it. Nothing here sends, posts or buys: asking goes through the same
 // /api/ask as Talk, with the same approval cards.
 
 const mac = process.platform === 'darwin';
 // Tests draw the notch but keep it invisible on the screen of whoever runs them and never let it take the real mouse;
 // Electron still captures its content for screenshots (owner, November 6, 2026: a test's stand-in wallpaper showed up).
-const testing = process.env.OXBOT_NOTCH_TEST === '1';
+const testing = process.env.TAURUS_NOTCH_TEST === '1';
 type Voice = NotchState['voice'];
 interface Options {
   here: string; local: string;
@@ -35,11 +35,11 @@ export function notchService(o: Options) {
   // A few turns, so "and tomorrow?" follows on from the last question asked here.
   let turns: { role: 'user' | 'assistant'; text: string }[] = [];
 
-  // The native notch (November 17, 2026, docs/20-native-notch.md): OxNotch, ported from Vorssaint, once it has been
-  // built (apps/notch-mac/build.sh). It follows OXBOT's local streams itself, over loopback; this process only starts
+  // The native notch (November 17, 2026, docs/20-native-notch.md): TaurusNotch, ported from Vorssaint, once it has been
+  // built (apps/notch-mac/build.sh). It follows Taurus's local streams itself, over loopback; this process only starts
   // it, hands it the settings, and opens the dashboard or saves settings when it asks. If it isn't built, tests are
-  // running, OXBOT_NATIVE_NOTCH=0, or it dies on start three times, the Electron notch below draws Ox instead.
-  let nativeFile = mac && !testing && process.env.OXBOT_NATIVE_NOTCH !== '0' ? findNative(o.here) : undefined;
+  // running, TAURUS_NATIVE_NOTCH=0, or it dies on start three times, the Electron notch below draws Taurus instead.
+  let nativeFile = mac && !testing && process.env.TAURUS_NATIVE_NOTCH !== '0' ? findNative(o.here) : undefined;
   let native: ChildProcess | null = null;
   let nativeFailures = 0, closed = false;
   const tellNative = (message: unknown) => { if (native?.stdin?.writable) native.stdin.write(`${JSON.stringify(message)}\n`); };
@@ -56,7 +56,7 @@ export function notchService(o: Options) {
         const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
         try {
           const m = JSON.parse(line) as { do?: string; settings?: unknown };
-          if (m.do === 'dashboard') openOxbot((m as { page?: string }).page === 'notch' ? 'notch' : undefined);
+          if (m.do === 'dashboard') openTaurus((m as { page?: string }).page === 'notch' ? 'notch' : undefined);
           else if (m.do === 'save') { update(m.settings); tellNative({ settings }); }
         } catch { /* not a request */ }
       }
@@ -76,7 +76,7 @@ export function notchService(o: Options) {
   // News that is already old (a reminder replayed when the stream reconnects) is not news.
   const fresh = (at: unknown) => typeof at !== 'string' || !Number.isFinite(Date.parse(at)) || Date.now() - Date.parse(at) < 60_000;
   const tellNews = (id: string, title: string, text: string) => {
-    news = { id: String(id).slice(0, 80), title: String(title || 'Ox').slice(0, 80), text: String(text ?? '').slice(0, 600), at: new Date().toISOString() };
+    news = { id: String(id).slice(0, 80), title: String(title || 'Taurus').slice(0, 80), text: String(text ?? '').slice(0, 600), at: new Date().toISOString() };
   };
   function tell() {
     for (const { win, geometry: g } of windows.values()) if (!win.isDestroyed() && !win.webContents.isLoading()) win.webContents.send('notch:state', stateFor(g));
@@ -95,8 +95,8 @@ export function notchService(o: Options) {
     const g = geometry(s, settings);
     const win = new BrowserWindow({
       ...g.window, transparent: true, frame: false, hasShadow: false, resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
-      skipTaskbar: true, show: false, backgroundColor: '#00000000', title: 'Ox', enableLargerThanScreen: true, roundedCorners: false,
-      // A panel on macOS floats over full-screen apps and takes typing without bringing OXBOT's main window forward.
+      skipTaskbar: true, show: false, backgroundColor: '#00000000', title: 'Taurus', enableLargerThanScreen: true, roundedCorners: false,
+      // A panel on macOS floats over full-screen apps and takes typing without bringing Taurus's main window forward.
       ...(mac ? { type: 'panel' as const } : {}),
       webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: false, spellcheck: false, preload: join(o.here, 'notch-preload.cjs') },
     });
@@ -147,20 +147,20 @@ export function notchService(o: Options) {
   }
   ipcMain.handle('notch:save', (e, partial: unknown) => (mine(e) ? update(partial) : settings));
 
-  // Settings > Notch in OXBOT's own window (November 17, 2026): only that page, on OXBOT's origin, may read or
+  // Settings > Notch in Taurus's own window (November 17, 2026): only that page, on Taurus's origin, may read or
   // change these. The native notch's Settings button opens it.
-  const oxbotPage = (url: string) => {
+  const taurusPage = (url: string) => {
     try { const u = new URL(url), l = new URL(o.local); return (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && u.port === l.port && u.protocol === 'http:'; } catch { return false; }
   };
   ipcMain.handle('notch:settings', (e, partial?: unknown) => {
-    if (!oxbotPage(e.sender.getURL())) return null;
+    if (!taurusPage(e.sender.getURL())) return null;
     if (partial !== undefined) update(partial);
     return { ...settings, nativeNotch: Boolean(native) };
   });
-  function openOxbot(page?: 'notch') {
+  function openTaurus(page?: 'notch') {
     o.openDashboard();
     if (!page) return;
-    const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && oxbotPage(w.webContents.getURL()));
+    const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && taurusPage(w.webContents.getURL()));
     void win?.webContents.executeJavaScript(`location.hash = ${JSON.stringify(page)}`).catch(() => undefined);
   }
   async function ask(text: string, via: 'talk' | 'ask', remember: boolean): Promise<{ text: string } | { error: string }> {
@@ -168,14 +168,14 @@ export function notchService(o: Options) {
     if (!question) return { error: 'Ask something.' };
     const next = [...(remember ? turns : []), { role: 'user' as const, text: question }];
     try {
-      const r = await fetch(`${o.local}/api/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify({ turns: next, via }), signal: AbortSignal.timeout(90_000) });
+      const r = await fetch(`${o.local}/api/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: JSON.stringify({ turns: next, via }), signal: AbortSignal.timeout(90_000) });
       const body = await r.json().catch(() => ({})) as { text?: string; error?: string };
-      if (!r.ok || typeof body.text !== 'string') return { error: body.error ?? `OXBOT said ${r.status}.` };
+      if (!r.ok || typeof body.text !== 'string') return { error: body.error ?? `Taurus said ${r.status}.` };
       if (remember) turns = [...next, { role: 'assistant' as const, text: body.text }].slice(-6);
       return { text: body.text };
-    } catch { return { error: 'OXBOT isn’t answering. Is it still running?' }; }
+    } catch { return { error: 'Taurus isn’t answering. Is it still running?' }; }
   }
-  // A question typed into the notch counts as spoken: OXBOT tells every notch it's thinking, then the answer.
+  // A question typed into the notch counts as spoken: Taurus tells every notch it's thinking, then the answer.
   ipcMain.handle('notch:ask', (e, text: unknown) => (mine(e) ? ask(String(text ?? ''), 'talk', true) : { error: 'Not allowed.' }));
   // The music and timer buttons say the same words you would: "pause", "next", "cancel the pasta timer".
   ipcMain.handle('notch:say', (e, text: unknown) => {
@@ -195,14 +195,14 @@ export function notchService(o: Options) {
     // Opens the notch on the first screen at its settings (from the tray menu).
     showSettings() {
       if (!settings.on) { settings = { ...settings, on: true }; o.save(settings); sync(); }
-      // With the native notch, its settings live in OXBOT's own window.
-      if (nativeFile) { openOxbot('notch'); return; }
+      // With the native notch, its settings live in Taurus's own window.
+      if (nativeFile) { openTaurus('notch'); return; }
       const first = windows.values().next().value;
       if (!first) return;
       const go = () => { if (!testing) { first.win.setIgnoreMouseEvents(false); first.win.focus(); } first.win.webContents.send('notch:command', 'settings'); };
       if (first.win.webContents.isLoading()) first.win.webContents.once('did-finish-load', () => setTimeout(go, 50)); else go();
     },
-    // From OXBOT's local stream, which the main process already follows for rings.
+    // From Taurus's local stream, which the main process already follows for rings.
     connection(on: boolean) { if (connected !== on) { connected = on; tell(); } },
     event(name: string, data: unknown) {
       const d = data as Record<string, unknown>;
@@ -245,7 +245,7 @@ export function notchService(o: Options) {
         if (d.state !== 'pending') return;
         tellNews(`approval-${d.id}`, 'Waiting for your OK', String(d.title ?? ''));
       } else if (name === 'swarm') {
-        // Ox's helpers finished a job.
+        // Taurus's helpers finished a job.
         if (d.state !== 'done' && d.state !== 'failed') return;
         if (news?.id === `swarm-${d.id}`) return;
         tellNews(`swarm-${d.id}`, d.state === 'done' ? 'Done' : 'That didn’t work', String(d.answer ?? d.job ?? ''));
@@ -257,9 +257,9 @@ export function notchService(o: Options) {
 }
 export type Notch = ReturnType<typeof notchService>;
 
-// OxNotch beside the bundled main process (copied there by scripts/bundle.mjs, outside the asar when packaged), or
+// TaurusNotch beside the bundled main process (copied there by scripts/bundle.mjs, outside the asar when packaged), or
 // straight from apps/notch-mac's build when running from source.
 function findNative(here: string) {
   const unpacked = here.replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
-  return [join(unpacked, 'OxNotch'), join(here, '../../notch-mac/.build/release/OxNotch')].find(file => existsSync(file));
+  return [join(unpacked, 'TaurusNotch'), join(here, '../../notch-mac/.build/release/TaurusNotch')].find(file => existsSync(file));
 }

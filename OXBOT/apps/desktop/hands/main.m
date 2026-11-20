@@ -1,4 +1,4 @@
-// oxbot-hands (owner, November 5, 2026: helpers in other apps; docs/19-computer-use.md).
+// taurus-hands (owner, November 5, 2026: helpers in other apps; docs/19-computer-use.md).
 // A small program the desktop app runs and talks to over stdin, one JSON request per line, one JSON reply per line.
 // Fixed verbs only, no shell:
 //   status, ask, apps, where, front, look, tree, press, focus, move, click, drag, scroll, type, key
@@ -37,7 +37,7 @@ static NSRunningApplication *findApp(id name, NSString **why) {
     if (!found && [a.localizedName.lowercaseString hasPrefix:low]) found = a;
   }
   if (!found) REFUSE(([NSString stringWithFormat:@"%@ isn't open.", wanted]));
-  if (found.bundleIdentifier && [never containsObject:found.bundleIdentifier]) REFUSE(([NSString stringWithFormat:@"OXBOT never works in %@.", found.localizedName ?: found.bundleIdentifier]));
+  if (found.bundleIdentifier && [never containsObject:found.bundleIdentifier]) REFUSE(([NSString stringWithFormat:@"Taurus never works in %@.", found.localizedName ?: found.bundleIdentifier]));
   return found;
 }
 
@@ -92,7 +92,7 @@ static void walk(AXUIElementRef el, int depth, NSMutableArray *found, NSMutableA
   for (id child in (NSArray *)attr(el, kAXChildrenAttribute) ?: @[]) walk((__bridge AXUIElementRef)child, depth + 1, found, items);
 }
 static NSDictionary *tree(NSRunningApplication *app, NSString **why) {
-  if (!AXIsProcessTrusted()) REFUSE(@"Accessibility is off for OXBOT. Switch it on in System Settings, Privacy & Security, Accessibility.");
+  if (!AXIsProcessTrusted()) REFUSE(@"Accessibility is off for Taurus. Switch it on in System Settings, Privacy & Security, Accessibility.");
   AXUIElementRef root = AXUIElementCreateApplication(app.processIdentifier);
   id window = attr(root, kAXFocusedWindowAttribute) ?: attr(root, kAXMainWindowAttribute) ?: [(NSArray *)attr(root, kAXWindowsAttribute) firstObject];
   CFRelease(root);
@@ -143,7 +143,7 @@ static NSDictionary<NSString *, NSNumber *> *keys(void) {
 // ---------- Pictures ----------
 
 static NSDictionary *look(NSDictionary *args, NSString **why) {
-  if (!CGPreflightScreenCaptureAccess()) REFUSE(@"Screen Recording is off for OXBOT. Switch it on in System Settings, Privacy & Security, Screen & System Audio Recording.");
+  if (!CGPreflightScreenCaptureAccess()) REFUSE(@"Screen Recording is off for Taurus. Switch it on in System Settings, Privacy & Security, Screen & System Audio Recording.");
   NSString *wanted = [args[@"app"] isKindOfClass:NSString.class] ? args[@"app"] : nil;
   NSRunningApplication *target = nil;
   if (wanted && !(target = findApp(wanted, why))) return nil;
@@ -202,10 +202,10 @@ static NSDictionary *run(NSString *verb, NSDictionary *args, NSString **why) {
   NSArray *verbs = @[@"status", @"ask", @"apps", @"where", @"front", @"look", @"tree", @"press", @"focus", @"move", @"click", @"drag", @"scroll", @"type", @"key"];
   if (![verbs containsObject:verb]) REFUSE(([NSString stringWithFormat:@"No verb called %@.", verb]));
   BOOL hands = AXIsProcessTrusted();
-  NSString *handsOff = @"Accessibility is off for OXBOT. Switch it on in System Settings, Privacy & Security, Accessibility.";
+  NSString *handsOff = @"Accessibility is off for Taurus. Switch it on in System Settings, Privacy & Security, Accessibility.";
   if ([verb isEqual:@"status"]) return @{ @"screen": @(CGPreflightScreenCaptureAccess()), @"accessibility": @(hands), @"secureInput": @(IsSecureEventInputEnabled()) };
   if ([verb isEqual:@"ask"]) {
-    // Shows macOS's own prompts; the owner decides in System Settings. Only the owner's tap in OXBOT asks.
+    // Shows macOS's own prompts; the owner decides in System Settings. Only the owner's tap in Taurus asks.
     if ([args[@"screen"] isEqual:@YES]) CGRequestScreenCaptureAccess();
     if ([args[@"accessibility"] isEqual:@YES]) AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)@{ (__bridge NSString *)kAXTrustedCheckOptionPrompt: @YES });
     return @{ @"asked": @YES };
@@ -253,7 +253,7 @@ static NSDictionary *run(NSString *verb, NSDictionary *args, NSString **why) {
     return @{ @"scrolled": @(dy) };
   }
   if ([verb isEqual:@"type"]) {
-    if (IsSecureEventInputEnabled()) REFUSE(@"A password field has the keyboard. OXBOT doesn't type passwords.");
+    if (IsSecureEventInputEnabled()) REFUSE(@"A password field has the keyboard. Taurus doesn't type passwords.");
     NSString *words = [args[@"text"] isKindOfClass:NSString.class] ? args[@"text"] : @"";
     if (words.length > 2000) words = [words substringToIndex:2000];
     for (NSUInteger start = 0; start < words.length; start += 16) {

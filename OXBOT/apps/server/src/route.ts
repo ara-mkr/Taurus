@@ -2,7 +2,7 @@ import { store } from './store.ts';
 import type { Tier } from './speed.ts';
 
 // Who answers what (owner, November 17, 2026: "u should be able to set like all free, all claude which ones which and if
-// u tell ox to change settings it will from u just sayig it"). Each kind of ask (quick, everyday, big job) goes to OXBOT's
+// u tell taurus to change settings it will from u just sayig it"). Each kind of ask (quick, everyday, big job) goes to Taurus's
 // free models or to one AI the owner connected. Set on the AI page, or by saying "use Claude for big jobs".
 
 export type Route = Partial<Record<Tier, string>>;
@@ -22,7 +22,7 @@ export type Brand = 'free' | 'claude' | 'chatgpt' | 'gemini';
 export interface SettingsCommand { route?: { brand: Brand; tiers: Tier[] }[]; scans?: { on?: boolean; every?: number } }
 
 const brandOf = (s: string): Brand | undefined =>
-  /\b(claude|anthropic)\b/i.test(s) ? 'claude' : /\b(chat ?gpt|gpt|openai|codex)\b/i.test(s) ? 'chatgpt' : /\bgemini\b/i.test(s) ? 'gemini' : /\b(oxbot|free|the free (one|ones|models?))\b/i.test(s) ? 'free' : undefined;
+  /\b(claude|anthropic)\b/i.test(s) ? 'claude' : /\b(chat ?gpt|gpt|openai|codex)\b/i.test(s) ? 'chatgpt' : /\bgemini\b/i.test(s) ? 'gemini' : /\b(taurus|free|the free (one|ones|models?))\b/i.test(s) ? 'free' : undefined;
 // The kind of ask must follow "for" ("for big jobs", "for everything"), so "use Claude for this long email" is a request,
 // not a settings change.
 const FOR = String.raw`\bfor (?:the |all (?:the )?|my |any )?`;
@@ -39,7 +39,7 @@ const tiersOf = (s: string): Tier[] | undefined => {
 // to write the email") is not a settings change: it needs a kind of ask ("for big jobs", "for everything") or a plain
 // "switch to Claude".
 export function settingsCommand(raw: string): SettingsCommand | null {
-  const said = raw.toLowerCase().replace(/[’']/g, "'").replace(/[.!?]+$/, '').replace(/^(hey |yo |hi |ok |okay )?(ox|oxbot)[, ]+/, '').trim();
+  const said = raw.toLowerCase().replace(/[’']/g, "'").replace(/[.!?]+$/, '').replace(/^(hey |yo |hi |ok |okay )?(taurus|torus|tauris|tarus)[, ]+/, '').trim();
   if (!said || said.length > 160) return null;
   const scan = said.match(/^(?:please )?(?:(turn|switch) (on|off) (?:the |my )?(?:scans?|scanning)|(start|stop|pause|resume) (?:the |my )?(?:scans?|scanning)|(?:turn|switch) (?:the |my )?(?:scans?|scanning) (on|off))$/);
   if (scan) {

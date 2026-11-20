@@ -65,7 +65,7 @@ export const readScopes: Record<AppName, string[]> = {
 };
 
 // Write scopes (owner, November 1, 2026), each asked for in its own sign-in with the owner's own app keys, never
-// through the sign-in service. OXBOT uses them only to run an action the owner approved.
+// through the sign-in service. Taurus uses them only to run an action the owner approved.
 export const writeScopes: Partial<Record<AppName, string[]>> = {
   google: ['https://www.googleapis.com/auth/gmail.send'],
   microsoft: ['offline_access', 'User.Read', 'Mail.Send'],

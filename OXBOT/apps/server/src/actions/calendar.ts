@@ -7,8 +7,8 @@ import { register, type Args } from './approvals.ts';
 
 // Calendar changes from a scan (November 16, 2026). Calendar writes were never allowed without the owner's OK, and
 // this keeps it so: a scan proposes everything it found as one approval card, and only after the owner approves does
-// OXBOT write one .ics file into ~/.oxbot/calendar and hand it to the Mac's Calendar app, which then shows its own
-// add dialog. OXBOT holds no calendar write scope and changes no calendar itself.
+// Taurus write one .ics file into ~/.taurus/calendar and hand it to the Mac's Calendar app, which then shows its own
+// add dialog. Taurus holds no calendar write scope and changes no calendar itself.
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- event arguments come from the AI as JSON */
 export interface NewEvent { title: string; start: string; end?: string; location?: string; why?: string }
@@ -34,11 +34,11 @@ export function cleanEvents(list: unknown): NewEvent[] {
 
 export function icsFor(events: NewEvent[]): string {
   const now = stamp(Date.now());
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//OXBOT//Scans//EN', 'CALSCALE:GREGORIAN'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Taurus//Scans//EN', 'CALSCALE:GREGORIAN'];
   for (const e of events) {
-    lines.push('BEGIN:VEVENT', `UID:${randomBytes(9).toString('hex')}@oxbot.local`, `DTSTAMP:${now}`, `DTSTART:${stamp(Date.parse(e.start))}`, `DTEND:${stamp(Date.parse(e.end ?? e.start))}`, `SUMMARY:${ics(e.title)}`);
+    lines.push('BEGIN:VEVENT', `UID:${randomBytes(9).toString('hex')}@taurus.local`, `DTSTAMP:${now}`, `DTSTART:${stamp(Date.parse(e.start))}`, `DTEND:${stamp(Date.parse(e.end ?? e.start))}`, `SUMMARY:${ics(e.title)}`);
     if (e.location) lines.push(`LOCATION:${ics(e.location)}`);
-    if (e.why) lines.push(`DESCRIPTION:${ics(`Found by an OXBOT scan: ${e.why}`)}`);
+    if (e.why) lines.push(`DESCRIPTION:${ics(`Found by an Taurus scan: ${e.why}`)}`);
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');
@@ -48,7 +48,7 @@ export function icsFor(events: NewEvent[]): string {
 register({
   kind: 'calendar.add', app: 'Calendar', ttlMinutes: 24 * 60,
   help: 'Add events to the owner’s calendar. Args: events ([{title, start (ISO date and time), end, location, why}], up to 8). The Mac’s Calendar app opens them.',
-  missing: () => isMac() ? undefined : 'Adding to your calendar only works when OXBOT runs on a Mac.',
+  missing: () => isMac() ? undefined : 'Adding to your calendar only works when Taurus runs on a Mac.',
   async prepare(args: Args) {
     const events = cleanEvents(args.events);
     if (!events.length) throw new HttpError(400, 'No event with a clear title and a date and time to add.');
@@ -62,7 +62,7 @@ register({
   async run(p) {
     const dir = join(store.dir, 'calendar');
     mkdirSync(dir, { recursive: true, mode: 0o700 });
-    const file = join(dir, `oxbot-${Date.now()}.ics`);
+    const file = join(dir, `taurus-${Date.now()}.ics`);
     writeFileSync(file, icsFor(p.events), { mode: 0o600 });
     await openWithMac(file);
     return `Opened ${p.events.length === 1 ? 'the event' : `${p.events.length} events`} in Calendar.`;

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { api, type Background, type Board, type Prefs, type Profile, type Tint, type Tone, type WidgetSize, type WidgetType } from '../api';
 import { Catalog, newWidget, Sheet, sizeNames, WidgetSettings } from './Board';
 import { canListen, inDesktop, type VoiceSettings } from './Voice';
-import { OxVoice } from './OxVoice';
+import { TaurusVoice } from './TaurusVoice';
 import { catalog } from './widgets';
-import { taurusDefaults } from './CloudDashboard';
+import { hudDefaults } from './CloudDashboard';
 
 export type Appearance = 'auto' | 'light' | 'dark';
 export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone', notch: 'Notch' } as const;
@@ -54,13 +54,13 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
 
     <fieldset className="choice">
       <legend>Home</legend>
-      {([['taurus', 'Dashboard', 'Ox in the sky, your day around him'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
-        <input type="radio" name="home-view" checked={(prefs.taurus?.start ?? 'taurus') === k} onChange={() => { setPrefs(p => ({ ...p, taurus: { ...(p.taurus ?? taurusDefaults()), start: k } })); try { localStorage.setItem('oxbot-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
+      {([['hud', 'Dashboard', 'Taurus in the sky, your day around him'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
+        <input type="radio" name="home-view" checked={(prefs.hud?.start ?? 'hud') === k} onChange={() => { setPrefs(p => ({ ...p, hud: { ...(p.hud ?? hudDefaults()), start: k } })); try { localStorage.setItem('taurus-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
         <span><strong>{name}</strong> <span className="muted">{what}</span></span></label>)}
     </fieldset>
 
     <fieldset className="choice">
-      <legend>How Ox talks to you</legend>
+      <legend>How Taurus talks to you</legend>
       {(Object.keys(tones) as Tone[]).map(t => <label key={t} className="check"><input type="radio" name="tone" checked={profile.tone === t} onChange={() => setProfile({ tone: t })} /><span><strong>{tones[t][0]}</strong> <span className="muted">{tones[t][1]}</span></span></label>)}
     </fieldset>
 
@@ -95,20 +95,20 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
     <fieldset className="choice">
       <legend>Motion</legend>
       <label className="check"><input type="checkbox" checked={prefs.ambient} onChange={e => setPrefs(p => ({ ...p, ambient: e.target.checked }))} />Slowly moving light behind the cards</label>
-      <label className="check"><input type="checkbox" checked={prefs.ox !== false} onChange={e => setPrefs(p => ({ ...p, ox: e.target.checked }))} />Ox walks around your boards and tells you what matters</label>
+      <label className="check"><input type="checkbox" checked={prefs.taurus !== false} onChange={e => setPrefs(p => ({ ...p, taurus: e.target.checked }))} />Taurus walks around your boards and tells you what matters</label>
       <p className="muted">Turns off by itself when your Mac asks for reduced motion.</p>
     </fieldset>
     <fieldset className="choice">
       <legend>Voice</legend>
-      <label className="check"><input type="checkbox" checked={voice.wake} disabled={!hears} onChange={e => setVoice({ ...voice, wake: e.target.checked })} />Listen for “Hey Ox” while OXBOT is open</label>
-      {hears && voice.wake && <p className="muted">“Yo Ox”, “Hi Ox”, “Ox” and “OXBOT” work too.</p>}
+      <label className="check"><input type="checkbox" checked={voice.wake} disabled={!hears} onChange={e => setVoice({ ...voice, wake: e.target.checked })} />Listen for “Hey Taurus” while Taurus is open</label>
+      {hears && voice.wake && <p className="muted">“Yo Taurus”, “Hi Taurus”, “Taurus” and “Taurus” work too.</p>}
       <label className="check"><input type="checkbox" checked={voice.clap === true} disabled={!hears} onChange={e => setVoice({ ...voice, clap: e.target.checked })} />Clap or snap twice to talk</label>
       {hears && voice.clap && <p className="muted">Only how loud the room is gets measured, here in the browser, while this tab is showing. No sound is recorded or sent.</p>}
-      {hears && inDesktop() && (voice.wake || voice.clap) && <p className="muted">In the desktop app these keep listening while OXBOT is hidden or behind other apps, on this Mac only, and Ox comes to the app you’re in. Esc sends him away. Nothing is recorded or saved.</p>}
-      <label className="check"><input type="checkbox" checked={voice.speak} onChange={e => setVoice({ ...voice, speak: e.target.checked })} />Ox reads his answers out loud</label>
+      {hears && inDesktop() && (voice.wake || voice.clap) && <p className="muted">In the desktop app these keep listening while Taurus is hidden or behind other apps, on this Mac only, and Taurus comes to the app you’re in. Esc sends him away. Nothing is recorded or saved.</p>}
+      <label className="check"><input type="checkbox" checked={voice.speak} onChange={e => setVoice({ ...voice, speak: e.target.checked })} />Taurus reads his answers out loud</label>
       <p className="muted">{hears ? 'Talk in the chat bar works without either. Speech goes through your browser’s own recognition: Google in Chrome, Apple in Safari. Listening stops when this tab is hidden, and nothing is recorded or saved.' : 'This browser has no speech recognition. Talk works in Chrome and Safari.'}</p>
     </fieldset>
-    <OxVoice />
+    <TaurusVoice />
   </main>;
 }
 
@@ -124,7 +124,7 @@ export function Tabs({ prefs, setPrefs, onReset }: { prefs: Prefs; setPrefs: (u:
 
   return <main id="main" tabIndex={-1} className="settings-page">
     <div className="page-head"><h1>Tabs and widgets</h1></div>
-    <p className="lede">Each tab is a board of cards. The first tab opens when you start OXBOT. On any board, Build dashboard makes a tab from a sentence.</p>
+    <p className="lede">Each tab is a board of cards. The first tab opens when you start Taurus. On any board, Build dashboard makes a tab from a sentence.</p>
 
     <ol className="tab-list">
       {prefs.boards.map((b, i) => <li key={b.id}>

@@ -1,12 +1,12 @@
-# Ask Ox — bounded implementation and verification
+# Ask Taurus — bounded implementation and verification
 
-October 21, 2026. Objective: implement P2-01 Ask Ox with three scripted requests, the shared email drawer and an honest unsupported-request fallback.
+October 21, 2026. Objective: implement P2-01 Ask Taurus with three scripted requests, the shared email drawer and an honest unsupported-request fallback.
 
 ## Owner decision and scope
 
-Akhil explicitly replied “Approve Today and build Ask Ox” to the question naming this exact slice. `PROJECT_STATE.json` records that owner decision, activates P2 only for P2-01 and keeps all real integrations, external actions, backend and native permissions locked. The rest of P2 is not authorized or complete. Ask Ox itself still awaits owner aesthetic judgment.
+Akhil explicitly replied “Approve Today and build Ask Taurus” to the question naming this exact slice. `PROJECT_STATE.json` records that owner decision, activates P2 only for P2-01 and keeps all real integrations, external actions, backend and native permissions locked. The rest of P2 is not authorized or complete. Ask Taurus itself still awaits owner aesthetic judgment.
 
-The Ox UI builder, UI audit, phase-gate and action-safety skills were read and applied. The action-safety work was a specification review of synthetic UI behavior; no provider or runtime integration was built.
+The Taurus UI builder, UI audit, phase-gate and action-safety skills were read and applied. The action-safety work was a specification review of synthetic UI behavior; no provider or runtime integration was built.
 
 ## Delivered behavior
 
@@ -17,9 +17,9 @@ The Ox UI builder, UI audit, phase-gate and action-safety skills were read and a
 
 Each email card describes the current shared proposal, including its revision, exact attachment/version, status and limitations. Approval, rejection, pause, fixture restrictions and material revisions remain consistent across Today, every chat reference and the drawer. Terminal decisions cannot be repeated. No messages claim an email was sent.
 
-Today and Ask Ox have desktop/mobile navigation, a route-aware document title and local hash destinations (`#today`, `#ask`). Back/forward preserves session state; changing destination closes a drawer and focuses the destination main region. The skip link focuses the current page without overwriting its route. Choosing/cancelling a recipient focuses the updated reply; closing details returns to the matching review button.
+Today and Ask Taurus have desktop/mobile navigation, a route-aware document title and local hash destinations (`#today`, `#ask`). Back/forward preserves session state; changing destination closes a drawer and focuses the destination main region. The skip link focuses the current page without overwriting its route. Choosing/cancelling a recipient focuses the updated reply; closing details returns to the matching review button.
 
-The multiline composer supports Cmd/Ctrl+Enter, plain Enter for a newline and Clear message. Supported phrases are visible initially and available in a disclosure after the first request. Matching normalizes case, whitespace and trailing punctuation; it does not guess unrelated intents. Replies are immediate, with no simulated typing delay. Up to 12 requests are kept in React memory. Refresh/reset clears conversation and input; reset preserves only appearance and the current destination. Only `oxbot-appearance` is written to localStorage.
+The multiline composer supports Cmd/Ctrl+Enter, plain Enter for a newline and Clear message. Supported phrases are visible initially and available in a disclosure after the first request. Matching normalizes case, whitespace and trailing punctuation; it does not guess unrelated intents. Replies are immediate, with no simulated typing delay. Up to 12 requests are kept in React memory. Refresh/reset clears conversation and input; reset preserves only appearance and the current destination. Only `taurus-appearance` is written to localStorage.
 
 Pause blocks new requests, person selection and plan-review mutations while permitting reading, existing-draft inspection and cancellation of pending clarification. Cancellation dismisses that sample request; it does not withdraw an existing draft or approval. All behavior is local and synthetic.
 
@@ -29,7 +29,7 @@ Pause blocks new requests, person selection and plan-review mutations while perm
 - `apps/web/src/demo/conversation.ts`: exact supported requests, classification, exchange types and announcement text.
 - `apps/web/src/demo/state.ts`: bounded conversation, recipient choice and cancellation alongside the existing canonical proposal.
 - `apps/web/src/App.tsx`, `components/AppShell.tsx`, `components/Today.tsx`: navigation, route/focus, shared reset/input and the ambiguous Today command handoff.
-- `apps/web/src/styles/app.css`: semantic-token styles for Ask Ox. It also includes the preceding P1 short-height drawer fix documented in `p1-zoom-review.md`.
+- `apps/web/src/styles/app.css`: semantic-token styles for Ask Taurus. It also includes the preceding P1 short-height drawer fix documented in `p1-zoom-review.md`.
 - `apps/web/tests/ask.spec.ts`: 25 Ask acceptance cases. The preceding P1 follow-up added six drawer cases to `preview.spec.ts`.
 - `PROJECT_STATE.json`, `docs/decision-log.md`, README/run guide, Today/follow-up report links and this report: explicit owner authority, current behavior and evidence.
 
@@ -48,7 +48,7 @@ No dependency was added. Existing local tokens, system typography, authored icon
 | Production smoke | Pass | `qa-local/p2-ask/check-production.cjs`, `production-results.json`: all three intents, Patel blocked, exact Lee approval, unsupported fallback, DEV hooks ignored, theme-only storage, reload clears state, zero external requests/errors |
 | Planning assets and skill mirrors | Pass | `python3 scripts/validate_pack.py`; `python3 scripts/sync_skills.py --check` |
 | Independent UI review | Pass for owner review: 24/24 scenarios and five supplemental checks; no actionable defects | `qa-local/p2-ask/independent-audit/results.json`, `supplement-results.json`, 48 screenshots |
-| Owner Ask Ox aesthetic review | Pending | Today acceptance does not automatically approve this new screen |
+| Owner Ask Taurus aesthetic review | Pending | Today acceptance does not automatically approve this new screen |
 | VoiceOver, Safari, physical devices and actual mobile software keyboard | Not verified | No certification or device acceptance claimed |
 
 The suite includes empty, stale, disconnected, pending, failed, unknown and long/unsupported input scenarios, plus shared-draft revision and attachment invalidation. The short-height drawer regression remains part of the full suite. The prior native Chrome 200%/400% inspection covered the email drawer, not every new Ask state.
@@ -72,4 +72,4 @@ Real authentication, ownership, approval expiry, provider idempotency/reconcilia
 
 ## Next eligible task
 
-Owner visual review of Ask Ox, especially mobile recipient selection and the proposal status after a decision. After that, separately authorize one further slice, such as P2-02 Tasks. This delivery does not authorize that work or complete P2.
+Owner visual review of Ask Taurus, especially mobile recipient selection and the proposal status after a decision. After that, separately authorize one further slice, such as P2-02 Tasks. This delivery does not authorize that work or complete P2.

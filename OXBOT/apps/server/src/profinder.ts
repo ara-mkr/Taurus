@@ -10,7 +10,7 @@ import { show } from './windows.ts';
 
 // ProFinder (owner, November 16, 2026: "make it have a profinder mode where its constantly searching for internships
 // and jobs and applies for u, based on ur resume and a bunch of info given"). It searches free, documented job boards on
-// a schedule, scores each match against the resume, keeps a pipeline, and prepares applications in OXBOT's browser.
+// a schedule, scores each match against the resume, keeps a pipeline, and prepares applications in Taurus's browser.
 // Nothing is submitted until the owner approves one batch card listing every job ("One tap per batch"), where each job
 // can be unchecked. It never types passwords, never creates accounts, and hands a job back ("needs you") when a site
 // wants a sign-in or a CAPTCHA. The resume, preferences and standard answers live in the Brain under Career.
@@ -215,13 +215,13 @@ export function score(j: Pick<Job, 'title' | 'location' | 'remote' | 'kind' | 'p
 // Contact details stay on this Mac: the AI scoring a match sees the resume without them.
 export const redact = (t: string) => t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[email]').replace(/(\+?\d[\d\s().-]{7,}\d)/g, '[phone]').replace(/https?:\/\/\S+|(?:linkedin|github)\.com\/\S+/gi, '[link]');
 
-// One short JSON answer from OpenRouter's free models, with the owner's own OXBOT Free key.
+// One short JSON answer from OpenRouter's free models, with the owner's own Taurus Free key.
 async function freeJson(system: string, user: string): Promise<{ data: Record<string, unknown>; model: string } | undefined> {
   const key = store.secret('OPENROUTER_API_KEY');
   if (!key) return undefined;
   const model = (await freeModels())[0]?.id ?? 'openrouter/free';
   const d = await api<{ choices?: { message?: { content?: string } }[] }>('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST', token: key, headers: { 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:8787', 'X-Title': 'OXBOT' }, signal: AbortSignal.timeout(60_000),
+    method: 'POST', token: key, headers: { 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:8787', 'X-Title': 'Taurus' }, signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({ model, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
   });
   const text = String(d.choices?.[0]?.message?.content ?? '').replace(/<think>[\s\S]*?<\/think>/g, '');
@@ -246,7 +246,7 @@ export const sending = () => sendingNow;
 export async function runSearch(): Promise<LastRun> {
   if (busy) throw new HttpError(409, `ProFinder is busy ${busy}.`);
   busy = 'searching';
-  const step = begin('read', 'ProFinder: searching job boards', { by: 'ox' });
+  const step = begin('read', 'ProFinder: searching job boards', { by: 'taurus' });
   try {
     const p = readPrefs();
     if (!p.roles.length) throw new HttpError(400, 'Add at least one role to look for.');
@@ -289,7 +289,7 @@ export async function runSearch(): Promise<LastRun> {
     }
     // The AI looks again at the best new ones, a few per run, so the free model's limits hold.
     const key = store.secret('OPENROUTER_API_KEY');
-    let ai = !p.aiScoring ? 'off' : key ? 'OpenRouter free model' : 'off until OXBOT Free is connected (Settings, AI)';
+    let ai = !p.aiScoring ? 'off' : key ? 'OpenRouter free model' : 'off until Taurus Free is connected (Settings, AI)';
     if (p.aiScoring && resumeText && key) {
       for (const j of fresh.filter(x => x.score >= 40).sort((a, b) => b.score - a.score).slice(0, 8)) {
         const a = await aiScore(j, resumeText).catch(e => { ai = `didn’t answer (${(e as Error).message.slice(0, 80)})`; return undefined; });
@@ -329,14 +329,14 @@ export function setStage(id: string, stage: Stage, response?: string) {
 
 // ---------- Preparing an application ----------
 
-// What fills a form. The real one is OXBOT's browser; tests pass a fake.
+// What fills a form. The real one is Taurus's browser; tests pass a fake.
 export interface Filler {
   open(url: string): Promise<FormShape>;
   fill(f: PlanField): Promise<void>;
   submit(button: string, host: string): Promise<string>;
 }
 const browserFiller: Filler = {
-  async open(url) { const b = await import('./browser.ts'); await b.open(url, 'ox'); return b.formShape(); },
+  async open(url) { const b = await import('./browser.ts'); await b.open(url, 'taurus'); return b.formShape(); },
   async fill(f) { const b = await import('./browser.ts'); await b.fillAt(f.index, f.label, f.value, f.file); },
   async submit(button, host) { const b = await import('./browser.ts'); return b.pressFor(button, host); },
 };
@@ -375,9 +375,9 @@ async function write(kind: 'cover' | 'answer', j: Job, resumeText: string, quest
 // Reads one job's form and decides every value that will go in, or says what the owner still needs to give.
 async function planFor(j: Job, answers: Record<string, string>, resumeText: string, resumeFile?: string): Promise<{ plan?: Plan; needs?: string }> {
   const shape = await filler.open(j.applyUrl);
-  if (shape.login) return { needs: 'This site wants you to sign in. Ox doesn’t sign in or make accounts: apply there yourself, then mark it applied.' };
+  if (shape.login) return { needs: 'This site wants you to sign in. Taurus doesn’t sign in or make accounts: apply there yourself, then mark it applied.' };
   if (shape.captcha) return { needs: 'This form has a CAPTCHA, which is yours to answer. Apply there yourself, then mark it applied.' };
-  if (!shape.fields.length) return { needs: 'Ox couldn’t find an application form on this page.' };
+  if (!shape.fields.length) return { needs: 'Taurus couldn’t find an application form on this page.' };
   const name = one(getNote('Me').meta.name);
   const fields: PlanField[] = [];
   const missing: string[] = [];
@@ -416,8 +416,8 @@ async function planFor(j: Job, answers: Record<string, string>, resumeText: stri
     else if (opts.some(o => o.required)) missing.push(group);
   }
   const button = shape.buttons.find(b => /^submit|^apply|send application|submit application/i.test(b));
-  if (!button) missing.push('the Submit button (Ox couldn’t find it)');
-  if (missing.length) return { needs: `Ox needs: ${[...new Set(missing)].slice(0, 6).join('; ')}. Add answers to Application answers in the Brain, then prepare it again.` };
+  if (!button) missing.push('the Submit button (Taurus couldn’t find it)');
+  if (missing.length) return { needs: `Taurus needs: ${[...new Set(missing)].slice(0, 6).join('; ')}. Add answers to Application answers in the Brain, then prepare it again.` };
   fields.sort((a, b) => a.index - b.index);
   // Filled now, so the owner can watch it go in and see that every field took its value. Nothing is sent.
   for (const f of fields) await filler.fill(f);
@@ -425,7 +425,7 @@ async function planFor(j: Job, answers: Record<string, string>, resumeText: stri
   return { plan: { url: shape.url, host: shape.host, button: button!, fields, cover, resume: resumeField?.file ? { name: resumeField.value, sha: sha(resumeField.file) } : undefined, at: new Date().toISOString() } };
 }
 
-// Prepares shortlisted jobs one at a time in OXBOT's browser, which the owner can watch. Nothing is sent here.
+// Prepares shortlisted jobs one at a time in Taurus's browser, which the owner can watch. Nothing is sent here.
 export async function prepare(ids: string[]): Promise<Job[]> {
   if (busy) throw new HttpError(409, `ProFinder is busy ${busy}.`);
   const jobs = load().jobs.filter(j => ids.includes(j.id) && (j.stage === 'shortlisted' || (j.stage === 'needs-you' && !j.unconfirmed))).slice(0, MAX_BATCH);
@@ -437,13 +437,13 @@ export async function prepare(ids: string[]): Promise<Job[]> {
   const out: Job[] = [];
   try {
     for (const j of jobs) {
-      const step = begin('browser', `ProFinder: preparing ${j.title} at ${j.company}`, { by: 'ox' });
+      const step = begin('browser', `ProFinder: preparing ${j.title} at ${j.company}`, { by: 'taurus' });
       try {
         const r = await planFor(j, answers, resumeText, file);
         out.push(update(j.id, r.plan ? { stage: 'ready', plan: r.plan, needs: undefined } : { stage: 'needs-you', plan: undefined, needs: r.needs })!);
         step.done(r.plan ? `Ready: ${j.title} at ${j.company}` : `Needs you: ${j.title} at ${j.company}`);
       } catch (e) {
-        out.push(update(j.id, { stage: 'needs-you', plan: undefined, needs: `Ox couldn’t fill this form (${(e as Error).message.split('\n')[0].slice(0, 120)}).` })!);
+        out.push(update(j.id, { stage: 'needs-you', plan: undefined, needs: `Taurus couldn’t fill this form (${(e as Error).message.split('\n')[0].slice(0, 120)}).` })!);
         step.fail(e);
       }
     }
@@ -496,15 +496,15 @@ async function sendAll(list: { id: string; plan: Plan }[]) {
 const CONFIRMED = /thank you for (?:applying|your application|your interest)|application (?:has been |was )?(?:received|submitted)|we(?:'|’)ve received your application|successfully submitted|application complete/i;
 async function sendOne(id: string, plan: Plan) {
   const j = load().jobs.find(x => x.id === id);
-  // Once only: a job already sent, or one whose last try can't be confirmed, is never sent again by Ox.
+  // Once only: a job already sent, or one whose last try can't be confirmed, is never sent again by Taurus.
   if (!j || j.stage !== 'ready' || j.unconfirmed) return;
   const record = (outcome: Logged['outcome'], why?: string) => logIt({ at: new Date().toISOString(), jobId: j.id, title: j.title, company: j.company, url: plan.url, outcome, sent: plan.fields.map(f => ({ label: f.label, value: shownValue(f) })), note: why });
   const hold = (needs: string, outcome: Logged['outcome'] = 'needs-you', unconfirmed = false) => { update(id, { stage: 'needs-you', needs, unconfirmed: unconfirmed || undefined }); record(outcome, needs); };
-  const step = begin('browser', `ProFinder: sending ${j.title} at ${j.company}`, { by: 'ox' });
+  const step = begin('browser', `ProFinder: sending ${j.title} at ${j.company}`, { by: 'taurus' });
   let pressed = false;
   try {
     const file = plan.fields.find(f => f.type === 'file')?.file;
-    if (plan.resume && (!file || sha(file) !== plan.resume.sha)) { hold('Your resume changed after Ox prepared this. Prepare it again.'); step.fail('Resume changed'); return; }
+    if (plan.resume && (!file || sha(file) !== plan.resume.sha)) { hold('Your resume changed after Taurus prepared this. Prepare it again.'); step.fail('Resume changed'); return; }
     const shape = await filler.open(plan.url);
     if (shape.login || shape.captcha) { hold(shape.login ? 'This site wants you to sign in now. Apply there yourself.' : 'This form has a CAPTCHA now. Apply there yourself.'); step.fail('Needs you'); return; }
     if (shape.host !== plan.host) { hold(`The form moved to ${shape.host}. Prepare it again.`); step.fail('Site changed'); return; }
@@ -517,14 +517,14 @@ async function sendOne(id: string, plan: Plan) {
       addLine('Career', 'Applied', `- ${j.title} at ${j.company}, ${new Date().toISOString().slice(0, 10)}`);
       step.done(`Applied: ${j.title} at ${j.company}`);
     } else {
-      // Pressed, but the page didn't say it went through: maybe it did. The owner checks; Ox never presses again.
-      hold('Ox pressed Submit but the page didn’t confirm it. Check the site before applying again, then mark it applied.', 'unconfirmed', true);
+      // Pressed, but the page didn't say it went through: maybe it did. The owner checks; Taurus never presses again.
+      hold('Taurus pressed Submit but the page didn’t confirm it. Check the site before applying again, then mark it applied.', 'unconfirmed', true);
       step.fail('No confirmation');
     }
   } catch (e) {
     const why = (e as Error).message.split('\n')[0].slice(0, 120);
     // Before Submit nothing left this Mac, so it can be prepared again; after, only the site knows.
-    hold(pressed ? `Something went wrong after Submit (${why}). Check the site before applying again.` : `Ox couldn’t fill this form (${why}). Prepare it again.`, pressed ? 'unconfirmed' : 'error', pressed);
+    hold(pressed ? `Something went wrong after Submit (${why}). Check the site before applying again.` : `Taurus couldn’t fill this form (${why}). Prepare it again.`, pressed ? 'unconfirmed' : 'error', pressed);
     step.fail(e);
   }
   note('action', `ProFinder: ${load().jobs.find(x => x.id === id)?.stage === 'applied' ? 'applied to' : 'held back'} ${j.title} at ${j.company}`);

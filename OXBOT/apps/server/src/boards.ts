@@ -3,7 +3,7 @@ import { aiProvider, askAI, context, dashboard } from './dashboard.ts';
 import { cleanSymbol, quotes } from './feeds.ts';
 import { history } from './history.ts';
 import { store } from './store.ts';
-import type { AiCard, Background, Board, MarketRange, PanelSize, Person, Prefs, Profile, Taurus, TaurusPanel, Tint, Todo, TrendMetric, Widget, WidgetConfig, WidgetSize, WidgetType } from './types.ts';
+import type { AiCard, Background, Board, MarketRange, PanelSize, Person, Prefs, Profile, Hud, HudPanel, Tint, Todo, TrendMetric, Widget, WidgetConfig, WidgetSize, WidgetType } from './types.ts';
 
 const FILE = 'prefs.json';
 const id = () => randomUUID().slice(0, 8);
@@ -34,8 +34,8 @@ const tints: Tint[] = ['graphite', 'ember', 'ocean', 'moss', 'dusk', 'aurora', '
 
 const w = (type: WidgetType, size: WidgetSize, config?: WidgetConfig, title?: string): Widget => ({ id: id(), type, size, ...(title ? { title } : {}), ...(config ? { config } : {}) });
 
-// Taurus out of the box: what needs you and your list on the left, your body, your day and the house on the right.
-export const taurusDefaults = (): Taurus => ({
+// Hud out of the box: what needs you and your list on the left, your body, your day and the house on the right.
+export const hudDefaults = (): Hud => ({
   panels: [
     { id: 't-needs', type: 'needs', size: 'medium', side: 'left', title: 'Priority' },
     { id: 't-todo', type: 'todo', size: 'medium', side: 'left' },
@@ -43,28 +43,28 @@ export const taurusDefaults = (): Taurus => ({
     { id: 't-schedule', type: 'schedule', size: 'medium', side: 'right', title: 'Up next' },
     { id: 't-house', type: 'house', size: 'small', side: 'right' },
   ],
-  clouds: 'calm', oxSize: 'medium', chips: true, facts: true, start: 'taurus',
+  clouds: 'calm', taurusSize: 'medium', chips: true, facts: true, start: 'hud',
 });
 const panelSizes: PanelSize[] = ['small', 'medium', 'large'];
-function taurus(raw: Partial<Taurus> | undefined): Taurus {
-  const base = taurusDefaults();
+function hud(raw: Partial<Hud> | undefined): Hud {
+  const base = hudDefaults();
   if (!raw || typeof raw !== 'object') return base;
-  const panels = Array.isArray(raw.panels) ? raw.panels.flatMap((p): TaurusPanel[] => {
+  const panels = Array.isArray(raw.panels) ? raw.panels.flatMap((p): HudPanel[] => {
     if (!p || (p.type !== 'house' && !(p.type in widgetTypes))) return [];
     const title = text(p.title, 60)?.trim();
     const conf = config(p.config);
     return [{ id: text(p.id, 24) || id(), type: p.type, size: panelSizes.includes(p.size) ? p.size : 'medium', side: p.side === 'right' ? 'right' : 'left', ...(title ? { title } : {}), ...(conf ? { config: conf } : {}) }];
   }).slice(0, 16) : base.panels;
   return {
-    panels, clouds: (['calm', 'lively', 'off'] as const).find(c => c === raw.clouds) ?? base.clouds, oxSize: panelSizes.includes(raw.oxSize!) ? raw.oxSize! : base.oxSize,
-    chips: typeof raw.chips === 'boolean' ? raw.chips : base.chips, facts: typeof raw.facts === 'boolean' ? raw.facts : base.facts, start: raw.start === 'board' ? 'board' : 'taurus',
+    panels, clouds: (['calm', 'lively', 'off'] as const).find(c => c === raw.clouds) ?? base.clouds, taurusSize: panelSizes.includes(raw.taurusSize!) ? raw.taurusSize! : base.taurusSize,
+    chips: typeof raw.chips === 'boolean' ? raw.chips : base.chips, facts: typeof raw.facts === 'boolean' ? raw.facts : base.facts, start: raw.start === 'board' ? 'board' : 'hud',
   };
 }
 
 export function defaults(): Prefs {
   return {
-    taurus: taurusDefaults(),
-    tint: 'graphite', ambient: true, ox: true, todos: [], people: [],
+    hud: hudDefaults(),
+    tint: 'graphite', ambient: true, taurus: true, todos: [], people: [],
     profile: { name: '', tone: 'witty', greet: true, large: false },
     background: { kind: 'field', color: '#14161B', dim: 0, blur: 0, daylight: true },
     boards: [
@@ -130,8 +130,14 @@ export function sanitize(raw: Partial<Prefs>): Prefs {
     .map(t => ({ id: text(t.id, 24) || id(), text: t.text.trim().slice(0, 300), done: Boolean(t.done), at: iso(t.at) ?? new Date().toISOString() }));
   const people: Person[] = (Array.isArray(raw.people) ? raw.people : []).filter(p => p && typeof p.name === 'string' && p.name.trim()).slice(0, 100)
     .map(p => ({ id: text(p.id, 24) || id(), name: p.name.trim().slice(0, 80), ...(text(p.note, 200)?.trim() ? { note: p.note!.trim().slice(0, 200) } : {}), ...(typeof p.everyDays === 'number' && p.everyDays > 0 ? { everyDays: Math.min(365, Math.round(p.everyDays)) } : {}), ...(iso(p.last) ? { last: p.last } : {}) }));
-  return { boards: boards.length ? boards : base.boards, todos, people, tint: tints.includes(raw.tint!) ? raw.tint! : base.tint, ambient: raw.ambient ?? base.ambient, ox: raw.ox ?? base.ox,
-    profile: profile(raw.profile, base.profile), background: background(raw.background, base.background), taurus: taurus(raw.taurus) };
+  // Saved before the rename (November 19, 2026), prefs.json held the dashboard layout under "taurus" (with "oxSize"
+  // and start "taurus") and the show-the-assistant switch under "ox". Read those so nothing set up is lost.
+  const old = raw as Partial<Prefs> & { ox?: boolean; taurus?: unknown };
+  const oldHud = old.taurus && typeof old.taurus === 'object' ? old.taurus as Partial<Hud> & { oxSize?: Hud['taurusSize']; start?: string } : undefined;
+  const hudRaw = raw.hud ?? (oldHud ? { ...oldHud, taurusSize: oldHud.taurusSize ?? oldHud.oxSize, start: oldHud.start === 'board' ? 'board' as const : 'hud' as const } : undefined);
+  const shown = typeof old.taurus === 'boolean' ? old.taurus : typeof old.ox === 'boolean' ? old.ox : base.taurus;
+  return { boards: boards.length ? boards : base.boards, todos, people, tint: tints.includes(raw.tint!) ? raw.tint! : base.tint, ambient: raw.ambient ?? base.ambient, taurus: shown,
+    profile: profile(raw.profile, base.profile), background: background(raw.background, base.background), hud: hud(hudRaw) };
 }
 
 // A small photo the web app already shrank, kept inside prefs; anything else is dropped.
@@ -208,7 +214,7 @@ export async function generateBoard(prompt: string, current?: Board): Promise<{ 
   const ask = prompt.trim().slice(0, 600);
   if (!ask) throw new Error('Describe the board you want.');
   if (!aiProvider()) return { board: { ...rulesBoard(ask), ...(current ? { id: current.id, name: current.name } : {}) }, by: 'rules' };
-  const system = `You design boards for OXBOT, a CEO's personal dashboard. Reply with JSON only, no prose:
+  const system = `You design boards for Taurus, a CEO's personal dashboard. Reply with JSON only, no prose:
 {"name": string (1-3 words), "widgets": [{"type": string, "size": string, "title"?: string, "config"?: object}]}
 Widget types:
 ${Object.entries(widgetTypes).map(([k, v]) => `- ${k}: ${v}`).join('\n')}

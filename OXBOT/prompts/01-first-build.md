@@ -1,10 +1,10 @@
 # First implementation prompt
 
-Copy the following into Claude Code or Codex after reviewing P0. Explicitly invoke /oxbot-ui in Claude Code or $oxbot-ui in Codex when supported.
+Copy the following into Claude Code or Codex after reviewing P0. Explicitly invoke /taurus-ui in Claude Code or $taurus-ui in Codex when supported.
 
 ---
 
-Build the first frontend slice of OXBOT. Read AGENTS.md, PROJECT_STATE.json, docs/01-product-and-brand.md, docs/03-ui-specification.md, design/tokens.css, and the oxbot-ui skill entrypoint. Check that I have approved advancing to P1; do not change the active phase yourself. If P0 is still active without that approval, return the exact scope/design decisions awaiting approval rather than generating application code.
+Build the first frontend slice of Taurus. Read AGENTS.md, PROJECT_STATE.json, docs/01-product-and-brand.md, docs/03-ui-specification.md, design/tokens.css, and the taurus-ui skill entrypoint. Check that I have approved advancing to P1; do not change the active phase yourself. If P0 is still active without that approval, return the exact scope/design decisions awaiting approval rather than generating application code.
 
 Use React + TypeScript + Vite with a current compatible dependency set and a lockfile. Use semantic tokens, accessible primitives where useful, and minimal dependencies. Treat design/ui-direction.html as an original direction study, not production code you must preserve. Improve its implementation within the approved spec rather than copying its limitations.
 

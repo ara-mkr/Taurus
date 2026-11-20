@@ -9,7 +9,7 @@ import type { Turn } from './ai.ts';
 // Your own subscriptions (owner, November 6, 2026: "allow it so u can directly use ur existing claude, openai, or gemini,
 // kimi, glm subscription with this not just api key and if u do that u can see how much of ur usage u have"). Claude,
 // ChatGPT and Gemini plans are used through each company's own command-line app on this Mac (Claude Code, Codex and
-// Gemini CLI), signed in with your plan: OXBOT runs that one fixed program with fixed arguments, the question on its
+// Gemini CLI), signed in with your plan: Taurus runs that one fixed program with fixed arguments, the question on its
 // input, never through a shell, with its tools switched off (Claude), its sandbox read-only (Codex) or in plan mode
 // (Gemini), in an empty folder. Kimi and GLM coding plans give you a plan key instead; those are in ai.ts. Usage is
 // counted here from what each app reports back, and any plan limits they report are shown as they came.
@@ -18,10 +18,10 @@ export type CliId = 'claude-plan' | 'chatgpt-plan' | 'gemini-plan';
 const bins: Record<CliId, string> = { 'claude-plan': 'claude', 'chatgpt-plan': 'codex', 'gemini-plan': 'gemini' };
 export const cliNames: Record<string, string> = { 'claude-plan': 'Claude Code', 'chatgpt-plan': 'Codex', 'gemini-plan': 'Gemini CLI', 'kimi-plan': 'Kimi plan', 'glm-plan': 'GLM plan' };
 
-// Where these apps install themselves. A test can point OXBOT_CLI_DIR at fakes.
+// Where these apps install themselves. A test can point TAURUS_CLI_DIR at fakes.
 function binary(id: CliId): string | undefined {
   const name = bins[id];
-  const dirs = process.env.OXBOT_CLI_DIR ? [process.env.OXBOT_CLI_DIR]
+  const dirs = process.env.TAURUS_CLI_DIR ? [process.env.TAURUS_CLI_DIR]
     : [join(homedir(), '.local/bin'), join(homedir(), '.claude/local'), '/opt/homebrew/bin', '/usr/local/bin', join(homedir(), '.npm-global/bin'), join(homedir(), '.bun/bin')];
   return dirs.map(d => join(d, name)).find(p => existsSync(p));
 }
@@ -56,7 +56,7 @@ function runCli(file: string, args: string[], input: string, timeoutMs = 180_000
 }
 
 // The conversation as one prompt, for apps that take one message.
-const transcript = (turns: Turn[]) => turns.map(t => `${t.role === 'user' ? 'Owner' : 'Ox'}: ${t.text}`).join('\n\n');
+const transcript = (turns: Turn[]) => turns.map(t => `${t.role === 'user' ? 'Owner' : 'Taurus'}: ${t.text}`).join('\n\n');
 
 // ---------- Usage ----------
 
@@ -98,7 +98,7 @@ async function askClaudeCode(file: string, system: string, turns: Turn[], o: Pla
   const image = last.image?.match(/^data:(image\/[a-z]+);base64,(.+)$/);
   const text = `${earlier.length ? `The conversation so far:\n\n${transcript(earlier)}\n\nThe owner now says:\n` : ''}${last.text}`;
   const message = { type: 'user', message: { role: 'user', content: [...(image ? [{ type: 'image', source: { type: 'base64', media_type: image[1], data: image[2] } }] : []), { type: 'text', text }] } };
-  // Only project settings (none, in OXBOT's empty folder): the owner's user settings can route Claude Code somewhere
+  // Only project settings (none, in Taurus's empty folder): the owner's user settings can route Claude Code somewhere
   // other than the plan. A model the owner picked wins; a simple question goes to the plan's fast model.
   const model = store.secret('CLAUDE_PLAN_MODEL') || (o.simple ? 'haiku' : '');
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--setting-sources', 'project',
@@ -116,7 +116,7 @@ async function askClaudeCode(file: string, system: string, turns: Turn[], o: Pla
 }
 
 // Codex takes its model from the owner's ~/.codex/config.toml, which can name a model a ChatGPT sign-in can't use
-// (November 16, 2026: "gpt-6.1-sol … is not supported when using Codex with a ChatGPT account"). Then OXBOT tries the
+// (November 16, 2026: "gpt-6.1-sol … is not supported when using Codex with a ChatGPT account"). Then Taurus tries the
 // models that answered through a ChatGPT plan on the owner's Mac that day, and remembers the first one that works.
 // A model the owner types on the AI page wins over all of these.
 export const codexFallbacks = ['gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna'];
@@ -152,7 +152,7 @@ async function askCodex(file: string, system: string, turns: Turn[]): Promise<st
       if (!notForPlan(lastError) || chosen) break;
     }
     const said = lastError.match(/"message":"([^"]+)"/)?.[1] ?? lastError;
-    throw new Error(notForPlan(lastError) ? `Codex couldn’t use ${chosen ? `the model ${chosen}` : 'any model OXBOT tried'} with your ChatGPT plan. Pick another on the AI page, under ChatGPT plan, Model.` : said.slice(0, 300));
+    throw new Error(notForPlan(lastError) ? `Codex couldn’t use ${chosen ? `the model ${chosen}` : 'any model Taurus tried'} with your ChatGPT plan. Pick another on the AI page, under ChatGPT plan, Model.` : said.slice(0, 300));
   } finally { if (picture) rmSync(picture, { force: true }); }
 }
 
@@ -168,9 +168,9 @@ export async function planStatus(id: CliId, fresh = false): Promise<PlanStatus> 
   if (file && id === 'claude-plan') {
     try {
       const j = JSON.parse(await runCli(file, ['auth', 'status'], '', 15_000));
-      // Claude Code's status reads its user settings, which OXBOT skips when asking. A token set there (as on the owner's
+      // Claude Code's status reads its user settings, which Taurus skips when asking. A token set there (as on the owner's
       // Mac, for a proxy) hides the Claude account underneath, so only "claude.ai" counts as a sure yes; otherwise the
-      // AI page says to press Test it, which asks the way OXBOT really does.
+      // AI page says to press Test it, which asks the way Taurus really does.
       s = { ...s, signedIn: j.authMethod === 'claude.ai' ? true : j.loggedIn === false ? false : undefined, plan: j.subscriptionType ? String(j.subscriptionType) : undefined, how: j.authMethod === 'claude.ai' ? 'your Claude account' : undefined };
     } catch (e) { s = { ...s, signedIn: false, error: (e as Error).message.slice(0, 200) }; }
   } else if (file && id === 'chatgpt-plan') {
@@ -220,6 +220,6 @@ async function askGeminiCli(file: string, system: string, turns: Turn[]): Promis
 export async function askPlan(id: CliId, system: string, turns: Turn[], o: PlanOptions = {}): Promise<string> {
   const file = binary(id);
   if (!file) throw new Error(`${cliNames[id]} isn’t installed on this Mac. Install it and sign in with your plan, then try again.`);
-  if (id === 'gemini-plan' && turns.at(-1)?.image) throw new Error('Gemini CLI can’t take a picture from OXBOT yet. Use your Claude or ChatGPT plan for pictures.');
+  if (id === 'gemini-plan' && turns.at(-1)?.image) throw new Error('Gemini CLI can’t take a picture from Taurus yet. Use your Claude or ChatGPT plan for pictures.');
   return id === 'claude-plan' ? askClaudeCode(file, system, turns, o) : id === 'chatgpt-plan' ? askCodex(file, system, turns) : askGeminiCli(file, system, turns);
 }

@@ -2,8 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api, type McpServer, type Scheduled, type Skill } from '../api';
 
 // Skills and MCP servers (owner, November 6, 2026: "make it so u can add skills for the ai not just plugins and also mcp
-// servers"). A skill is instructions Ox follows when they fit, written here or dropped in as a SKILL.md. An MCP server
-// is added by its address; its read-only tools run when Ox asks, every other tool waits for your OK.
+// servers"). A skill is instructions Taurus follows when they fit, written here or dropped in as a SKILL.md. An MCP server
+// is added by its address; its read-only tools run when Taurus asks, every other tool waits for your OK.
 export function Skills() {
   const [list, setList] = useState<Skill[] | null>(null);
   const [mcp, setMcp] = useState<McpServer[]>([]);
@@ -38,11 +38,11 @@ export function Skills() {
           <button type="button" className="primary" onClick={() => setEditing({ name: '', description: '', instructions: '' })}>New skill</button>
         </span>
       </div>
-      <p className="muted">Teach Ox how you like things done: your investor update format, how to triage your inbox, your hiring scorecard. Skills are instructions only. They can’t run anything, and sending or buying still waits for your OK.</p>
+      <p className="muted">Teach Taurus how you like things done: your investor update format, how to triage your inbox, your hiring scorecard. Skills are instructions only. They can’t run anything, and sending or buying still waits for your OK.</p>
       {editing && <form className="skill-edit" onSubmit={saveSkill}>
         <label>Name<input type="text" required maxLength={80} value={editing.name ?? ''} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="Investor updates" /></label>
         <label>When to use it<input type="text" maxLength={240} value={editing.description ?? ''} onChange={e => setEditing({ ...editing, description: e.target.value })} placeholder="When I ask for an investor or board update" /></label>
-        <label>What Ox should do<textarea required rows={8} maxLength={20000} value={editing.instructions ?? ''} onChange={e => setEditing({ ...editing, instructions: e.target.value })} placeholder={'Three short sections: wins, misses, asks.\nNumbers first, from Stripe and the dashboard.\nUnder 200 words.'} /></label>
+        <label>What Taurus should do<textarea required rows={8} maxLength={20000} value={editing.instructions ?? ''} onChange={e => setEditing({ ...editing, instructions: e.target.value })} placeholder={'Three short sections: wins, misses, asks.\nNumbers first, from Stripe and the dashboard.\nUnder 200 words.'} /></label>
         <div className="actions"><button type="submit" className="primary" disabled={busy === 'skill'}>{busy === 'skill' ? 'Saving' : 'Save skill'}</button><button type="button" className="text-button" onClick={() => setEditing(null)}>Cancel</button></div>
       </form>}
       {list && list.length === 0 && !editing && <p className="empty-line muted">No skills yet.</p>}
@@ -56,7 +56,7 @@ export function Skills() {
 
     <section aria-labelledby="mcp-h">
       <div className="section-row"><h2 id="mcp-h">MCP servers</h2></div>
-      <p className="muted">Add any MCP server by its address, the same servers Claude and other AI apps use. Tools the server marks read-only run when Ox needs them; anything else shows you an approval card first. Remote servers need https; a server on this Mac can use http://localhost.</p>
+      <p className="muted">Add any MCP server by its address, the same servers Claude and other AI apps use. Tools the server marks read-only run when Taurus needs them; anything else shows you an approval card first. Remote servers need https; a server on this Mac can use http://localhost.</p>
       <form className="mcp-add" onSubmit={addServer}>
         <label>Name<input type="text" maxLength={60} value={server.name} onChange={e => setServer({ ...server, name: e.target.value })} placeholder="Linear" /></label>
         <label>Address<input type="url" required value={server.url} onChange={e => setServer({ ...server, url: e.target.value })} placeholder="https://mcp.example.com/mcp" /></label>
@@ -78,7 +78,7 @@ export function Skills() {
   </main>;
 }
 
-// Scheduled tasks (owner, November 6, 2026: "allow schedhuled tasks for ox to do u csn voice it to it or set it up in
+// Scheduled tasks (owner, November 6, 2026: "allow schedhuled tasks for taurus to do u csn voice it to it or set it up in
 // settings"). Set one here, or just say it: "every weekday at 8, brief me on the day".
 export function Schedule() {
   const [list, setList] = useState<Scheduled[] | null>(null);
@@ -95,10 +95,10 @@ export function Schedule() {
   const ideas: [string, string][] = [['Brief me on the day: meetings, who needs me, and my recovery', 'every weekday at 7:30am'], ['Sum up this week’s numbers and what moved', 'every Friday at 4pm'], ['Check if anyone important emailed while I was out', 'every day at 6pm']];
   return <main id="main" tabIndex={-1} className="settings-page skills-page">
     <div className="page-head"><h1>Scheduled</h1></div>
-    <p className="muted">Ox does these by himself at the time you set and shows you the answer. You can also just tell him: “every weekday at 8, brief me on the day.” Anything that sends, posts or buys still waits for your OK.</p>
+    <p className="muted">Taurus does these by himself at the time you set and shows you the answer. You can also just tell him: “every weekday at 8, brief me on the day.” Anything that sends, posts or buys still waits for your OK.</p>
     {error && <p className="problem" role="alert">{error}</p>}
     <form className="schedule-add" onSubmit={add}>
-      <label>What Ox should do<input type="text" required maxLength={600} value={task} onChange={e => setTask(e.target.value)} placeholder="Brief me on the day" /></label>
+      <label>What Taurus should do<input type="text" required maxLength={600} value={task} onChange={e => setTask(e.target.value)} placeholder="Brief me on the day" /></label>
       <label>When<input type="text" required maxLength={80} value={when} onChange={e => setWhen(e.target.value)} placeholder="every weekday at 8am, tomorrow at 9, every Friday at 4pm" /></label>
       <button type="submit" className="primary" disabled={busy === 'add' || !task.trim()}>{busy === 'add' ? 'Saving' : 'Schedule'}</button>
     </form>

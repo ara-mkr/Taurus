@@ -5,8 +5,8 @@ import { dirname, join, sep } from 'node:path';
 import { acting, check, defaults, never, type HandsSettings, type Window } from './hands-policy';
 
 // Helpers in other apps (owner, November 5, 2026: "Yes, plan it", then "just do everything in sequential order";
-// docs/19-computer-use.md). This process runs oxbot-hands, the fixed-verb program that reads and drives other apps,
-// and takes steps from the OXBOT server over a private line only it holds the token for. Every step is checked against
+// docs/19-computer-use.md). This process runs taurus-hands, the fixed-verb program that reads and drives other apps,
+// and takes steps from the Taurus server over a private line only it holds the token for. Every step is checked against
 // the owner's allow list (hands-policy.ts). While a helper has the mouse a banner says who, Esc or touching the mouse
 // stops every helper at once, and so do Lock and sleep. The owner switches Screen Recording and Accessibility on
 // himself; the tray item only opens macOS's own prompts.
@@ -19,7 +19,7 @@ const escapeHtml = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0
 
 export function handsService(o: { here: string; local: string; home: string; token: string; quitting: () => boolean; changed: () => void }) {
   const file = join(o.home, 'hands.json');
-  const helper = join(o.here, 'oxbot-hands').replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
+  const helper = join(o.here, 'taurus-hands').replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
   let proc: ChildProcessWithoutNullStreams | undefined;
   let seq = 0, buffer = '';
   const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>();
@@ -36,7 +36,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
 
   function program() {
     if (proc) return proc;
-    if (!mac || !existsSync(helper)) throw new Error('Helpers in other apps need oxbot-hands, which is built on a Mac with the desktop app.');
+    if (!mac || !existsSync(helper)) throw new Error('Helpers in other apps need taurus-hands, which is built on a Mac with the desktop app.');
     const child = spawn(helper, [], { stdio: ['pipe', 'pipe', 'pipe'] });
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk: string) => {
@@ -55,7 +55,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
     });
     child.on('exit', () => {
       if (proc === child) proc = undefined;
-      for (const w of pending.values()) { clearTimeout(w.timer); w.reject(new Error('oxbot-hands stopped.')); }
+      for (const w of pending.values()) { clearTimeout(w.timer); w.reject(new Error('taurus-hands stopped.')); }
       pending.clear();
     });
     proc = child;
@@ -65,7 +65,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
     const child = program();
     const id = ++seq;
     return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(() => { pending.delete(id); reject(new Error('oxbot-hands took too long.')); }, ms);
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error('taurus-hands took too long.')); }, ms);
       pending.set(id, { resolve: v => resolve(v as T), reject, timer });
       child.stdin.write(`${JSON.stringify({ id, verb, args })}\n`);
     });
@@ -136,7 +136,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
     try {
       if (acting.has(r.verb)) {
         if (Date.now() < stoppedUntil) return { ok: false, error: 'Stopped: you took the mouse back.' };
-        take(r.who?.name ?? 'Ox', /^#[0-9a-f]{6}$/i.test(r.who?.colour ?? '') ? r.who!.colour : '#ECEBE6', app);
+        take(r.who?.name ?? 'Taurus', /^#[0-9a-f]{6}$/i.test(r.who?.colour ?? '') ? r.who!.colour : '#ECEBE6', app);
         stepping = true;
         // Escape typed into the app mustn't count as the owner's Esc.
         const ownEscape = r.verb === 'key' && String(r.args.key).toLowerCase() === 'escape';
@@ -161,7 +161,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
 
   async function post(path: string, body: unknown) {
     try {
-      await fetch(`${o.local}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1', 'x-oxbot-hands': o.token }, body: JSON.stringify(body) });
+      await fetch(`${o.local}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1', 'x-taurus-hands': o.token }, body: JSON.stringify(body) });
     } catch { /* server restarting */ }
   }
 
@@ -170,7 +170,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
   async function follow() {
     while (!o.quitting()) {
       try {
-        const response = await fetch(`${o.local}/api/hands/stream`, { headers: { Accept: 'text/event-stream', 'x-oxbot-hands': o.token } });
+        const response = await fetch(`${o.local}/api/hands/stream`, { headers: { Accept: 'text/event-stream', 'x-taurus-hands': o.token } });
         if (!response.ok || !response.body) throw new Error(String(response.status));
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
         let text = '';
@@ -215,7 +215,7 @@ export function handsService(o: { here: string; local: string; home: string; tok
       label: 'Helpers in other apps', enabled: mac,
       submenu: [
         { label: 'Let helpers act in other apps', type: 'checkbox', checked: s.on, enabled: ready, click: item => save({ ...s, on: item.checked }),
-          toolTip: ready ? undefined : 'Needs the desktop app to have started OXBOT itself, on a Mac.' },
+          toolTip: ready ? undefined : 'Needs the desktop app to have started Taurus itself, on a Mac.' },
         { label: 'Switch on Screen Recording and Accessibility…', enabled: ready, click: () => void call('ask', { screen: true, accessibility: true }).catch(() => undefined) },
         { type: 'separator' },
         { label: 'May act', enabled: false },
@@ -226,8 +226,8 @@ export function handsService(o: { here: string; local: string; home: string; tok
           label: a, submenu: [{ label: 'May act', click: () => toggle('act', a) }, { label: 'May look', click: () => toggle('look', a) }],
         })) },
         { type: 'separator' },
-        { label: 'Helpers use the OXBOT Chrome profile', type: 'checkbox', checked: s.chrome, click: item => save({ ...s, chrome: item.checked }) },
-        { label: 'Open OXBOT Chrome to sign in to sites', enabled: mac, click: openChrome },
+        { label: 'Helpers use the Taurus Chrome profile', type: 'checkbox', checked: s.chrome, click: item => save({ ...s, chrome: item.checked }) },
+        { label: 'Open Taurus Chrome to sign in to sites', enabled: mac, click: openChrome },
       ],
     };
   }

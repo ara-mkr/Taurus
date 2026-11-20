@@ -12,11 +12,11 @@ import { after, before, test } from 'node:test';
 const port = 20_000 + Math.floor(Math.random() * 20_000);
 const base = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, [join(import.meta.dirname, '../src/index.ts')], {
-  env: { ...process.env, OXBOT_HOME: mkdtempSync(join(tmpdir(), 'oxbot-routes-')), OXBOT_PORT: String(port), OXBOT_BROKER_URL: '', OXBOT_VOICE_URL: 'https://voice.example.com', OXBOT_WEB_ROOT: tmpdir() },
+  env: { ...process.env, TAURUS_HOME: mkdtempSync(join(tmpdir(), 'taurus-routes-')), TAURUS_PORT: String(port), TAURUS_BROKER_URL: '', TAURUS_VOICE_URL: 'https://voice.example.com', TAURUS_WEB_ROOT: tmpdir() },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 before(() => new Promise<void>((resolve, reject) => {
-  server.stdout.on('data', chunk => { if (String(chunk).includes('OXBOT on')) resolve(); });
+  server.stdout.on('data', chunk => { if (String(chunk).includes('Taurus on')) resolve(); });
   server.once('exit', code => reject(new Error(`server exited ${code}`)));
 }));
 after(() => { server.kill(); });
@@ -29,9 +29,9 @@ const onVoiceHost = (path: string, method: string, body = '') => new Promise<{ s
   });
   req.on('error', reject); req.end(body);
 });
-const write = { method: 'POST', headers: { 'x-oxbot': '1', 'Content-Type': 'application/json' } };
+const write = { method: 'POST', headers: { 'x-taurus': '1', 'Content-Type': 'application/json' } };
 
-test('approvals are listed, and approving needs the OXBOT header and a real action', async () => {
+test('approvals are listed, and approving needs the Taurus header and a real action', async () => {
   assert.deepEqual(await (await call('/api/approvals')).json(), { pending: [] });
   assert.equal((await call(`/api/approvals/${crypto.randomUUID()}/approve`, { method: 'POST', body: '{}' })).status, 403);
   const missing = await call(`/api/approvals/${crypto.randomUUID()}/approve`, { ...write, body: JSON.stringify({ digest: 'x' }) });
@@ -55,7 +55,7 @@ test('anything through a proxy or on the voice address reaches only /api/voice, 
   assert.match(unsigned.type, /text\/xml/);
   assert.match(unsigned.text, /Not allowed\.<\/Say><Hangup\/>/);
   const local = await call('/api/voice/incoming', { method: 'POST', body: '' });
-  assert.ok([403, 404].includes(local.status), 'on the local address /api/voice is just another write that needs the OXBOT header');
+  assert.ok([403, 404].includes(local.status), 'on the local address /api/voice is just another write that needs the Taurus header');
 });
 
 test('a camera frame that is not an image is refused', async () => {
@@ -63,7 +63,7 @@ test('a camera frame that is not an image is refused', async () => {
   assert.equal(r.status, 400);
 });
 
-test('every response carries the security headers: no framing, no referrer, scripts only from OXBOT (November 2, 2026)', async () => {
+test('every response carries the security headers: no framing, no referrer, scripts only from Taurus (November 2, 2026)', async () => {
   for (const path of ['/', '/api/connectors', '/api/nothing-here']) {
     const res = await call(path);
     assert.match(res.headers.get('content-security-policy') ?? '', /script-src 'self';.*frame-ancestors 'none'/);

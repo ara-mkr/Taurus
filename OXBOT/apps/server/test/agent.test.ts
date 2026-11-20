@@ -1,4 +1,4 @@
-// The AI's tools, the chief-of-staff persona, the camera frame and calling OXBOT by phone (owner, November 1, 2026),
+// The AI's tools, the chief-of-staff persona, the camera frame and calling Taurus by phone (owner, November 1, 2026),
 // against a scripted fake AI and mocked providers only. No real AI, health app, call or send.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-const home = process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-agent-'));
-process.env.OXBOT_BROKER_URL = '';
+const home = process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-agent-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const { converse, toolCalls } = await import('../src/agent.ts');
@@ -48,7 +48,7 @@ const sid = `AC${'0123456789abcdef'.repeat(2)}`;
 store.setSecrets({
   OPENROUTER_API_KEY: 'or-test', OPENROUTER_MODEL: 'example/model:free', OURA_CLIENT_ID: 'o-id', OURA_CLIENT_SECRET: 'o-secret',
   TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: 'tw-token', TWILIO_FROM: '+15551230000', MY_PHONE: '+15557654321', TWILIO_ACTIONS_ON: '1',
-  VOICE_PIN: '4821', OXBOT_VOICE_URL: 'https://voice.example.com',
+  VOICE_PIN: '4821', TAURUS_VOICE_URL: 'https://voice.example.com',
 });
 store.setTokens('oura', { access_token: 'oura-token' });
 store.saveDoc('food.json', [{ place: 'Example Greens', item: 'Harvest Bowl', total: '$18.45', app: 'DoorDash', at: now - 72 * 3_600_000 }]);
@@ -100,7 +100,7 @@ test('the persona is in every prompt: decide, protect focus, hard moments, act o
   assert.equal(persona('23:00', '07:00').includes('Quiet hours are 23:00 to 07:00'), true);
 });
 
-// Example transcripts: how Ox should and should not answer. The checker is what the persona forbids.
+// Example transcripts: how Taurus should and should not answer. The checker is what the persona forbids.
 const good: [string, string, boolean?][] = [
   ['I’m slammed, what do I do first?', 'Dana’s board-seat question. It blocks the term sheet and takes five minutes. Everything else can wait until after your 10:00.'],
   ['I’m furious at the board right now.', 'That’s a lot to carry into a meeting. Before you reply, breathe in for 4, hold for 4, out for 6, twice. Then send nothing until after lunch; I’ll hold the draft.'],
@@ -136,7 +136,7 @@ test('tool lines are parsed strictly and capped', () => {
   assert.equal(toolCalls('<tool>{"name":"a"}</tool>'.repeat(5)).length, 4);
 });
 
-// ---------- Calling OXBOT ----------
+// ---------- Calling Taurus ----------
 
 const base = 'https://voice.example.com';
 const callFrom = (path: string, params: Record<string, string>, token = 'tw-token') => voice(path, params, twilioSignature(token, base + path, params));

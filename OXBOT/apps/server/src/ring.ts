@@ -6,7 +6,7 @@ import { dashboard } from './dashboard.ts';
 import { store } from './store.ts';
 import type { Ring } from './types.ts';
 
-// The escalation ladder: every open OXBOT screen rings at once and ntfy pushes;
+// The escalation ladder: every open Taurus screen rings at once and ntfy pushes;
 // if nobody answers within escalateAfterSeconds, Twilio places a real phone call.
 const listeners = new Set<ServerResponse>();
 const rings = new Map<string, Ring>();
@@ -45,7 +45,7 @@ async function push(ring: Ring) {
   const server = (store.secret('NTFY_SERVER') || 'https://ntfy.sh').replace(/\/$/, '');
   const response = await fetch(`${server}/${encodeURIComponent(topic)}`, {
     method: 'POST', body: ring.detail || ring.title,
-    headers: { Title: `OXBOT: ${ring.title}`.slice(0, 200), Priority: 'urgent', Click: `${publicUrl}/#ring` },
+    headers: { Title: `Taurus: ${ring.title}`.slice(0, 200), Priority: 'urgent', Click: `${publicUrl}/#ring` },
     signal: AbortSignal.timeout(10_000),
   });
   return response.ok;
@@ -69,7 +69,7 @@ export const twilioErrors: Record<number, string> = {
   21219: 'A Twilio trial account can only call numbers you’ve verified. Add your mobile under Phone Numbers, then Verified Caller IDs.',
   21215: 'Twilio blocks calls to that country until you allow it: Voice, then Settings, then Geo permissions.',
   13227: 'Twilio blocks calls to that country until you allow it: Voice, then Settings, then Geo permissions.',
-  20429: 'Twilio is busy. OXBOT will try again on the next ring.',
+  20429: 'Twilio is busy. Taurus will try again on the next ring.',
 };
 // Twilio's Limited trial (owner's account, November 18, 2026) refuses the Twiml and Timeout fields on a call with
 // "trial accounts have limited parameter access", but still takes a Url. On that refusal the same TwiML goes again
@@ -80,7 +80,7 @@ export function viaEcho(form: Record<string, string>) {
   return Twiml ? { ...rest, Url: `https://twimlets.com/echo?Twiml=${encodeURIComponent(Twiml)}` } : rest;
 }
 export interface TwilioReply { sid?: string; code?: number; message?: string }
-// Once Twilio has refused, the account is a trial until OXBOT restarts, so later calls skip the refused try.
+// Once Twilio has refused, the account is a trial until Taurus restarts, so later calls skip the refused try.
 let trialAccount = false;
 export async function placeCall(post: (form: Record<string, string>) => Promise<Response>, form: Record<string, string>) {
   let response = await post(trialAccount ? viaEcho(form) : form);
@@ -104,7 +104,7 @@ async function call(ring: Pick<Ring, 'title' | 'detail'>): Promise<CallResult> {
   if (!from) return done(false, 'The Twilio number doesn’t look right. Use the + and country code, like +15551230000.');
   if (!to) return done(false, twilioErrors[21211]);
   const words = xml(`${ring.title}. ${ring.detail}`.slice(0, 400));
-  const twiml = `<Response><Pause length="1"/><Say>This is OXBOT. ${words}</Say><Pause length="1"/><Say>Again. ${words}</Say></Response>`;
+  const twiml = `<Response><Pause length="1"/><Say>This is Taurus. ${words}</Say><Pause length="1"/><Say>Again. ${words}</Say></Response>`;
   const post = (form: Record<string, string>) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
     method: 'POST',
     headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -123,7 +123,7 @@ async function call(ring: Pick<Ring, 'title' | 'detail'>): Promise<CallResult> {
 
 // "Call me now" on the Phone page: the same call a ring makes, straight away, so you know it works before you need it.
 export async function testCall() {
-  const result = await call({ title: 'Test call', detail: 'If you can hear this, OXBOT can reach you.' });
+  const result = await call({ title: 'Test call', detail: 'If you can hear this, Taurus can reach you.' });
   if (!result.ok) throw new Error(result.message);
   return result;
 }
@@ -203,6 +203,6 @@ export function startScheduler() {
   setInterval(run, 30_000);
 }
 
-// number: OXBOT's own Twilio number, so the Phone page can offer it as a contact card (owner, November 2, 2026).
+// number: Taurus's own Twilio number, so the Phone page can offer it as a contact card (owner, November 2, 2026).
 export const channelStatus = () => ({ screens: listeners.size, ntfy: isConnected('ntfy'), call: isConnected('twilio'), lastCall,
   number: isConnected('twilio') ? phoneNumber(store.secret('TWILIO_FROM') ?? '') || null : null });

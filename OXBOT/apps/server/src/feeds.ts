@@ -14,7 +14,7 @@ async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Pr
   return value;
 }
 
-const agent = { 'User-Agent': 'Mozilla/5.0 (Macintosh) OXBOT/0.2', Accept: '*/*' };
+const agent = { 'User-Agent': 'Mozilla/5.0 (Macintosh) Taurus/0.2', Accept: '*/*' };
 async function get(url: string) {
   const response = await fetch(url, { headers: agent, signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);

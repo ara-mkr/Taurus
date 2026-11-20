@@ -8,18 +8,18 @@ import { HttpError, store } from './store.ts';
 
 // Helpers in other apps (owner, November 5, 2026: "Yes, plan it", then "just do everything in sequential order";
 // docs/19-computer-use.md). The server never touches the screen itself. The desktop app runs the fixed-verb
-// oxbot-hands program and listens here for steps; this side asks for them, checks what is consequential (that becomes
+// taurus-hands program and listens here for steps; this side asks for them, checks what is consequential (that becomes
 // an approval card, never a click), and hands the results to the AI. Only the desktop app that started this server
 // holds the token, so nothing else can pose as it.
 
-const token = process.env.OXBOT_HANDS_TOKEN ?? '';
+const token = process.env.TAURUS_HANDS_TOKEN ?? '';
 let desk: ServerResponse | undefined;
 const waiting = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>();
 const stopListeners = new Set<(reason: string) => void>();
 
 export interface HandsSettings { on: boolean; act: string[]; look: string[]; chrome: boolean }
 const defaults: HandsSettings = { on: false, act: ['Canva', 'Notes'], look: ['Google Chrome'], chrome: false };
-// The desktop app writes ~/.oxbot/hands.json from its tray menu; here it is only read.
+// The desktop app writes ~/.taurus/hands.json from its tray menu; here it is only read.
 export function handsSettings(): HandsSettings {
   try { return { ...defaults, ...JSON.parse(readFileSync(join(store.dir, 'hands.json'), 'utf8')) }; } catch { return { ...defaults }; }
 }
@@ -27,7 +27,7 @@ export function handsSettings(): HandsSettings {
 export const handsReady = () => Boolean(desk);
 const loopback = (req: IncomingMessage) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
 export function trusted(req: IncomingMessage) {
-  const offered = String(req.headers['x-oxbot-hands'] ?? '');
+  const offered = String(req.headers['x-taurus-hands'] ?? '');
   return Boolean(token) && loopback(req) && offered.length === token.length && offered === token;
 }
 
@@ -42,7 +42,7 @@ export function connect(res: ServerResponse) {
     clearInterval(keep);
     if (desk !== res) return;
     desk = undefined;
-    for (const [id, w] of waiting) { clearTimeout(w.timer); w.reject(new Error('OXBOT’s desktop app went away.')); waiting.delete(id); }
+    for (const [id, w] of waiting) { clearTimeout(w.timer); w.reject(new Error('Taurus’s desktop app went away.')); waiting.delete(id); }
   });
 }
 export function result(body: { id?: string; ok?: boolean; data?: unknown; error?: string }) {
@@ -62,7 +62,7 @@ export function onStopped(fn: (reason: string) => void) { stopListeners.add(fn);
 
 export interface Who { name: string; colour: string }
 export async function hands<T = Record<string, unknown>>(verb: string, args: Record<string, unknown> = {}, who?: Who): Promise<T> {
-  if (!desk) throw new HttpError(409, 'Helpers in other apps need OXBOT’s desktop app open on this Mac.');
+  if (!desk) throw new HttpError(409, 'Helpers in other apps need Taurus’s desktop app open on this Mac.');
   const id = randomUUID();
   const out = desk;
   return new Promise<T>((resolve, reject) => {
@@ -113,7 +113,7 @@ export async function doStep(step: Step, who?: Who): Promise<Tree | undefined> {
   const args: Record<string, unknown> = { app: step.app };
   for (const k of ['id', 'x', 'y', 'toX', 'toY', 'text', 'key', 'dy'] as const) if (step[k] !== undefined) args[k] = step[k];
   await hands(step.do, args, who);
-  note('mac', `${who?.name ?? 'Ox'} in ${step.app}: ${step.says ?? step.do}`.slice(0, 160), { by: 'ox' });
+  note('mac', `${who?.name ?? 'Taurus'} in ${step.app}: ${step.says ?? step.do}`.slice(0, 160), { by: 'taurus' });
   await new Promise(r => setTimeout(r, 350));
   return readApp(step.app, who).catch(() => undefined);
 }
@@ -121,7 +121,7 @@ export async function doStep(step: Step, who?: Who): Promise<Tree | undefined> {
 register({
   kind: 'hands.step', app: 'This Mac', ttlMinutes: 5,
   help: 'A step in another app that sends, posts, shares, buys, deletes, invites or signs in (Canva Share, a Send button, Place order). Args: app, do (press, click, type, key), id or x and y from app_look, text, says (what the step does, in words). The owner sees the app, the element and the words first.',
-  missing: () => (desk ? undefined : 'OXBOT’s desktop app isn’t open.'),
+  missing: () => (desk ? undefined : 'Taurus’s desktop app isn’t open.'),
   async prepare(args) {
     const step = args as unknown as Step;
     if (!step.app || !acts.includes(step.do)) throw new HttpError(400, 'Say which app and which step.');

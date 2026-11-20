@@ -84,7 +84,7 @@ export const workDefs: Def[] = [
       { key: 'DISCORD_CHANNEL_IDS', label: 'Channel IDs, comma separated' },
       { key: 'DISCORD_USER_ID', label: 'Your user ID' },
     ],
-    setup: 'Discord has no read-only token, so OXBOT uses a bot that can only read: Developer Portal → New Application → Bot → copy the token and turn on Message Content Intent. Invite it with only View Channels and Read Message History. Turn on Developer Mode to copy channel and user IDs. OXBOT only reads; it never posts.', setupUrl: 'https://discord.com/developers/applications',
+    setup: 'Discord has no read-only token, so Taurus uses a bot that can only read: Developer Portal → New Application → Bot → copy the token and turn on Message Content Intent. Invite it with only View Channels and Read Message History. Turn on Developer Mode to copy channel and user IDs. Taurus only reads; it never posts.', setupUrl: 'https://discord.com/developers/applications',
     async pull({ field }) {
       const auth = { Authorization: `Bot ${field('DISCORD_BOT_TOKEN')}` };
       const me = field('DISCORD_USER_ID')!;
@@ -105,9 +105,9 @@ export const workDefs: Def[] = [
   },
   {
     id: 'telegram', name: 'Telegram', group: 'Chat', mockOnly: true,
-    reads: 'Messages people sent to your own OXBOT bot, or in groups you added it to, from the last day.',
+    reads: 'Messages people sent to your own Taurus bot, or in groups you added it to, from the last day.',
     fields: [{ key: 'TELEGRAM_BOT_TOKEN', label: 'Bot token from @BotFather', secret: true }],
-    setup: 'Telegram only lets apps read through a bot, and bot tokens have no read-only option. In Telegram, message @BotFather, send /newbot, and paste the token here. People reach you by messaging that bot. OXBOT only calls getUpdates and never sends.', setupUrl: 'https://core.telegram.org/bots/tutorial#obtain-your-bot-token',
+    setup: 'Telegram only lets apps read through a bot, and bot tokens have no read-only option. In Telegram, message @BotFather, send /newbot, and paste the token here. People reach you by messaging that bot. Taurus only calls getUpdates and never sends.', setupUrl: 'https://core.telegram.org/bots/tutorial#obtain-your-bot-token',
     async pull({ field }) {
       // No offset is sent, so reading never marks anything as handled; Telegram keeps updates for 24 hours.
       const data = await api<any>(`https://api.telegram.org/bot${field('TELEGRAM_BOT_TOKEN')}/getUpdates?limit=100&allowed_updates=${encodeURIComponent('["message"]')}`);
@@ -153,7 +153,7 @@ export const workDefs: Def[] = [
     id: 'todoist', name: 'Todoist', group: 'Tasks', mockOnly: true,
     reads: 'Tasks due today or overdue, highest priority first.',
     oauth: { app: 'todoist', scopes: ['data:read'] }, fields: appFields('todoist'),
-    setup: 'Todoist App Management Console → Create a new app. Add the redirect URL. OXBOT asks only for data:read.', setupUrl: 'https://developer.todoist.com/appconsole.html',
+    setup: 'Todoist App Management Console → Create a new app. Add the redirect URL. Taurus asks only for data:read.', setupUrl: 'https://developer.todoist.com/appconsole.html',
     async pull({ token }) {
       const data = await api<any>(`https://api.todoist.com/api/v1/tasks/filter?query=${encodeURIComponent('today | overdue')}&limit=50`, { token: await token() });
       const tasks = (data.results ?? []).sort((a: any, b: any) => b.priority - a.priority || String(a.due?.date).localeCompare(String(b.due?.date)));

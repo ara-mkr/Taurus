@@ -5,11 +5,11 @@ import { spokenTime, when } from './timers.ts';
 import type { Reminder } from './types.ts';
 import { show } from './windows.ts';
 
-// Scheduled tasks (owner, November 6, 2026: "allow schedhuled tasks for ox to do u csn voice it to it or set it up in
-// settings"). A task is something to ask Ox at a time, once or again and again ("every weekday at 8: brief me on the
-// day", "Friday at 4: sum up the week's numbers"). At that time Ox does it the way he would if you had asked: he reads,
+// Scheduled tasks (owner, November 6, 2026: "allow schedhuled tasks for taurus to do u csn voice it to it or set it up in
+// settings"). A task is something to ask Taurus at a time, once or again and again ("every weekday at 8: brief me on the
+// day", "Friday at 4: sum up the week's numbers"). At that time Taurus does it the way he would if you had asked: he reads,
 // browses and answers, and the answer pops up on screen. Anything that sends, posts, buys or changes something still
-// becomes an approval card and waits for you; a schedule never approves anything. Saved in ~/.oxbot/schedules.json.
+// becomes an approval card and waits for you; a schedule never approves anything. Saved in ~/.taurus/schedules.json.
 
 export interface Scheduled { id: string; task: string; when: string; repeat?: Reminder['repeat']; nextAt: string; on: boolean; lastAt?: string; last?: string; error?: string }
 const FILE = 'schedules.json';
@@ -19,7 +19,7 @@ export const schedules = () => list().sort((a, b) => Date.parse(a.nextAt) - Date
 
 export function addSchedule(task: string, whenText: string, id?: string): Scheduled {
   const text = String(task ?? '').replace(/\s+/g, ' ').trim().slice(0, 600);
-  if (!text) throw new Error('Say what Ox should do.');
+  if (!text) throw new Error('Say what Taurus should do.');
   const due = when(String(whenText ?? ''));
   if (!due) throw new Error('Say when, like “every weekday at 8am”, “tomorrow at 9”, “every Friday at 4pm” or “in 2 hours”.');
   const all = list();
@@ -49,7 +49,7 @@ let running = false;
 export async function runNow(id: string) {
   const s = list().find(x => x.id === id);
   if (!s) return;
-  const step = begin('ai', `Running now: ${s.task.slice(0, 60)}`, { by: 'ox' });
+  const step = begin('ai', `Running now: ${s.task.slice(0, 60)}`, { by: 'taurus' });
   try {
     const answer = (await (await import('./agent.ts')).converse([{ role: 'user', text: s.task }], 'ask')).text;
     step.done('Done'); show({ id: `sched-${s.id}`, kind: 'note', title: s.task.slice(0, 80), text: answer.slice(0, 2000) });
@@ -63,7 +63,7 @@ export async function runDue(now = Date.now(), ask?: (task: string) => Promise<s
   running = true;
   try {
     for (const s of list().filter(x => x.on && Date.parse(x.nextAt) <= now)) {
-      const step = begin('ai', `Scheduled: ${s.task.slice(0, 60)}`, { by: 'ox' });
+      const step = begin('ai', `Scheduled: ${s.task.slice(0, 60)}`, { by: 'taurus' });
       let last = '', error: string | undefined;
       try {
         const answer = ask ? await ask(s.task) : (await (await import('./agent.ts')).converse([{ role: 'user', text: `(A task the owner scheduled: ${s.when}.) ${s.task}` }], 'ask')).text;
@@ -76,4 +76,4 @@ export async function runDue(now = Date.now(), ask?: (task: string) => Promise<s
     }
   } finally { running = false; }
 }
-if (!process.env.OXBOT_NO_SCHEDULER) { setInterval(() => void runDue(), 30_000).unref(); setTimeout(() => void runDue(), 5_000).unref(); }
+if (!process.env.TAURUS_NO_SCHEDULER) { setInterval(() => void runDue(), 30_000).unref(); setTimeout(() => void runDue(), 5_000).unref(); }

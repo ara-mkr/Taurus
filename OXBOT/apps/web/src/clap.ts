@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-// Two claps or two snaps start Talk (owner, November 6, 2026: "make it so ox recognizes and enables voice mode and
+// Two claps or two snaps start Talk (owner, November 6, 2026: "make it so taurus recognizes and enables voice mode and
 // starts listening when i double clap or double snap"). Off by default, a switch in Settings, Voice. While it is on
 // and this tab is visible, the microphone's loudness is measured here in the browser, a few times a second, above
 // the pitch of speech. Nothing is recorded, kept or sent anywhere: no words, no sound, only "two sharp sounds".

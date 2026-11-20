@@ -1,5 +1,0 @@
-interface:
-  display_name: "OXBOT UI Audit"
-  short_description: "Independently review rendered UI and truthful states."
-  brand_color: "#4C54C9"
-  default_prompt: "Use the oxbot-ui-audit skill for this OXBOT task. Read the project phase and constraints first."

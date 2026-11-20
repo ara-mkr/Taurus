@@ -1,6 +1,6 @@
 # Today acceptance follow-up
 
-October 21, 2026. Objective: finish the outstanding browser-zoom review of the existing P1 Today/email slice and fix any resulting accessibility defect. The fix was completed within P1; the owner subsequently approved Today and the specific P2-01 Ask Ox slice.
+October 21, 2026. Objective: finish the outstanding browser-zoom review of the existing P1 Today/email slice and fix any resulting accessibility defect. The fix was completed within P1; the owner subsequently approved Today and the specific P2-01 Ask Taurus slice.
 
 ## Finding and change
 
@@ -18,12 +18,12 @@ Actual Google Chrome browser zoom at 200% and 400% was inspected through the nat
 | Browser zoom | Native Chrome toolbar showed 200% and 400%; after the fix, End from the evidence region revealed the full footer at 400%; restored zoom to 100% | Pass for inspected Chrome session | Taste review remains separate |
 | Responsive interactions | `pnpm test`: 36/36 passed, including six new short-height cases | Pass | None for technical result |
 | Typecheck, lint, production build | `pnpm typecheck`, `pnpm lint`, `pnpm build`: all passed; CSS 16.55 kB / 4.09 kB gzip | Pass | None for technical result |
-| Independent review | Separate read-only Ox UI auditor: 8/8 desktop/short-height cases passed, both themes; source evidence, focus traversal/trap/return, approval and reopening checked | Pass for this fix | No whole-product or visual approval inferred |
+| Independent review | Separate read-only Taurus UI auditor: 8/8 desktop/short-height cases passed, both themes; source evidence, focus traversal/trap/return, approval and reopening checked | Pass for this fix | No whole-product or visual approval inferred |
 | Accessibility automation | Zero axe violations in the suite and independent tested views | Pass for tested views | Actual screen-reader trial still outstanding |
 | Production behavior | `node qa-local/p1/check-production.cjs`: pass; DEV hooks ignored, terminal approval, zero external requests/page errors | Pass | None for technical result |
 | Planning assets | `python3 scripts/validate_pack.py` and `python3 scripts/sync_skills.py --check`: passed, no skill drift | Pass | None for technical result |
 | Safari, VoiceOver, physical devices | Not exercised in this follow-up | Not verified | No certification claimed |
-| Today aesthetic acceptance and next phase | Owner replied “Approve Today and build Ask Ox” beside the running preview | Approved for the specific slice | Other P2 work is not authorized |
+| Today aesthetic acceptance and next phase | Owner replied “Approve Today and build Ask Taurus” beside the running preview | Approved for the specific slice | Other P2 work is not authorized |
 
 The independent evidence records Chromium 156.0.8078.4. Its effective viewport checks are separate from the builder's actual native Chrome zoom review. Initial new-test execution failed because its return-focus locator retained the old “Review draft” name after approval renamed the button “View decision”; the corrected assertion and final full suite passed.
 
@@ -37,8 +37,8 @@ The independent evidence records Chromium 156.0.8078.4. Its effective viewport c
 
 ## Next slice, subsequently approved by the owner
 
-The owner approved the existing Today direction and P2-01 only: Ask Ox with three explicit scripted requests, the existing shared proposal state and email drawer, and an honest unsupported-request fallback. No live model, account, provider or external effect is involved.
+The owner approved the existing Today direction and P2-01 only: Ask Taurus with three explicit scripted requests, the existing shared proposal state and email drawer, and an honest unsupported-request fallback. No live model, account, provider or external effect is involved.
 
 Proposed requests are “Get me ready for tomorrow,” “Send the update to Jordan,” and “What do you remember about my morning preferences?” The first reuses the existing fictional plan and sources. The second must distinguish Jordan Lee and Jordan Patel before opening an exact recipient-bound proposal; never silently change an approved payload. The third must say that this fixture contains no saved morning preference unless a separate fictional preference is explicitly specified and approved. The suggested 6:30 wake time is not an established saved preference.
 
-Ask Ox, Today and the drawer must agree after approve/reject, pause, reset and revision changes. Keep input and conversation in React memory, list supported phrases, use immediate deterministic responses, and keep the remaining destinations unavailable. Review both themes, mobile/short-height layout, keyboard/announcements, state consistency and absence of external requests before the next independent audit. See `p2-ask-implementation.md` for delivery evidence.
+Ask Taurus, Today and the drawer must agree after approve/reject, pause, reset and revision changes. Keep input and conversation in React memory, list supported phrases, use immediate deterministic responses, and keep the remaining destinations unavailable. Review both themes, mobile/short-height layout, keyboard/announcements, state consistency and absence of external requests before the next independent audit. See `p2-ask-implementation.md` for delivery evidence.

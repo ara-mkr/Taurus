@@ -1,4 +1,4 @@
-// Everything OXBOT can do, each only through approve() (owner, November 1, 2026). Importing this file registers them.
+// Everything Taurus can do, each only through approve() (owner, November 1, 2026). Importing this file registers them.
 import './direct.ts';
 import './composio.ts';
 import './food.ts';

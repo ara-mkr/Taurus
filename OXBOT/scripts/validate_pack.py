@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the initial Ox planning pack. Standard library only; no network."""
+"""Validate the initial Taurus planning pack. Standard library only; no network."""
 from __future__ import annotations
 import json
 import re
@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAMES = ('oxbot-ui', 'oxbot-ui-audit', 'oxbot-phase-gate', 'oxbot-action-safety')
+NAMES = ('taurus-ui', 'taurus-ui-audit', 'taurus-phase-gate', 'taurus-action-safety')
 
 def luminance(value: str) -> float:
     rgb = [int(value[i:i+2], 16)/255 for i in (1, 3, 5)]

@@ -8,12 +8,12 @@ import { show } from './windows.ts';
 import { moreHome } from './home-more.ts';
 
 // Home (owner, November 5, 2026: "make it so u can even connect it to like smart lights or curtains to make it like a
-// smart home controlled by ox"). Four ways in, all with your own keys:
+// smart home controlled by taurus"). Four ways in, all with your own keys:
 //   Home Assistant  the open-source hub that already talks to nearly every brand (lights, blinds, plugs, thermostats,
 //                   locks). Its REST API on your network, with a long-lived token from your HA profile.
 //   Philips Hue     the bridge's local API, paired by pressing its button.
 //   LIFX            LIFX's cloud API with your personal token.
-//   Apple Home      through Shortcuts: every Shortcut in a folder named "Home" becomes a scene Ox can run.
+//   Apple Home      through Shortcuts: every Shortcut in a folder named "Home" becomes a scene Taurus can run.
 // Like Spotify playback, lights, plugs, curtains, fans, the thermostat and scenes change the moment you ask: they're
 // yours, undone with one word, and connecting a hub is the permission. Locks, garage doors and gates never change
 // without an approval card (a tap, or a spoken yes after the read-back on a phone call), the way Alexa and Google
@@ -138,9 +138,9 @@ export async function pairHue(bridge?: string) {
   if (!ip) {
     const found = await api<{ internalipaddress: string }[]>('https://discovery.meethue.com/').catch(() => []);
     ip = found[0]?.internalipaddress ?? '';
-    if (!ip) throw new HttpError(404, 'OXBOT couldn’t find a Hue bridge. Type its address from the Hue app: Settings, Bridges, then the i next to yours.');
+    if (!ip) throw new HttpError(404, 'Taurus couldn’t find a Hue bridge. Type its address from the Hue app: Settings, Bridges, then the i next to yours.');
   }
-  const reply = await api<any[]>(`http://${ip}/api`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ devicetype: 'oxbot#mac' }), signal: AbortSignal.timeout(6000) });
+  const reply = await api<any[]>(`http://${ip}/api`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ devicetype: 'taurus#mac' }), signal: AbortSignal.timeout(6000) });
   const key = reply.find(r => r.success)?.success?.username;
   if (!key) throw new HttpError(409, reply.find(r => r.error)?.error?.type === 101 ? 'Press the round button on top of the Hue bridge, then Pair again within 30 seconds.' : 'The bridge said no. Try again.');
   store.setSecrets({ HUE_BRIDGE: ip, HUE_KEY: key });
@@ -250,7 +250,7 @@ async function set(d: Device, c: Change) {
   const more = moreHome.find(p => d.id.startsWith(p.prefix));
   if (more) return more.set(d, c);
   if (d.id.startsWith('sample')) return setSample(d, c);
-  throw new HttpError(400, `OXBOT can’t change ${d.name}.`);
+  throw new HttpError(400, `Taurus can’t change ${d.name}.`);
 }
 // Locks, garage doors and gates wait for an approval card.
 const guarded = (d: Device, c: Change) => Boolean(d.secure && (c.lock !== undefined || c.on !== undefined || c.position !== undefined));
@@ -280,7 +280,7 @@ export async function change(ids: string[], c: Change, heard = '', allowSecure =
   const devices = [...state.devices, ...state.scenes].filter(d => ids.includes(d.id));
   if (!devices.length) throw new HttpError(404, 'I couldn’t find that at home.');
   if (!allowSecure && devices.some(d => guarded(d, c))) throw new HttpError(409, 'Locks, garage doors and gates need your OK first.');
-  const step = begin('home', describe(devices, c).replace(/\.$/, ''), { by: 'ox' });
+  const step = begin('home', describe(devices, c).replace(/\.$/, ''), { by: 'taurus' });
   const failed: string[] = [];
   await Promise.all(devices.map(d => Promise.resolve().then(() => set(d, c)).catch(error => { failed.push(`${d.name}: ${error instanceof Error ? error.message : error}`); })));
   if (failed.length === devices.length) { step.fail(failed.join('; ')); throw new HttpError(409, failed[0]); }

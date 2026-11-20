@@ -2,7 +2,7 @@
    one taking up the entire screen"). Two liquid-glass panels fill the screen edge to edge, side by side on a wide
    screen and stacked on a phone held upright. Each number is as tall as its panel allows: sized in container units
    from the panel itself, so it fits whatever the screen is. Each panel flips like a split-flap when its number
-   changes. Over a blurred Taurus sky. */
+   changes. Over a blurred Hud sky. */
 
 .flip-clock {
   position: fixed; inset: 0; z-index: 1;
@@ -61,13 +61,13 @@
 }
 
 /* ---------- The standby page around it ----------
-   Only the clock shows. A click, a tap or a key brings up Ox, the next event, what Ox is doing, anything waiting for
+   Only the clock shows. A click, a tap or a key brings up Taurus, the next event, what Taurus is doing, anything waiting for
    your OK and the way back to the dashboard; they go again after a few seconds or on the next tap. Moving the mouse
    does nothing, so a bedside clock stays a clock. */
 main.standby.standby-glass { position: fixed; inset: 0; overflow: hidden; padding: 0; color: #FFF; text-align: center; cursor: default; user-select: none; -webkit-user-select: none; }
 .standby-blur { position: fixed; inset: 0; z-index: 0; -webkit-backdrop-filter: blur(34px) saturate(140%); backdrop-filter: blur(34px) saturate(140%); background: rgba(14, 22, 52, .22); pointer-events: none; }
 
-/* Room for Ox above and the rest below: the clock steps back a little while they show. */
+/* Room for Taurus above and the rest below: the clock steps back a little while they show. */
 .standby-glass[data-chrome="on"] .flip-clock { transform: translateY(-3%) scale(.72); filter: brightness(.88); }
 
 .standby-chrome {
@@ -78,8 +78,8 @@ main.standby.standby-glass { position: fixed; inset: 0; overflow: hidden; paddin
 }
 .standby-glass[data-chrome="on"] .standby-chrome { opacity: 1; visibility: visible; transition: opacity .3s ease; }
 .standby-chrome > * { pointer-events: auto; }
-/* Centred on the screen (owner: "OX mascot isnt even centered on it"); glass.css's older corner placement is undone. */
-.standby-chrome .standby-ox { position: static; inset: auto; margin: 0; width: 85px; height: 64px; color: #FFF; display: block; }
+/* Centred on the screen (owner: "TAURUS mascot isnt even centered on it"); glass.css's older corner placement is undone. */
+.standby-chrome .standby-taurus { position: static; inset: auto; margin: 0; width: 85px; height: 64px; color: #FFF; display: block; }
 .standby-foot .standby-exit, .standby-foot .standby-waiting { margin: 0; max-width: none; }
 .standby-chrome > .standby-gap { pointer-events: none; }
 .standby-foot { display: grid; justify-items: center; gap: 10px; width: min(620px, 100%); }

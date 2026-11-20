@@ -2,7 +2,7 @@
 
 ## What this pack is
 
-This is a planning repository starter, not an implemented OXBOT app. It contains the master plan, modular specifications, a static interactive UI direction study, proposed design tokens, a first coding prompt, project instructions, custom skills, backlog templates, and validation scripts. No remote GitHub repository has been created and no real account is connected.
+This is a planning repository starter, not an implemented Taurus app. It contains the master plan, modular specifications, a static interactive UI direction study, proposed design tokens, a first coding prompt, project instructions, custom skills, backlog templates, and validation scripts. No remote GitHub repository has been created and no real account is connected.
 
 Open README.md first, then PROJECT_STATE.json, then the document for the assigned task. Do not make every coding agent read the entire master plan on every small change. Root instructions contain stable constraints; skills contain repeatable procedures; detailed documents load only when relevant.
 
@@ -19,10 +19,10 @@ git status --short
 git add README.md AGENTS.md CLAUDE.md PROJECT_STATE.json
 git add docs design prompts scripts .agents .claude .github
 git add .gitignore LICENSE-DECISION.md
-git commit -m "Add OXBOT product blueprint and frontend guardrails"
+git commit -m "Add Taurus product blueprint and frontend guardrails"
 # After GitHub CLI is installed and authenticated:
 gh auth status
-gh repo create oxbot --private --source=. --remote=origin
+gh repo create taurus --private --source=. --remote=origin
 git push -u origin main
 ```
 
@@ -34,33 +34,33 @@ Begin private while the name, license, and security boundaries are unresolved. P
 
 AGENTS.md is the canonical short policy for coding agents. CLAUDE.md points to it and identifies the Claude skill folder. PROJECT_STATE.json records the active phase, allowed envelope, locked phases, and the rule that changing scope needs owner authorization. A future phase described in a document does not override those rules.
 
-Canonical custom skills live in `.agents/skills`. Identical copies are supplied under `.claude/skills` for straightforward Claude Code use. Run `python3 scripts/sync_skills.py --check` to detect drift, and `python3 scripts/sync_skills.py` after intentionally updating canonical skills. The sync operation touches only matching Ox skill directories, not unrelated installed skills.
+Canonical custom skills live in `.agents/skills`. Identical copies are supplied under `.claude/skills` for straightforward Claude Code use. Run `python3 scripts/sync_skills.py --check` to detect drift, and `python3 scripts/sync_skills.py` after intentionally updating canonical skills. The sync operation touches only matching Taurus skill directories, not unrelated installed skills.
 
 Claude Code supports project skills and explicit `/skill-name` invocation. Codex supports repository skills and explicit skill references. Check the installed tool's documentation if discovery differs; do not claim a skill ran merely because a file exists. [R18-R20]
 
-## Included OXBOT-specific skills
+## Included Taurus-specific skills
 
-**oxbot-ui** is the builder. It reads scope, the UI spec, tokens and the assigned slice; creates a small implementation plan; implements only that slice; renders it; and reports evidence. It protects the calm design and prevents backend creep.
+**taurus-ui** is the builder. It reads scope, the UI spec, tokens and the assigned slice; creates a small implementation plan; implements only that slice; renders it; and reports evidence. It protects the calm design and prevents backend creep.
 
-**oxbot-ui-audit** is the independent reviewer. It starts read-only, evaluates rendered screens and interaction states, applies the quality rubric, identifies concrete defects, and distinguishes tests actually run from unavailable checks. It does not award a passing grade based solely on source code.
+**taurus-ui-audit** is the independent reviewer. It starts read-only, evaluates rendered screens and interaction states, applies the quality rubric, identifies concrete defects, and distinguishes tests actually run from unavailable checks. It does not award a passing grade based solely on source code.
 
-**oxbot-phase-gate** checks scope, acceptance evidence and prerequisites before proposing advancement. It never unlocks a phase automatically. It should catch requests such as "just connect Gmail while you're here" during P1.
+**taurus-phase-gate** checks scope, acceptance evidence and prerequisites before proposing advancement. It never unlocks a phase automatically. It should catch requests such as "just connect Gmail while you're here" during P1.
 
-**oxbot-action-safety** reviews future action and integration specifications for permission, disclosure, idempotency, ambiguity, freshness and receipt behavior. During P0-P2, it is a documentation/review skill only. Its presence is not authorization to implement a backend or execute an action.
+**taurus-action-safety** reviews future action and integration specifications for permission, disclosure, idempotency, ambiguity, freshness and receipt behavior. During P0-P2, it is a documentation/review skill only. Its presence is not authorization to implement a backend or execute an action.
 
 Each includes a SKILL.md entrypoint, metadata, and a compact relevant reference. Individually packaged skill.zip archives are supplied under skill-packages. They are separate skills; the full project ZIP is not a single installable skill archive.
 
 ## Explicit calling examples
 
-In Claude Code, use `/oxbot-ui` followed by the bounded task, and `/oxbot-ui-audit` in a separate review session. In Codex, explicitly mention `$oxbot-ui` or `$oxbot-ui-audit` in the prompt when supported by the current client. The skill's entrypoint should be loaded, not merely inferred from its name.
+In Claude Code, use `/taurus-ui` followed by the bounded task, and `/taurus-ui-audit` in a separate review session. In Codex, explicitly mention `$taurus-ui` or `$taurus-ui-audit` in the prompt when supported by the current client. The skill's entrypoint should be loaded, not merely inferred from its name.
 
-A useful builder request is: "Use the Ox UI skill. Implement P1-03 only: the Today screen and evidence drawer with synthetic fixtures. Do not add other routes or any backend. Return screenshots and check results." A useful auditor request is: "Use the UI audit skill. Review the rendered P1 slice against the approved spec. Do not edit files. Identify the highest-impact defects first."
+A useful builder request is: "Use the Taurus UI skill. Implement P1-03 only: the Today screen and evidence drawer with synthetic fixtures. Do not add other routes or any backend. Return screenshots and check results." A useful auditor request is: "Use the UI audit skill. Review the rendered P1 slice against the approved spec. Do not edit files. Identify the highest-impact defects first."
 
 Use the phase-gate skill before accepting the transition from design to full simulation, and especially before any native or backend work. It should return a pass/fail proposal and supporting artifacts, not silently edit the authorization file.
 
 ## External skills worth studying
 
-Anthropic's **frontend-design** skill can help with deliberate visual choices and avoiding template defaults. It must remain subordinate to Ox's approved design system. A generic instruction to use dramatic typography or bold visual expression is not permission to replace a calm system font and restrained workspace with an experimental landing page. [R16]
+Anthropic's **frontend-design** skill can help with deliberate visual choices and avoiding template defaults. It must remain subordinate to Taurus's approved design system. A generic instruction to use dramatic typography or bold visual expression is not permission to replace a calm system font and restrained workspace with an experimental landing page. [R16]
 
 Anthropic's **webapp-testing** material is useful for browser verification. Vercel's **web-design-guidelines** and **react-best-practices** can supplement accessibility, interaction, and performance review. Inspect the current files, license, scripts, and network behaviors before installing; pin the reviewed revision rather than trusting a mutable remote skill indefinitely. [R17, R21]
 
@@ -68,7 +68,7 @@ Do not install dozens of "frontend" skills hoping more prompts produce taste. Ov
 
 ## Development skills are not runtime permissions
 
-The skills above teach coding agents how to develop Ox. They are not a plugin marketplace for end users and do not authorize Ox itself to read email or execute tools. Future runtime tools need explicit schemas, allowlists, OAuth permissions, policy checks, and audits.
+The skills above teach coding agents how to develop Taurus. They are not a plugin marketplace for end users and do not authorize Taurus itself to read email or execute tools. Future runtime tools need explicit schemas, allowlists, OAuth permissions, policy checks, and audits.
 
 A downloaded skill can contain privileged instructions or executable scripts. Treat it as supply-chain material, not harmless documentation. Never allow untrusted emails, web content, or a user's uploaded "skill" to replace the application's system policy or request unrestricted filesystem/network access. [R52]
 
@@ -96,16 +96,16 @@ For each external repository, record URL, reviewed commit, root and directory-sp
 
 OpenMausBot is the strongest directly requested implementation reference, but its core, enterprise folder, and trademarks have distinct terms. OpenClaw is useful for persistent runtime/channel ideas, assistant-ui for conversation primitives, Omi for later audio/device architecture, and Chief for research on selective interruptions. Their current root licenses are not a substitute for reviewing any specific file before reuse. [R06-R12]
 
-Do not fork a huge agent framework on day one. First inspect whether the desired feature needs that framework at all. Ox's distinctive work is the product experience, policy boundaries, evidence and follow-through; inheriting thousands of files can make those harder to control.
+Do not fork a huge agent framework on day one. First inspect whether the desired feature needs that framework at all. Taurus's distinctive work is the product experience, policy boundaries, evidence and follow-through; inheriting thousands of files can make those harder to control.
 
 ### Focused repository-study assignments
 
 | Reference | Study question | Reuse boundary |
 |---|---|---|
 | OpenMausBot [R06-R08] | How are desktop presentation, persistent work and provider-specific behavior separated? Inspect the current build and trust boundaries. | Review Apache core versus enterprise terms; do not copy the name or mascot. |
-| OpenClaw [R09] | How are channels, sessions, task state and tool permissions organized? Which small pattern actually helps Ox? | Do not inherit a broad tool surface or full framework by default. |
-| assistant-ui [R11] | Which accessible conversation primitives would reduce work without dictating the entire product layout? | An optional component source, not Ox's information architecture. |
-| Omi [R10] | How do device capture, sync, transcription and memory connect? What consent and deletion boundaries would Ox need? | Later-phase research only; examine component and service terms separately. |
+| OpenClaw [R09] | How are channels, sessions, task state and tool permissions organized? Which small pattern actually helps Taurus? | Do not inherit a broad tool surface or full framework by default. |
+| assistant-ui [R11] | Which accessible conversation primitives would reduce work without dictating the entire product layout? | An optional component source, not Taurus's information architecture. |
+| Omi [R10] | How do device capture, sync, transcription and memory connect? What consent and deletion boundaries would Taurus need? | Later-phase research only; examine component and service terms separately. |
 | Chief [R12] | How does the prototype decide when to surface a short live hint? Where could false positives cause harm? | Prototype inspiration is not production validation or recording authorization. |
 
 A study should produce a short note, a diagram or an isolated experiment with synthetic data, not an immediate fork. Record the actual reviewed commit before copying anything. This blueprint reviewed public documentation and licensing surfaces; it did not audit every repository implementation or certify their security.

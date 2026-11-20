@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { clock, type Activity, type Background, type Board, type BrowserState, type Dashboard, type OxWindow, type Prefs, type Profile, type Tint } from '../api';
+import { clock, type Activity, type Background, type Board, type BrowserState, type Dashboard, type TaurusWindow, type Prefs, type Profile, type Tint } from '../api';
 import { Logo } from './Logo';
-import { Ox } from './Ox';
+import { Taurus } from './Taurus';
 import type { DockTab } from './Live';
 
 // November 2, 2026 (owner: "why is there like titles over tabs ... that js makes the little profile icon on the top right
-// useless"): the rail is where you go (your tabs, then what Ox does, split by a rule, no titles); the profile menu at
+// useless"): the rail is where you go (your tabs, then what Taurus does, split by a rule, no titles); the profile menu at
 // the top right is you and your setup (settings, connections, phone, standby).
 // The shell (owner, November 1, 2026: "have tabs on the left side ... put a little profile icon in the top right
 // corner ... make so u can make the background anything"). A left rail of tabs (a drawer on the phone), a top bar
-// that greets you and shows what Ox is doing, your profile at the top right, and whatever background you chose.
+// that greets you and shows what Taurus is doing, your profile at the top right, and whatever background you chose.
 
 export const daypart = (hour: number) => hour < 5 ? 'night' : hour < 9 ? 'dawn' : hour < 17 ? 'day' : hour < 21 ? 'dusk' : 'night';
 export function greeting(now: number, name: string) {
@@ -18,15 +18,15 @@ export function greeting(now: number, name: string) {
   return name ? `${hello}, ${name.split(/\s+/)[0]}` : hello;
 }
 
-// Which mark stands for OXBOT on your screen (owner, November 6, 2026: "make it so u can also choose what icon u want like
-// the ox mascot or the O X letter logo and what color u want just simple black white, or certain colors").
+// Which mark stands for Taurus on your screen (owner, November 6, 2026: "make it so u can also choose what icon u want like
+// the taurus mascot or the O X letter logo and what color u want just simple black white, or certain colors").
 export const brandColors: [string, string][] = [['white', '#FFFFFF'], ['black', '#0B0B0C'], ['silver', '#C9CDD4'], ['sky', '#7FB4FF'], ['ember', '#FF8A4C'], ['moss', '#7BC88F'], ['gold', '#E8C26A'], ['rose', '#FF7A9C']];
 export const brandStyle = (p: Pick<Profile, 'iconColor'>): CSSProperties | undefined => {
   const hex = brandColors.find(([k]) => k === p.iconColor)?.[1];
   return hex && p.iconColor !== 'white' ? { color: hex } : undefined;
 };
 export function BrandMark({ profile, height = 20 }: { profile: Pick<Profile, 'icon'>; height?: number }) {
-  return profile.icon === 'mascot' ? <Ox size={height * 1.15} label="OXBOT" /> : <Logo height={height} />;
+  return profile.icon === 'mascot' ? <Taurus size={height * 1.15} label="Taurus" /> : <Logo height={height} />;
 }
 
 export const initials = (name: string) => name.replace(/<[^>]*>|\(.*?\)/g, '').trim().split(/[\s.@_-]+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('') || '?';
@@ -39,27 +39,27 @@ export function Avatar({ name, photo, size = 34 }: { name: string; photo?: strin
 
 interface RailProps {
   boards: Board[]; current?: string; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
-  // Home is the view picked in Settings, Personalize: Taurus (the dashboard) or the first board's tiles (owner,
+  // Home is the view picked in Settings, Personalize: Hud (the dashboard) or the first board's tiles (owner,
   // November 19, 2026: "make it just in settings either tile view or dashboard view and then home becomes that").
-  home: string; homeIsTaurus: boolean; onCustomize: () => void; doing: Doing[]; brand: Profile;
+  home: string; homeIsHud: boolean; onCustomize: () => void; doing: Doing[]; brand: Profile;
 }
 
-// Quick access to what Ox is doing right now (owner, November 5, 2026: "on the left side tab u can also see current
+// Quick access to what Taurus is doing right now (owner, November 5, 2026: "on the left side tab u can also see current
 // tasks its doing or tabs it has open, just quick access, or like spotify if its doing something on that").
 export interface Doing { id: string; text: string; go: () => void; extra?: { label: string; run: () => void } }
 
-export function nowDoing({ entries, browser, wins, now, setDock, music }: { entries: Activity[]; browser: BrowserState | null; wins: OxWindow[]; now: number; setDock: (t: DockTab) => void; music: (what: string) => void }): Doing[] {
+export function nowDoing({ entries, browser, wins, now, setDock, music }: { entries: Activity[]; browser: BrowserState | null; wins: TaurusWindow[]; now: number; setDock: (t: DockTab) => void; music: (what: string) => void }): Doing[] {
   const out: Doing[] = [];
   for (const e of [...entries].reverse().filter(x => x.state === 'running' && now - Date.parse(x.at) < 90_000).slice(0, 3)) out.push({ id: `a${e.id}`, text: e.text, go: () => setDock('activity') });
   for (const w of wins) {
-    if (w.kind === 'timer' && !w.done) { const m = Math.max(1, Math.round((Date.parse(w.timer.endsAt) - Math.max(now, Date.now())) / 60_000)); out.push({ id: w.id, text: `${w.timer.focus ? 'Focus' : w.timer.label}: ${m} min left`, go: () => { location.hash = 'taurus'; } }); }
-    if (w.kind === 'music' && w.music.track && !w.music.setup) out.push({ id: w.id, text: `Spotify: ${w.music.track.title}, ${w.music.track.artist}`, go: () => { location.hash = 'taurus'; }, extra: w.music.embed ? undefined : { label: w.music.playing ? 'Pause' : 'Play', run: () => music(w.music.playing ? 'pause' : 'resume') } });
+    if (w.kind === 'timer' && !w.done) { const m = Math.max(1, Math.round((Date.parse(w.timer.endsAt) - Math.max(now, Date.now())) / 60_000)); out.push({ id: w.id, text: `${w.timer.focus ? 'Focus' : w.timer.label}: ${m} min left`, go: () => { location.hash = 'hud'; } }); }
+    if (w.kind === 'music' && w.music.track && !w.music.setup) out.push({ id: w.id, text: `Spotify: ${w.music.track.title}, ${w.music.track.artist}`, go: () => { location.hash = 'hud'; }, extra: w.music.embed ? undefined : { label: w.music.playing ? 'Pause' : 'Play', run: () => music(w.music.playing ? 'pause' : 'resume') } });
   }
   if (browser?.open) { let where = browser.title || browser.url || 'a page'; try { if (!browser.title && browser.url) where = new URL(browser.url).host; } catch { /* keep the raw address */ } out.push({ id: 'browser', text: `Browser: ${where}`, go: () => setDock('browser') }); }
   return out;
 }
 
-export function Rail({ boards, current, page, dock, setDock, open, onClose, home, homeIsTaurus, onCustomize, doing, brand }: RailProps) {
+export function Rail({ boards, current, page, dock, setDock, open, onClose, home, homeIsHud, onCustomize, doing, brand }: RailProps) {
   const toggle = (t: DockTab) => { setDock(dock === t ? null : t); onClose(); };
   return <>
     {open && <div className="scrim" onClick={onClose} aria-hidden="true" />}
@@ -67,25 +67,25 @@ export function Rail({ boards, current, page, dock, setDock, open, onClose, home
       <div className="rail-panel">
         <a className="brand" href={home} onClick={onClose} style={brandStyle(brand)}><BrandMark profile={brand} height={20} /></a>
         <ul className="rail-list" aria-label="Tabs">
-          <li><a href={home} aria-current={(homeIsTaurus ? page === 'taurus' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}>Home</a></li>
+          <li><a href={home} aria-current={(homeIsHud ? page === 'hud' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}>Home</a></li>
           {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}>{b.name}</a></li>)}
         </ul>
-        <ul className="rail-list rail-ox" aria-label="Ox">
-          <li><a href="#ask" aria-current={page === 'ask' ? 'page' : undefined} onClick={onClose}>Ask Ox</a></li>
+        <ul className="rail-list rail-taurus" aria-label="Taurus">
+          <li><a href="#ask" aria-current={page === 'ask' ? 'page' : undefined} onClick={onClose}>Ask Taurus</a></li>
           <li><a href="#house" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}>House</a></li>
           <li><a href="#brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}>Brain</a></li>
           <li><a href="#profinder" aria-current={page === 'profinder' ? 'page' : undefined} onClick={onClose}>ProFinder</a></li>
           <li><button type="button" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}>Browser</button></li>
           <li><button type="button" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}>Activity</button></li>
         </ul>
-        {doing.length > 0 && <ul className="rail-list rail-now" aria-label="What Ox is doing now">
+        {doing.length > 0 && <ul className="rail-list rail-now" aria-label="What Taurus is doing now">
           {doing.map(d => <li key={d.id} className="rail-doing">
             <button type="button" onClick={() => { d.go(); onClose(); }} title={d.text}><span className="rail-doing-text">{d.text}</span></button>
             {d.extra && <button type="button" className="rail-doing-extra" onClick={d.extra.run}>{d.extra.label}</button>}
           </li>)}
         </ul>}
         <ul className="rail-list rail-foot" aria-label="Settings">
-          {page === 'taurus' && <li><button type="button" onClick={() => { onCustomize(); onClose(); }}>Customize</button></li>}
+          {page === 'hud' && <li><button type="button" onClick={() => { onCustomize(); onClose(); }}>Customize</button></li>}
           <li><a href="#settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}>Settings</a></li>
         </ul>
       </div>

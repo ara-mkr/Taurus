@@ -1,4 +1,4 @@
-// Home, this Mac and Ox's voice (owner, November 5, 2026). Against a mocked Home Assistant, Hue bridge and LIFX, a fake
+// Home, this Mac and Taurus's voice (owner, November 5, 2026). Against a mocked Home Assistant, Hue bridge and LIFX, a fake
 // macOS runner and a fake speech engine only: no light changes, no app opens, no model downloads.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-home-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-home-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'HA_URL', 'HA_TOKEN', 'HUE_BRIDGE', 'HUE_KEY', 'LIFX_TOKEN', 'MAC_CONTROL_ON']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const { converse } = await import('../src/agent.ts');
@@ -63,7 +63,7 @@ beforeEach(() => {
 
 test('with nothing connected, the sample home answers and says it is the sample', async () => {
   assert.equal((await homeState()).sample, true);
-  const r = await ask('hey ox turn off the kitchen lights');
+  const r = await ask('hey taurus turn off the kitchen lights');
   assert.equal(r.text, 'Pendants off.');
   assert.equal(calls.length, 0, 'the sample home makes no requests');
   const win = openWindows().find(w => w.kind === 'home') as any;
@@ -179,7 +179,7 @@ test('Mac control: nothing runs until it is allowed, then only fixed programs wi
   useRunner(async (program, args) => {
     ran.push([program, args]);
     if (program !== 'shortcuts') return '';
-    if (args[1] === '--folder-name') return args[2] === 'OXBOT' ? 'Coffee order' : '';
+    if (args[1] === '--folder-name') return args[2] === 'Taurus' ? 'Coffee order' : '';
     return 'Coffee order\nSend ETA';
   }, ['Spotify', 'Google Chrome', 'Safari', 'Messages']);
   assert.match((await ask('mute')).text, /Allow “Control this Mac”/);
@@ -198,7 +198,7 @@ test('Mac control: nothing runs until it is allowed, then only fixed programs wi
   const before = acted();
   assert.match((await ask('run send eta')).text, /waiting for your OK/);
   assert.match((await ask('quit safari')).text, /^Quit Safari\?/);
-  assert.equal(acted(), before, 'quitting and Shortcuts outside the OXBOT folder wait');
+  assert.equal(acted(), before, 'quitting and Shortcuts outside the Taurus folder wait');
   const quit = pending().find(p => p.kind === 'mac.quit')!;
   await approve(quit.id, { digest: quit.digest });
   assert.deepEqual(ran.at(-1), ['osascript', ['-e', 'on run argv\n  tell application (item 1 of argv) to quit\nend run', 'Safari']]);
@@ -224,7 +224,7 @@ test('app names are found the way people say them', () => {
   assert.equal(findApp('photoshop', apps), undefined);
 });
 
-// ---------- Ox's voice ----------
+// ---------- Taurus's voice ----------
 
 test('the voice speaks plain words, caches short phrases and stays off until turned on', async () => {
   let made = 0;
@@ -241,17 +241,17 @@ test('the voice speaks plain words, caches short phrases and stays off until tur
   setSpeech(false);
 });
 
-// ---------- Taurus, the cloud dashboard's layout ----------
+// ---------- Hud, the cloud dashboard's layout ----------
 
-test('Taurus layouts are kept tidy: known panels only, sizes and sides checked, older prefs get the default', async () => {
-  const { sanitize, taurusDefaults } = await import('../src/boards.ts');
-  assert.deepEqual(sanitize({}).taurus, taurusDefaults());
-  const t = sanitize({ taurus: { panels: [
+test('Hud layouts are kept tidy: known panels only, sizes and sides checked, older prefs get the default', async () => {
+  const { sanitize, hudDefaults } = await import('../src/boards.ts');
+  assert.deepEqual(sanitize({}).hud, hudDefaults());
+  const t = sanitize({ hud: { panels: [
     { id: 'a', type: 'stocks', size: 'large', side: 'right', config: { symbols: ['AAPL', 'NVDA'] } },
     { id: 'b', type: 'house', size: 'enormous', side: 'middle' },
     { id: 'c', type: 'shell', size: 'small', side: 'left' },
-  ], clouds: 'lively', oxSize: 'large', chips: false, facts: true, start: 'board' } as any }).taurus;
+  ], clouds: 'lively', taurusSize: 'large', chips: false, facts: true, start: 'board' } as any }).hud;
   assert.deepEqual(t.panels.map(p => [p.id, p.type, p.size, p.side]), [['a', 'stocks', 'large', 'right'], ['b', 'house', 'medium', 'left']]);
   assert.deepEqual(t.panels[0].config?.symbols, ['AAPL', 'NVDA'], 'a panel keeps its settings');
-  assert.deepEqual([t.clouds, t.oxSize, t.chips, t.start], ['lively', 'large', false, 'board']);
+  assert.deepEqual([t.clouds, t.taurusSize, t.chips, t.start], ['lively', 'large', false, 'board']);
 });

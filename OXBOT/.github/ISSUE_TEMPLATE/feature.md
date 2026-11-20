@@ -1,6 +1,6 @@
 ---
 name: Bounded product task
-about: A phase-scoped OXBOT implementation or design task
+about: A phase-scoped Taurus implementation or design task
 ---
 
 ## Goal

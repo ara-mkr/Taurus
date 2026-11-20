@@ -76,7 +76,7 @@ export interface ConnectorInfo {
   mockOnly: boolean;
   connected: boolean;
   ready: boolean;
-  // Sign in through OXBOT's own app, no keys needed from the user.
+  // Sign in through Taurus's own app, no keys needed from the user.
   oneClick: boolean;
   missing: string[];
   fields: FieldInfo[];
@@ -98,7 +98,7 @@ export interface Ring {
 }
 
 export interface PhoneSettings {
-  // Who answers each kind of ask (November 17, 2026): 'free' for OXBOT's free models, or a connected AI's id.
+  // Who answers each kind of ask (November 17, 2026): 'free' for Taurus's free models, or a connected AI's id.
   aiRoute?: Partial<Record<'simple' | 'medium' | 'hard', string>>;
   leadMinutes: number;
   escalateAfterSeconds: number;
@@ -119,7 +119,7 @@ export interface AiInfo {
   chosen: string;
   providers: { id: string; name: string; maker: string; note: string; keyUrl: string; free: boolean; local: boolean; connected: boolean; plan?: boolean; installed?: boolean }[];
   free: { id: string; name: string; context: number }[];
-  // How much of each plan OXBOT has used (November 6, 2026), from what each app reported.
+  // How much of each plan Taurus has used (November 6, 2026), from what each app reported.
   usage?: { id: string; name: string; today: PlanDay; week: PlanDay; month: PlanDay; limits?: unknown; seen?: string }[];
   freeModel: string;
   // Who answers each kind of ask, and how fast each AI's first word has been lately (November 17, 2026).
@@ -141,20 +141,20 @@ export interface Widget { id: string; type: WidgetType; size: WidgetSize; title?
 export interface Board { id: string; name: string; widgets: Widget[] }
 export interface Todo { id: string; text: string; done: boolean; at: string }
 export interface Person { id: string; name: string; note?: string; everyDays?: number; last?: string }
-// You (owner, November 1, 2026): who Ox is talking to, and the picture behind everything.
+// You (owner, November 1, 2026): who Taurus is talking to, and the picture behind everything.
 export type Tone = 'witty' | 'brief' | 'warm' | 'direct';
-// email, language, icon and iconColor: November 6, 2026 (owner: a profile of its own, a language, and the choice of the Ox
-// mascot or the OX letters in black, white or a colour).
+// email, language, icon and iconColor: November 6, 2026 (owner: a profile of its own, a language, and the choice of the Taurus
+// mascot or the TAURUS letters in black, white or a colour).
 export interface Profile { name: string; email?: string; photo?: string; tone: Tone; greet: boolean; large: boolean; language?: string; icon?: 'letters' | 'mascot'; iconColor?: string }
 export type BackgroundKind = 'field' | 'color' | 'image' | 'link';
 // field: the moving light in a tint. color: one colour. image: a photo or video you added (file is its version). link: a picture from the web.
 export interface Background { kind: BackgroundKind; color: string; url?: string; file?: string; video?: boolean; dim: number; blur: number; daylight: boolean }
-// Taurus (owner, November 5, 2026): the cloud dashboard with Ox in the middle, the page OXBOT opens to. Each panel is
+// Hud (owner, November 5, 2026): the cloud dashboard with Taurus in the middle, the page Taurus opens to. Each panel is
 // one of the board's widgets (or the House), placed on the left or right at a size you pick.
 export type PanelSize = 'small' | 'medium' | 'large';
-export interface TaurusPanel { id: string; type: WidgetType | 'house'; size: PanelSize; side: 'left' | 'right'; title?: string; config?: WidgetConfig }
-export interface Taurus { panels: TaurusPanel[]; clouds: 'calm' | 'lively' | 'off'; oxSize: PanelSize; chips: boolean; facts: boolean; start: 'taurus' | 'board' }
-export interface Prefs { boards: Board[]; todos: Todo[]; people: Person[]; tint: Tint; ambient: boolean; ox: boolean; profile: Profile; background: Background; taurus: Taurus }
+export interface HudPanel { id: string; type: WidgetType | 'house'; size: PanelSize; side: 'left' | 'right'; title?: string; config?: WidgetConfig }
+export interface Hud { panels: HudPanel[]; clouds: 'calm' | 'lively' | 'off'; taurusSize: PanelSize; chips: boolean; facts: boolean; start: 'hud' | 'board' }
+export interface Prefs { boards: Board[]; todos: Todo[]; people: Person[]; tint: Tint; ambient: boolean; taurus: boolean; profile: Profile; background: Background; hud: Hud }
 
 export interface Quote { symbol: string; name?: string; currency?: string; price?: number; change?: number; changePct?: number; points: { t: number; v: number }[]; error?: string }
 export interface Headline { title: string; url: string; source?: string; at?: string }
@@ -177,7 +177,7 @@ export interface AiCard {
   at: string;
 }
 
-// ---------- Actions: everything OXBOT does, only after you approve it (owner, November 1, 2026) ----------
+// ---------- Actions: everything Taurus does, only after you approve it (owner, November 1, 2026) ----------
 
 export type ProposalState = 'pending' | 'running' | 'done' | 'failed' | 'unknown' | 'declined' | 'expired';
 export type ApprovedVia = 'board' | 'phone' | 'ring' | 'voice';
@@ -228,22 +228,22 @@ export interface Grant {
   lastError?: string;
 }
 
-// ---------- What Ox is doing, live (owner, November 1, 2026) ----------
+// ---------- What Taurus is doing, live (owner, November 1, 2026) ----------
 
 export type ActivityKind = 'read' | 'ai' | 'tool' | 'browser' | 'action' | 'ring' | 'feed' | 'voice' | 'home' | 'mac';
-export interface Activity { id: number; at: string; kind: ActivityKind; text: string; state: 'running' | 'done' | 'failed' | 'note'; ms?: number; detail?: string; by?: 'ox' | 'you' }
+export interface Activity { id: number; at: string; kind: ActivityKind; text: string; state: 'running' | 'done' | 'failed' | 'note'; ms?: number; detail?: string; by?: 'taurus' | 'you' }
 
-// OXBOT's own browser: a page Ox drives (or you do), read-only.
-export interface BrowserState { open: boolean; url: string; title: string; loading: boolean; by: 'ox' | 'you'; frame?: string; width: number; height: number; error?: string; at?: string }
+// Taurus's own browser: a page Taurus drives (or you do), read-only.
+export interface BrowserState { open: boolean; url: string; title: string; loading: boolean; by: 'taurus' | 'you'; frame?: string; width: number; height: number; error?: string; at?: string }
 
-// ---------- Ox windows (owner, November 4, 2026) ----------
-// "when u say ... hey ox play juice wrld on spotify it will pull up a simple liquid glass window up on the main
+// ---------- Taurus windows (owner, November 4, 2026) ----------
+// "when u say ... hey taurus play juice wrld on spotify it will pull up a simple liquid glass window up on the main
 // dashboard with spotify playing so it shows that it did it". Every instant command shows one of these.
 
 export interface Track { title: string; artist: string; album?: string; art?: string; url?: string; durationMs: number }
 export interface MusicState {
   playing: boolean; track: Track | null; progressMs: number; at: string; device?: string; volume?: number; shuffle?: boolean;
-  // Where it started: the artist, album or playlist Ox found for you.
+  // Where it started: the artist, album or playlist Taurus found for you.
   context?: { kind: 'artist' | 'album' | 'playlist' | 'track' | 'liked'; name: string; url?: string };
   // When Spotify can't start it on a device: an embed to press play on, and why.
   embed?: string; problem?: string; setup?: boolean;
@@ -252,7 +252,7 @@ export interface Timer { id: string; label: string; endsAt: string; minutes: num
 export interface Reminder { id: string; text: string; dueAt: string; repeat?: 'daily' | 'weekdays' | 'weekly'; firedAt?: string }
 export interface Memory { id: string; text: string; at: string }
 
-export type OxWindow = { id: string; at: string; said?: string } & (
+export type TaurusWindow = { id: string; at: string; said?: string } & (
   | { kind: 'music'; music: MusicState }
   | { kind: 'timer'; timer: Timer; done?: boolean }
   | { kind: 'reminder'; reminder: Reminder; due: boolean }
@@ -264,7 +264,7 @@ export type OxWindow = { id: string; at: string; said?: string } & (
   | { kind: 'mac'; title: string; text: string; app?: string }
 );
 
-// ---------- Ox's voice (owner, November 5, 2026) ----------
+// ---------- Taurus's voice (owner, November 5, 2026) ----------
 
 export interface SpeechVoice { id: string; name: string; accent: string; gender: string; note: string }
 export interface SpeechState { status: 'off' | 'loading' | 'ready' | 'error'; progress: number; error?: string; on?: boolean; voices?: SpeechVoice[] }
@@ -288,7 +288,7 @@ export interface MacState { mac: boolean; allowed: boolean; apps: string[]; runn
 
 // ---------- The swarm (owner, November 5, 2026: "a bunch of different colored cursors go around and do things") ----------
 
-// One helper Ox sends out: its own read-only page in OXBOT's browser, one part of the job, and where it is acting now.
+// One helper Taurus sends out: its own read-only page in Taurus's browser, one part of the job, and where it is acting now.
 export type HelperState = 'waiting' | 'opening' | 'working' | 'done' | 'failed' | 'stopped';
 export type HelperAct = 'look' | 'read' | 'scroll' | 'click' | 'search';
 export interface SwarmHelper {

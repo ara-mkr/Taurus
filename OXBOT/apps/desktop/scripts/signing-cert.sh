@@ -1,12 +1,12 @@
 #!/bin/sh
-# Run once, yourself, on the Mac that runs OXBOT (owner's step, November 5, 2026; docs/19-computer-use.md).
-# macOS ties Screen Recording and Accessibility to an app's code signature. OXBOT's builds were signed ad hoc, so each
+# Run once, yourself, on the Mac that runs Taurus (owner's step, November 5, 2026; docs/19-computer-use.md).
+# macOS ties Screen Recording and Accessibility to an app's code signature. Taurus's builds were signed ad hoc, so each
 # new build looked like a new app and lost both permissions. This makes a self-signed code-signing certificate named
-# "OXBOT Local" in your login keychain; `pnpm desktop:build` then signs every build with it, and the permissions stay.
+# "Taurus Local" in your login keychain; `pnpm desktop:build` then signs every build with it, and the permissions stay.
 # It is good only for signing apps on this Mac: no Apple account, nothing published, nothing trusted for websites.
 # macOS asks for your login password to trust it for code signing.
 set -eu
-NAME="OXBOT Local"
+NAME="Taurus Local"
 if security find-identity -v -p codesigning | grep -q "\"$NAME\""; then echo "\"$NAME\" is already in your keychain."; exit 0; fi
 DIR=$(mktemp -d)
 trap 'rm -rf "$DIR"' EXIT
@@ -28,4 +28,4 @@ openssl pkcs12 -export -legacy -inkey "$DIR/key.pem" -in "$DIR/cert.pem" -name "
   || openssl pkcs12 -export -inkey "$DIR/key.pem" -in "$DIR/cert.pem" -name "$NAME" -passout "pass:$PASS" -out "$DIR/cert.p12"
 security import "$DIR/cert.p12" -k "$HOME/Library/Keychains/login.keychain-db" -P "$PASS" -T /usr/bin/codesign
 security add-trusted-cert -p codeSign -k "$HOME/Library/Keychains/login.keychain-db" "$DIR/cert.pem"
-echo "Made \"$NAME\". Build OXBOT again (pnpm desktop:build), then switch on Screen Recording and Accessibility for the new build."
+echo "Made \"$NAME\". Build Taurus again (pnpm desktop:build), then switch on Screen Recording and Accessibility for the new build."

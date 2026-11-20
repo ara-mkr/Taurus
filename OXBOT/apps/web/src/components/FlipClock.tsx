@@ -3,7 +3,7 @@ import '../styles/flip.css';
 
 // The standby clock (owner, November 6, 2026: "the apple flip clock looking thing like the pic iattatched and like the
 // panels that flip r liquid glass things with big bold white text"). Two liquid-glass panels, hours and minutes, over
-// Taurus's sky blurred soft. When a number changes its panel flips like a split-flap: the old top half falls away and
+// Hud's sky blurred soft. When a number changes its panel flips like a split-flap: the old top half falls away and
 // the new bottom half swings down into place. Side by side on a wide screen, one above the other on a phone held
 // upright. Under Reduce Motion the numbers just change. Revised the same evening ("taller numbers like just like the
 // apple one taking up the entire screen"): the panels fill the screen and each number is as tall as its panel allows.

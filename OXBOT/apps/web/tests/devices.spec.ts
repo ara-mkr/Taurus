@@ -9,7 +9,7 @@ test.use({ deviceScaleFactor: 2, reducedMotion: 'reduce' });
 test.skip(!process.env.CAPTURE, 'Design captures run only with CAPTURE=1');
 
 async function open(page: Page, hash: string, size: { width: number; height: number }, ringing = false) {
-  await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'dark'));
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'dark'));
   await page.setViewportSize(size);
   await mock(page, ringing);
   await page.route('**/api/ask', r => r.fulfill({ json: { provider: 'Claude', text: 'Dana is waiting on the board seat clause, and the investor call starts at 10:00.\n\nRead her redlines first. I drafted a reply that accepts the valuation and asks for one independent seat chosen together. Want it shorter?' } }));
@@ -17,16 +17,16 @@ async function open(page: Page, hash: string, size: { width: number; height: num
 }
 
 for (const [name, size] of Object.entries(devices)) {
-  test(`${name}: board with Ox`, async ({ page }) => {
+  test(`${name}: board with Taurus`, async ({ page }) => {
     await open(page, '', size);
     await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
-    await page.getByRole('button', { name: /^Ox\./ }).click();
-    await expect(page.locator('.ox-bubble')).toBeVisible();
+    await page.getByRole('button', { name: /^Taurus\./ }).click();
+    await expect(page.locator('.taurus-bubble')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `${out}/${name}-board.png`, animations: 'disabled' });
   });
 
-  test(`${name}: Ask Ox`, async ({ page }) => {
+  test(`${name}: Ask Taurus`, async ({ page }) => {
     await open(page, '#ask', size);
     await page.getByLabel('Message').fill('What should I do before the investor call?');
     await page.getByRole('button', { name: 'Ask', exact: true }).click();
@@ -35,7 +35,7 @@ for (const [name, size] of Object.entries(devices)) {
   });
 }
 
-test('phone: Ox calling', async ({ page }) => {
+test('phone: Taurus calling', async ({ page }) => {
   await open(page, '#ring', devices.phone, true);
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await page.screenshot({ path: `${out}/phone-ring.png`, animations: 'disabled' });

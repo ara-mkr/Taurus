@@ -1,7 +1,7 @@
 import type { BrowserContext, Page } from '@playwright/test';
 
 // Fictional data shared by the smoke tests and the device screenshots. Every address is example.com.
-export const shots = '../../qa-local/oxbot';
+export const shots = '../../qa-local/taurus';
 const iso = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 const section = (live: boolean, sources: string[] = []) => ({ live, sources, errors: [] as string[] });
 
@@ -30,12 +30,12 @@ export const ring = { id: '6f1c1d2e-0000-4000-8000-000000000001', title: 'Invest
 
 const day = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toLocaleDateString('en-CA'); };
 const history = { sample: false, days: Array.from({ length: 30 }, (_, i) => ({ date: day(i - 29), recovery: 50 + ((i * 37) % 40), hrv: 50 + ((i * 13) % 20), sleepMinutes: 380 + ((i * 29) % 90) })) };
-// Older specs test the board at '/', so these prefs open there; the Taurus specs ask for Taurus.
-export const taurus = { panels: [
+// Older specs test the board at '/', so these prefs open there; the Hud specs ask for Hud.
+export const hud = { panels: [
   { id: 't-needs', type: 'needs', size: 'medium', side: 'left', title: 'Priority' }, { id: 't-todo', type: 'todo', size: 'medium', side: 'left' },
   { id: 't-health', type: 'health', size: 'medium', side: 'right' }, { id: 't-schedule', type: 'schedule', size: 'medium', side: 'right', title: 'Up next' }, { id: 't-house', type: 'house', size: 'small', side: 'right' },
-], clouds: 'calm', oxSize: 'medium', chips: true, facts: true, start: 'board' };
-export const prefs = { taurus, tint: 'graphite', ambient: true, people: [{ id: 'p1', name: 'Sam Okafor', everyDays: 14 }], todos: [{ id: 't1', text: 'Send board deck', done: false, at: iso(-60) }], boards: [
+], clouds: 'calm', taurusSize: 'medium', chips: true, facts: true, start: 'board' };
+export const prefs = { hud, tint: 'graphite', ambient: true, people: [{ id: 'p1', name: 'Sam Okafor', everyDays: 14 }], todos: [{ id: 't1', text: 'Send board deck', done: false, at: iso(-60) }], boards: [
   { id: 'home', name: 'Home', widgets: [
     { id: 'w1', type: 'brief', size: 'wide' }, { id: 'w2', type: 'focus', size: 'medium' }, { id: 'w3', type: 'needs', size: 'tall' }, { id: 'w4', type: 'schedule', size: 'tall' },
     { id: 'w5', type: 'health', size: 'tall' }, { id: 'w6', type: 'todo', size: 'medium' }, { id: 'w7', type: 'people', size: 'medium' }, { id: 'w8', type: 'trend', size: 'medium', config: { metric: 'recovery', days: 30 } },
@@ -61,7 +61,7 @@ export const food = {
   id: '0b6f3c1e-2222-4000-8000-000000000002', kind: 'food.order', app: 'Food', title: 'Order from Example Greens', to: 'Example Greens',
   lines: [{ label: 'Why', value: 'Your usual lunch, light because recovery is low.' }, { label: 'App', value: 'DoorDash' }],
   purchase: { item: 'Harvest Bowl', place: 'Example Greens', total: 'About $18.45' },
-  caution: 'No delivery app lets OXBOT place an order. Approving opens DoorDash at Example Greens, where you check the final total and tap Place order.',
+  caution: 'No delivery app lets Taurus place an order. Approving opens DoorDash at Example Greens, where you check the final total and tap Place order.',
   open: 'https://www.doordash.com/search/store/Example%20Greens/', editable: false, from: 'talk', createdAt: iso(-1), expiresAt: later(9), state: 'pending', digest: 'digest-food',
 };
 const grants = [
@@ -84,11 +84,11 @@ export async function mock(page: Page | BrowserContext, ringing = false, waiting
   await page.route('**/api/history', r => r.fulfill({ json: history }));
   await page.route('**/api/markets*', r => r.fulfill({ json: { quotes: quotes.filter(q => new URL(r.request().url()).searchParams.get('symbols')!.split(',').includes(q.symbol)) } }));
   await page.route('**/api/news*', r => r.fulfill({ json: news }));
-  await page.route('**/api/connectors', r => r.fulfill({ json: { connectors, redirectUri: 'http://localhost:8787/api/oauth/callback', home: '~/.oxbot' } }));
+  await page.route('**/api/connectors', r => r.fulfill({ json: { connectors, redirectUri: 'http://localhost:8787/api/oauth/callback', home: '~/.taurus' } }));
   await page.route('**/api/phone', r => r.fulfill({ json: { settings: { leadMinutes: 10, escalateAfterSeconds: 60, vipSenders: [], quietStart: '22:30', quietEnd: '06:30', ringMeetings: true, ringVip: true, aiProvider: 'claude' }, channels: { screens: 1, ntfy: false, call: false }, ai: 'Claude', bound: '127.0.0.1', pairing: [], lanReady: false } }));
   await page.route('**/api/ring/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: (ringing ? `event: ring\ndata: ${JSON.stringify(ring)}\n\n` : ': idle\n\n') + waiting.map(p => `event: approval\ndata: ${JSON.stringify(p)}\n\n`).join('') }));
   await page.route(`**/api/ring/${ring.id}/ack`, r => r.fulfill({ json: { ring: { ...ring, state: 'acknowledged' } } }));
-  // Ox's activity and his browser stay quiet unless a test says otherwise, so nothing reads a real server.
+  // Taurus's activity and his browser stay quiet unless a test says otherwise, so nothing reads a real server.
   await page.route('**/api/activity/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: 'retry: 600000\nevent: hello\ndata: []\n\n' }));
   await page.route('**/api/browser/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: 'retry: 600000\n: idle\n\n' }));
 }

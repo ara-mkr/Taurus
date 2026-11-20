@@ -4,11 +4,11 @@ import { join } from 'node:path';
 // Helpers on every screen (owner, November 5, 2026: "kinda like if u have multipe monitors it will like travel through
 // the different screens pull up tabs and all that stuff"). Off by default, a switch in the tray menu. While a swarm is
 // out, each other display gets a transparent, click-through window above everything that draws the helpers working
-// there: their cursor, and a card with the picture of their own page in OXBOT's browser. The windows only draw. They
+// there: their cursor, and a card with the picture of their own page in Taurus's browser. The windows only draw. They
 // can't be clicked, take focus or read anything: no screen capture, no real mouse, no other app touched. Their data
 // comes from the local server's /api/swarm/stream, through this process; the page itself reaches nothing.
 
-// Which screen a helper works on: -1 is the one with OXBOT's window. Same rule as apps/web/src/components/Swarm.tsx.
+// Which screen a helper works on: -1 is the one with Taurus's window. Same rule as apps/web/src/components/Swarm.tsx.
 export const screenFor = (n: number, others: number) => (others ? ((n - 1) % (others + 1)) - 1 : -1);
 
 interface Swarm { id: string; state: string; helpers: { id: string; n: number; state: string }[] }
@@ -39,7 +39,7 @@ export function swarmScreens(options: { here: string; local: string; on: () => b
   function overlayFor(d: Display, index: number, count: number) {
     const win = new BrowserWindow({
       ...d.bounds, transparent: true, frame: false, hasShadow: false, resizable: false, movable: false, minimizable: false, maximizable: false,
-      focusable: false, skipTaskbar: true, show: false, backgroundColor: '#00000000', title: 'OXBOT helpers',
+      focusable: false, skipTaskbar: true, show: false, backgroundColor: '#00000000', title: 'Taurus helpers',
       webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: false, spellcheck: false, preload: join(options.here, 'overlay-preload.cjs') },
     });
     // Clicks fall through to whatever is underneath; it sits above full-screen apps and on every Space.

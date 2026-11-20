@@ -5,19 +5,19 @@ import { note } from './activity.ts';
 import { store } from './store.ts';
 
 // Messages on this Mac (owner, November 16, 2026: "it should literally be able to take agentic control and see
-// messages on macbook ... its like an assistant he can see everything that ppl r saying to u"). Read-only: OXBOT opens
+// messages on macbook ... its like an assistant he can see everything that ppl r saying to u"). Read-only: Taurus opens
 // Apple's own Messages database (~/Library/Messages/chat.db) with SQLite in read-only mode and never writes to it.
-// Off until the owner switches it on, and macOS only lets it read once the owner gives the app that runs OXBOT Full
+// Off until the owner switches it on, and macOS only lets it read once the owner gives the app that runs Taurus Full
 // Disk Access himself. Sending stays an approval card through mac.ts ("mac.message"). See docs/22-agent-brain.md.
 
 export const MESSAGES_SWITCH = 'MAC_MESSAGES_ON';
 export const messagesOn = () => store.secret(MESSAGES_SWITCH) === '1';
 // A test points this at a fixture database.
-export const chatDb = () => process.env.OXBOT_CHAT_DB || join(homedir(), 'Library/Messages/chat.db');
+export const chatDb = () => process.env.TAURUS_CHAT_DB || join(homedir(), 'Library/Messages/chat.db');
 
 export interface MacMessage {
   id: string; rowid: number; text: string;
-  // The other person's phone number or Apple ID email (Messages keeps names in Contacts, which OXBOT doesn't read).
+  // The other person's phone number or Apple ID email (Messages keeps names in Contacts, which Taurus doesn't read).
   from: string; fromMe: boolean;
   chat: string; group: boolean; at: string; service: string;
 }
@@ -27,7 +27,7 @@ export interface MessagesStatus { on: boolean; state: 'off' | 'ready' | 'no-acce
 // What the owner does once, in his own words on the Scans page.
 export const accessSteps = [
   'Open System Settings, then Privacy & Security, then Full Disk Access.',
-  'Turn on the app that runs OXBOT: OXBOT itself if you use the desktop app, or Terminal (or iTerm) if you start OXBOT with pnpm dev from there.',
+  'Turn on the app that runs Taurus: Taurus itself if you use the desktop app, or Terminal (or iTerm) if you start Taurus with pnpm dev from there.',
   'Quit that app and open it again, so macOS applies the change.',
   'Come back here and press Check again.',
 ];
@@ -65,7 +65,7 @@ const SECS = (col: string) => `(CASE WHEN ${col} > 1000000000000 THEN ${col} / 1
 
 export async function messagesStatus(): Promise<MessagesStatus> {
   const on = messagesOn();
-  if (platform() !== 'darwin' && !process.env.OXBOT_CHAT_DB) return { on, state: 'not-mac', detail: 'Messages is only on a Mac.' };
+  if (platform() !== 'darwin' && !process.env.TAURUS_CHAT_DB) return { on, state: 'not-mac', detail: 'Messages is only on a Mac.' };
   if (!on) return { on, state: 'off' };
   let db: Db | undefined;
   try {
@@ -74,7 +74,7 @@ export async function messagesStatus(): Promise<MessagesStatus> {
     return { on, state: 'ready', newest: row?.d ? appleDate(row.d) : undefined };
   } catch (e) {
     if (!existsSync(join(chatDb(), '..')) && !noAccess(e)) return { on, state: 'missing', detail: 'This Mac has no Messages history yet. Open Messages and sign in first.' };
-    return { on, state: 'no-access', detail: 'macOS hasn’t given OXBOT access to Messages yet.', steps: accessSteps };
+    return { on, state: 'no-access', detail: 'macOS hasn’t given Taurus access to Messages yet.', steps: accessSteps };
   } finally { db?.close(); }
 }
 
@@ -84,7 +84,7 @@ export interface ReadOptions { sinceRowid?: number; limit?: number; query?: stri
 export async function readMessages(o: ReadOptions = {}): Promise<MacMessage[]> {
   if (!messagesOn()) throw new Error('Reading Messages is off. Switch it on in Settings, Scans, under Messages on this Mac.');
   let db: Db;
-  try { db = await open(); } catch (e) { throw new Error(noAccess(e) ? 'macOS hasn’t given OXBOT access to Messages yet: Settings, Scans, Messages on this Mac shows the steps.' : `Couldn’t open Messages: ${(e as Error).message.slice(0, 160)}`); }
+  try { db = await open(); } catch (e) { throw new Error(noAccess(e) ? 'macOS hasn’t given Taurus access to Messages yet: Settings, Scans, Messages on this Mac shows the steps.' : `Couldn’t open Messages: ${(e as Error).message.slice(0, 160)}`); }
   try {
     const limit = Math.max(1, Math.min(200, Math.round(o.limit ?? 30)));
     const where = ['m.ROWID > ?', '(m.associated_message_type IS NULL OR m.associated_message_type = 0)'];
@@ -106,7 +106,7 @@ export async function readMessages(o: ReadOptions = {}): Promise<MacMessage[]> {
       from: r.me ? 'me' : String(r.handle ?? r.ident ?? 'unknown'), fromMe: Boolean(r.me),
       chat: String(r.name || r.ident || r.handle || ''), group: Number(r.style) === 43, at: appleDate(r.date ?? 0), service: String(r.service ?? 'iMessage'),
     })).filter(m => m.text && (!q || m.text.toLowerCase().includes(q))).slice(0, limit);
-    note('read', `Read ${out.length} message${out.length === 1 ? '' : 's'} from Messages on this Mac`, { by: 'ox' });
+    note('read', `Read ${out.length} message${out.length === 1 ? '' : 's'} from Messages on this Mac`, { by: 'taurus' });
     return out;
   } finally { db.close(); }
 }

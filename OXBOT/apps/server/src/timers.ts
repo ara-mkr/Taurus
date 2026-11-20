@@ -7,8 +7,8 @@ import { close, show } from './windows.ts';
 
 // Timers, reminders and focus (owner, November 4, 2026). The things people ask a voice assistant for most, and the
 // ones Siri gets wrong: several named timers you can cancel by name, reminders in plain words ("at 6", "tomorrow at
-// 9am", "every weekday at 8:30"), and a focus block that keeps OXBOT quiet. Saved in ~/.oxbot so a restart keeps
-// them; each one pops up as an Ox window when it's done or due.
+// 9am", "every weekday at 8:30"), and a focus block that keeps Taurus quiet. Saved in ~/.taurus so a restart keeps
+// them; each one pops up as a Taurus window when it's done or due.
 
 const id = (p: string) => `${p}-${randomBytes(4).toString('hex')}`;
 const TIMERS = 'timers.json', REMINDERS = 'reminders.json';
@@ -128,7 +128,7 @@ function arm(t: Timer) {
 function ring(t: Timer) {
   handles.delete(t.id);
   timers = timers.filter(x => x.id !== t.id); saveTimers();
-  note('ring', t.focus ? 'Focus block done' : `Timer done: ${t.label}`, { by: 'ox' });
+  note('ring', t.focus ? 'Focus block done' : `Timer done: ${t.label}`, { by: 'taurus' });
   show({ id: t.id, kind: 'timer', timer: t, done: true });
 }
 for (const t of timers) { if (Date.parse(t.endsAt) <= Date.now()) ring(t); else arm(t); }
@@ -192,7 +192,7 @@ export function checkReminders() {
   for (const r of reminders) {
     if (r.firedAt || Date.parse(r.dueAt) > now) continue;
     changed = true;
-    note('ring', `Reminder: ${r.text}`, { by: 'ox' });
+    note('ring', `Reminder: ${r.text}`, { by: 'taurus' });
     show({ id: r.id, kind: 'reminder', reminder: { ...r }, due: true });
     const again = following(r);
     if (again) r.dueAt = again; else r.firedAt = new Date().toISOString();

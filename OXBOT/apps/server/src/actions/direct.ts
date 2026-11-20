@@ -19,7 +19,7 @@ const email = (value: unknown) => {
 const need = async (id: unknown, prefix: string): Promise<Need> => {
   const d = await dashboard();
   const found = d.sections.needs.live ? d.needs.find(n => n.id === id) : undefined;
-  if (!found || !String(id).startsWith(prefix)) throw new HttpError(400, `OXBOT can’t find that ${prefix.replace(':', '')} item on your live board. Ask again after it refreshes.`);
+  if (!found || !String(id).startsWith(prefix)) throw new HttpError(400, `Taurus can’t find that ${prefix.replace(':', '')} item on your live board. Ask again after it refreshes.`);
   return found;
 };
 const missing = (...pairs: [boolean, string][]) => pairs.find(([ok]) => !ok)?.[1];
@@ -157,7 +157,7 @@ const chat: Spec[] = [
 const twilioReady = () => missing([isConnected('twilio'), 'Set up Twilio on the Phone page first.'], [isConnected('twilio-act'), 'Allow calls and texts first: Settings, then Actions.']);
 const number = (value: unknown) => {
   const n = phoneNumber(oneLine(value, 40));
-  if (!n) throw new HttpError(400, `“${oneLine(value, 40)}” isn’t a phone number OXBOT can dial. Use the + and country code.`);
+  if (!n) throw new HttpError(400, `“${oneLine(value, 40)}” isn’t a phone number Taurus can dial. Use the + and country code.`);
   return n;
 };
 const masked = (n: string) => `${n.slice(0, -4).replace(/\d/g, '•')}${n.slice(-4)}`;
@@ -187,13 +187,13 @@ const phone: Spec[] = [
   {
     // The call rings your mobile first and then dials them, so you are the one talking: no robot voice to anyone else.
     kind: 'call.connect', app: 'Phone call',
-    help: 'Call someone: OXBOT rings your mobile, then connects you to them. Args: to (phone number), name (optional).',
+    help: 'Call someone: Taurus rings your mobile, then connects you to them. Args: to (phone number), name (optional).',
     missing: twilioReady,
     async prepare(args) {
       const to = number(args.to), name = oneLine(args.name, 60), mine = phoneNumber(store.secret('MY_PHONE') ?? '');
       if (!mine) throw new HttpError(409, 'Add your mobile number on the Phone page first.');
       if (to === mine) throw new HttpError(400, 'That’s your own number.');
-      return { title: `Call ${name || to}`, to, lines: [{ label: 'Number', value: to }, { label: 'How', value: 'Your phone rings first, then OXBOT connects you.' }], payload: { to, name, mine } };
+      return { title: `Call ${name || to}`, to, lines: [{ label: 'Number', value: to }, { label: 'How', value: 'Your phone rings first, then Taurus connects you.' }], payload: { to, name, mine } };
     },
     async run(p) {
       const twiml = `<Response><Say>Connecting you to ${xml(p.name || 'your call')}.</Say><Dial callerId="${xml(phoneNumber(store.secret('TWILIO_FROM') ?? ''))}">${xml(p.to)}</Dial></Response>`;
@@ -203,7 +203,7 @@ const phone: Spec[] = [
   },
   {
     kind: 'call.message', app: 'Phone call', editable: true, missing: twilioReady,
-    help: 'Call someone and have OXBOT read them a message. Only when you asked for that. Args: to, name (optional), text.',
+    help: 'Call someone and have Taurus read them a message. Only when you asked for that. Args: to, name (optional), text.',
     async prepare(args) {
       const to = number(args.to), text = body(args.text).slice(0, 600), name = oneLine(args.name, 60);
       if (!text) throw new HttpError(400, 'The message is empty.');
@@ -211,7 +211,7 @@ const phone: Spec[] = [
     },
     async run(p) {
       const words = xml(p.text);
-      await twilio('Calls', { To: p.to, Twiml: `<Response><Pause length="1"/><Say>This is a message sent by OXBOT, an assistant. ${words}</Say><Pause length="1"/><Say>Again. ${words}</Say></Response>`, Timeout: '30' });
+      await twilio('Calls', { To: p.to, Twiml: `<Response><Pause length="1"/><Say>This is a message sent by Taurus, an assistant. ${words}</Say><Pause length="1"/><Say>Again. ${words}</Say></Response>`, Timeout: '30' });
       return `Calling ${masked(p.to)} with your message.`;
     },
   },
@@ -233,7 +233,7 @@ const linear = async (query: string, variables: Args) => {
 };
 const issue = async (ref: unknown) => {
   const id = String(ref ?? '').replace(/^linear:/, '');
-  if (!/^([\w-]{8,}|[A-Z][A-Z0-9]*-\d+)$/.test(id)) throw new HttpError(400, 'Name the Linear issue by its key, like OX-412.');
+  if (!/^([\w-]{8,}|[A-Z][A-Z0-9]*-\d+)$/.test(id)) throw new HttpError(400, 'Name the Linear issue by its key, like TAURUS-412.');
   const found = (await linear('query($id: String!) { issue(id: $id) { id identifier title state { name } team { states { nodes { id name } } } } }', { id })).issue;
   if (!found) throw new HttpError(404, `Linear has no issue ${id}.`);
   return found;
@@ -260,7 +260,7 @@ const work: Spec[] = [
   },
   {
     kind: 'linear.comment', app: 'Linear', editable: true,
-    help: 'Comment on a Linear issue. Args: issue (its key like "OX-412" or board id "linear:…"), text.',
+    help: 'Comment on a Linear issue. Args: issue (its key like "TAURUS-412" or board id "linear:…"), text.',
     missing: () => missing([isConnected('linear-act'), 'Allow Linear updates first: Settings, then Actions.']),
     async prepare(args) {
       const found = await issue(args.issue), text = body(args.text);

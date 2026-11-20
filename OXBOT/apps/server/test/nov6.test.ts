@@ -8,13 +8,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-nov6-'));
-process.env.OXBOT_BROKER_URL = '';
-process.env.OXBOT_NO_SCHEDULER = '1';
-const filesHome = mkdtempSync(join(tmpdir(), 'oxbot-files-'));
-process.env.OXBOT_FILES_HOME = filesHome;
-const cliDir = mkdtempSync(join(tmpdir(), 'oxbot-cli-'));
-process.env.OXBOT_CLI_DIR = cliDir;
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-nov6-'));
+process.env.TAURUS_BROKER_URL = '';
+process.env.TAURUS_NO_SCHEDULER = '1';
+const filesHome = mkdtempSync(join(tmpdir(), 'taurus-files-'));
+process.env.TAURUS_FILES_HOME = filesHome;
+const cliDir = mkdtempSync(join(tmpdir(), 'taurus-cli-'));
+process.env.TAURUS_CLI_DIR = cliDir;
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'HA_URL', 'HUE_BRIDGE', 'LIFX_TOKEN']) delete process.env[key];
 
 const { findFiles, openFile } = await import('../src/files.ts');
@@ -38,7 +38,7 @@ mkdirSync(join(filesHome, 'Desktop'), { recursive: true });
 mkdirSync(join(filesHome, 'Documents'), { recursive: true });
 mkdirSync(join(filesHome, 'Library'), { recursive: true });
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-writeFileSync(join(filesHome, 'Downloads/brand/OXBOT-logo-final.png'), png);
+writeFileSync(join(filesHome, 'Downloads/brand/Taurus-logo-final.png'), png);
 writeFileSync(join(filesHome, 'Downloads/notes.txt'), 'Board meeting moved to Thursday.');
 writeFileSync(join(filesHome, 'Downloads/passwords-export.csv'), 'site,password');
 writeFileSync(join(filesHome, 'Desktop/logo-old.jpg'), png);
@@ -48,8 +48,8 @@ symlinkSync(join(filesHome, 'outside.txt'), join(filesHome, 'Documents/sneaky.tx
 
 test('find_file finds a logo by its name in Downloads, and never lists password exports or other folders', () => {
   const found = findFiles('look at this logo in my downloads');
-  assert.deepEqual(found.map(f => f.name), ['OXBOT-logo-final.png']);
-  assert.equal(found[0].path, 'Downloads/brand/OXBOT-logo-final.png');
+  assert.deepEqual(found.map(f => f.name), ['Taurus-logo-final.png']);
+  assert.equal(found[0].path, 'Downloads/brand/Taurus-logo-final.png');
   const anywhere = findFiles('logo');
   assert.ok(anywhere.some(f => f.name === 'logo-old.jpg'));
   assert.ok(!anywhere.some(f => f.name === 'secret-logo.png'), 'Library is not one of the four folders');
@@ -57,7 +57,7 @@ test('find_file finds a logo by its name in Downloads, and never lists password 
 });
 
 test('open_file shows a picture or text from the four folders, and refuses anything outside, linked or private', () => {
-  const pic = openFile('Downloads/brand/OXBOT-logo-final.png') as any;
+  const pic = openFile('Downloads/brand/Taurus-logo-final.png') as any;
   assert.match(pic.image, /^data:image\/png;base64,/);
   assert.equal((openFile('Downloads/notes.txt') as any).text, 'Board meeting moved to Thursday.');
   assert.match((openFile('outside.txt') as any).error, /only open files in/);
@@ -98,7 +98,7 @@ function fakeMcp(calls: string[]) {
       { name: 'search_issues', description: 'Find issues', inputSchema: { properties: { q: { type: 'string' } }, required: ['q'] }, annotations: { readOnlyHint: true } },
       { name: 'create_issue', description: 'Make an issue', inputSchema: { properties: { title: { type: 'string' } } } },
     ] });
-    if (body.method === 'tools/call') { assert.equal(body.params.name, 'search_issues'); return reply({ content: [{ type: 'text', text: 'OX-1 Login broken' }] }); }
+    if (body.method === 'tools/call') { assert.equal(body.params.name, 'search_issues'); return reply({ content: [{ type: 'text', text: 'TAURUS-1 Login broken' }] }); }
     throw new Error(`unexpected ${body.method}`);
   }) as typeof fetch;
 }
@@ -115,7 +115,7 @@ test('an MCP server added by address lists its tools; read-only ones run, others
     assert.equal(mcpServers()[0].token, true);
     assert.ok(!JSON.stringify(mcpServers()).includes('mcp-secret'), 'the token is never shown back');
     assert.match(mcpText(), /search_issues \[read-only\]/);
-    assert.equal(await readMcp(s.id, 'search_issues', { q: 'login' }), 'OX-1 Login broken');
+    assert.equal(await readMcp(s.id, 'search_issues', { q: 'login' }), 'TAURUS-1 Login broken');
     await assert.rejects(() => readMcp(s.id, 'create_issue', { title: 'x' }), /needs the owner’s approval/);
     const before = calls.filter(c => c === 'tools/call').length;
     const p = await propose('mcp.call', { server: s.id, tool: 'create_issue', arguments: { title: 'Fix login' }, summary: 'Open an issue for the login bug' }, 'ask');
@@ -166,8 +166,8 @@ let input = ''; process.stdin.on('data', d => input += d).on('end', () => {
   store.setSecrets({ CLAUDE_PLAN_ON: '1' });
   assert.equal(ready('claude-plan'), true);
   assert.equal(current()?.id, 'claude-plan', 'a plan you already pay for comes first');
-  const reply = await askPlan('claude-plan', 'You are Ox.', [{ role: 'user', text: 'Hello' }]);
-  assert.equal(reply, 'Plan says: Hello / You are Ox.');
+  const reply = await askPlan('claude-plan', 'You are Taurus.', [{ role: 'user', text: 'Hello' }]);
+  assert.equal(reply, 'Plan says: Hello / You are Taurus.');
   const u = usage().find(x => x.id === 'claude-plan')!;
   assert.deepEqual([u.today.calls, u.today.input, u.today.output], [1, 120, 8]);
   store.setSecrets({ CLAUDE_PLAN_ON: '' });

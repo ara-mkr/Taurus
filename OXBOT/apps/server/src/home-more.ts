@@ -78,7 +78,7 @@ const switchbotP: Provider = {
     const id = d.id.slice(10);
     const cmd = (command: string, parameter: unknown = 'default') => switchbot(`devices/${id}/commands`, { command, parameter, commandType: 'command' });
     if (d.kind === 'cover') {
-      // SwitchBot counts 0 as open; OXBOT counts 0 as closed.
+      // SwitchBot counts 0 as open; Taurus counts 0 as closed.
       const to = c.position ?? (c.on ? 100 : 0);
       return /blind tilt/i.test(d.reading ?? '') ? cmd('setPosition', `up;${clamp(to, 0, 100)}`) : cmd('setPosition', `0,ff,${clamp(100 - to, 0, 100)}`);
     }

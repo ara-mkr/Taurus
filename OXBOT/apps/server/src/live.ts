@@ -4,7 +4,7 @@ import { api } from './store.ts';
 import type { Section } from './types.ts';
 
 // Live answers (owner, November 1, 2026): when you ask "what's my heart rate right now", the AI calls these and
-// OXBOT asks the connector again, instead of answering from the board's cached pull. Read-only, like every pull.
+// Taurus asks the connector again, instead of answering from the board's cached pull. Read-only, like every pull.
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- provider payloads are untyped JSON */
 const MIN = 60_000;

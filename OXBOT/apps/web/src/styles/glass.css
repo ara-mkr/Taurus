@@ -1,4 +1,4 @@
-/* OXBOT glass. Owner direction, October 31, 2026: floating dark-tinted glass cards
+/* Taurus glass. Owner direction, October 31, 2026: floating dark-tinted glass cards
    and charts. Still one typeface, one ink, red only for "needs you now", nothing
    under 13px, no icons. Gain and loss colours appear only on market changes. */
 
@@ -79,10 +79,10 @@ body { background: var(--bg); min-height: 100dvh; }
 @keyframes drift-b { to { transform: translate(-16vw, 10vh) scale(.92); } }
 @keyframes drift-c { to { transform: translate(-12vw, -14vh) scale(1.1); } }
 :root[data-ambient="false"] .backdrop span { animation: none; }
-/* Paused, not stopped, while OXBOT rests (App.tsx): no jump when it wakes. */
+/* Paused, not stopped, while Taurus rests (App.tsx): no jump when it wakes. */
 :root[data-resting] .backdrop span, :root[data-resting] .cloud, :root[data-resting] .sky-stars { animation-play-state: paused; }
 
-.glass, .rail-panel, .ox-status, .profile-menu, .composer-bar, .chat-panel, .dock, .people-strip button, .subnav, .ox-bubble, .card, .glass-button, .builder, .sheet, .approval-tray, main.ask, main.connections, main.phone, main.settings-page {
+.glass, .rail-panel, .taurus-status, .profile-menu, .composer-bar, .chat-panel, .dock, .people-strip button, .subnav, .taurus-bubble, .card, .glass-button, .builder, .sheet, .approval-tray, main.ask, main.connections, main.phone, main.settings-page {
   background: var(--glass);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
@@ -371,49 +371,49 @@ main.ask, main.connections, main.phone, main.settings-page { max-width: 880px; m
 }
 
 
-/* Ox, the mascot: two eyes under upturned horns. Every expression and gesture is driven by src/ox-face.ts, which
-   the desktop overlay over other apps shares (docs/21-ox-anywhere.md); nothing here may set their transforms. */
-.ox { display: block; flex: none; overflow: visible; color: var(--ink); }
+/* Taurus, the mascot: two eyes under upturned horns. Every expression and gesture is driven by src/taurus-face.ts, which
+   the desktop overlay over other apps shares (docs/21-taurus-anywhere.md); nothing here may set their transforms. */
+.taurus { display: block; flex: none; overflow: visible; color: var(--ink); }
 
-/* Ox on the boards: placed in #root's coordinates by Ox.tsx, so he scrolls with the card he sits on.
+/* Taurus on the boards: placed in #root's coordinates by Taurus.tsx, so he scrolls with the card he sits on.
    The outer box only moves; the rotor turns him around the point between his horn tips. */
 #root { position: relative; }
 html { overflow-x: clip; }
-.ox-buddy { position: absolute; top: 0; left: 0; z-index: 25; width: 88px; pointer-events: none; transition: opacity .18s; will-change: transform; }
-.ox-buddy.ox-away { opacity: 0; }
-.ox-rotor { transform-origin: 50% 6px; will-change: transform; }
-.ox-button { display: block; min-height: 0; padding: 4px; border: 0; border-radius: 16px; background: none; cursor: pointer; pointer-events: auto; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .45)); }
-.ox-button:hover:not(:disabled) { border: 0; }
-.ox-bubble { position: absolute; top: 0; left: 0; width: max-content; max-width: min(320px, calc(100vw - 24px)); max-height: 46vh; overflow: auto; padding: 12px 14px; border-radius: 16px; background: var(--glass-strong); pointer-events: auto; animation: rise .35s cubic-bezier(.2, .7, .2, 1); }
-.ox-bubble p + p { margin-top: 8px; }
-.ox-bubble-actions { display: flex; align-items: baseline; gap: 14px; margin-top: 6px; font-weight: 600; }
-.ox-bubble-actions .text-button { min-height: 0; padding: 0; border: 0; font-weight: 600; }
-.ox-bubble[data-voice="listening"] p:first-child, .ox-bubble[data-voice="thinking"] p:first-child { color: var(--ink-2); }
+.taurus-buddy { position: absolute; top: 0; left: 0; z-index: 25; width: 88px; pointer-events: none; transition: opacity .18s; will-change: transform; }
+.taurus-buddy.taurus-away { opacity: 0; }
+.taurus-rotor { transform-origin: 50% 6px; will-change: transform; }
+.taurus-button { display: block; min-height: 0; padding: 4px; border: 0; border-radius: 16px; background: none; cursor: pointer; pointer-events: auto; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .45)); }
+.taurus-button:hover:not(:disabled) { border: 0; }
+.taurus-bubble { position: absolute; top: 0; left: 0; width: max-content; max-width: min(320px, calc(100vw - 24px)); max-height: 46vh; overflow: auto; padding: 12px 14px; border-radius: 16px; background: var(--glass-strong); pointer-events: auto; animation: rise .35s cubic-bezier(.2, .7, .2, 1); }
+.taurus-bubble p + p { margin-top: 8px; }
+.taurus-bubble-actions { display: flex; align-items: baseline; gap: 14px; margin-top: 6px; font-weight: 600; }
+.taurus-bubble-actions .text-button { min-height: 0; padding: 0; border: 0; font-weight: 600; }
+.taurus-bubble[data-voice="listening"] p:first-child, .taurus-bubble[data-voice="thinking"] p:first-child { color: var(--ink-2); }
 
 /* Talk, the first quick function, lives at the left end of the chat bar. */
 .fn-talk { min-height: 34px; padding: 0 14px; border-radius: 10px; color: var(--ink); font-weight: 600; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .fn-talk.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .fn-note { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
 
-/* Ox in chat */
-.ox-hello { display: flex; gap: 20px; align-items: center; margin-bottom: 8px; }
-.ox-hello p { max-width: 46ch; color: var(--ink-2); }
+/* Taurus in chat */
+.taurus-hello { display: flex; gap: 20px; align-items: center; margin-bottom: 8px; }
+.taurus-hello p { max-width: 46ch; color: var(--ink-2); }
 .speaker { display: flex; align-items: center; gap: 10px; }
-.turn.assistant .speaker .ox { padding: 3px; }
+.turn.assistant .speaker .taurus { padding: 3px; }
 
-/* Ox when calling and on the bedside clock */
-.ring .ox { color: #FFF; margin-bottom: 18px; }
+/* Taurus when calling and on the bedside clock */
+.ring .taurus { color: #FFF; margin-bottom: 18px; }
 main.standby { position: relative; }
-.standby-ox { position: absolute; top: max(32px, 6vh); right: max(32px, 6vw); }
+.standby-taurus { position: absolute; top: max(32px, 6vh); right: max(32px, 6vw); }
 .standby-exit { display: inline-block; margin-top: 18px; color: var(--ink-2); }
 @media (max-width: 700px) {
-  .ring .ox { width: 92px; height: 70px; }
-  .standby-ox { position: static; width: 106px; height: 80px; margin-bottom: 28px; }
+  .ring .taurus { width: 92px; height: 70px; }
+  .standby-taurus { position: static; width: 106px; height: 80px; margin-bottom: 28px; }
   .standby-time { font-size: clamp(56px, 18vw, 120px); white-space: nowrap; }
-  .ox-hello { flex-direction: column; align-items: flex-start; }
+  .taurus-hello { flex-direction: column; align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ox-bubble { animation: none !important; }
+  .taurus-bubble { animation: none !important; }
 }
 .starters .text-button { justify-content: flex-start; }
 
@@ -424,11 +424,11 @@ main.standby { position: relative; }
 :root[data-desktop="darwin"] .ring-top { padding-left: 64px; }
 :root[data-desktop="darwin"] .standby { padding-top: 52px; }
 
-/* Can't reach the Mac: Ox asleep, one sentence, one way to retry. */
+/* Can't reach the Mac: Taurus asleep, one sentence, one way to retry. */
 main.unreachable { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12px; min-height: 100dvh; max-width: 40rem; padding: max(32px, env(safe-area-inset-top)) max(28px, 6vw) max(32px, env(safe-area-inset-bottom)); }
 main.unreachable h1 { font-size: clamp(30px, 7vw, 48px); line-height: 1.05; letter-spacing: -.02em; }
 main.unreachable p { font-size: 17px; }
-.unreachable-ox { margin-bottom: 18px; color: var(--ink); }
+.unreachable-taurus { margin-bottom: 18px; color: var(--ink); }
 
 /* Connections: one search field above the groups. */
 .connections .find { display: block; margin-top: 28px; }
@@ -563,7 +563,7 @@ main.connections.directory { max-width: 1120px; }
 .phone .phone-link { margin-top: 10px; }
 .fingerprint { overflow-wrap: anywhere; font-size: 13px; }
 
-/* Ox windows (owner, November 4, 2026): "a simple liquid glass window ... so it shows that it did it".
+/* Taurus windows (owner, November 4, 2026): "a simple liquid glass window ... so it shows that it did it".
    Thicker, clearer glass than the cards: more blur and saturation, a bright rim on top, and it pours in with
    a little overshoot. One ink; red only when a timer or reminder is going off. */
 .oxwins { position: fixed; top: 76px; right: 20px; z-index: 45; display: flex; flex-direction: column; gap: 12px; width: min(372px, calc(100vw - 28px)); max-height: calc(100dvh - 180px); overflow: visible; pointer-events: none; }
@@ -683,34 +683,34 @@ button.tile-main:hover:not(:disabled) { border: 0; background: var(--wash); }
 @media (max-width: 700px) { .house-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .house-summary { font-size: 19px; } }
 @media (prefers-reduced-motion: reduce) { .tile, .tile::before, .house-scenes .scene { transition: none; } }
 
-/* ---------- Ox's voice, in Personalize ---------- */
-.ox-voice-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.ox-voice-head .muted { margin-left: 8px; }
-.ox-voice-bar { height: 4px; overflow: hidden; border-radius: 4px; background: var(--rule); }
-.ox-voice-bar span { display: block; height: 100%; background: var(--ink); transform-origin: 0 50%; transition: transform .5s ease; }
-.ox-voices { display: grid; gap: 0; margin-top: 4px; }
-.ox-voices li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
-.ox-voices li:last-child { border-bottom: 0; }
-.ox-voice-pick { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; gap: 4px 10px; flex: 1; min-width: 0; cursor: pointer; }
-.ox-voice-pick input { align-self: center; }
-.ox-voice-name { font-weight: 650; }
-.ox-voices li[data-on="true"] .ox-voice-name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
-.ox-voice-pace { display: grid; grid-template-columns: auto minmax(0, 1fr) 4.5em; align-items: center; gap: 12px; margin-top: 6px; }
-.ox-voice-pace input { accent-color: var(--ink); }
-@media (max-width: 700px) { .ox-voice-pick { grid-template-columns: auto minmax(0, 1fr); } .ox-voice-pick .muted { grid-column: 2; } }
+/* ---------- Taurus's voice, in Personalize ---------- */
+.taurus-voice-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.taurus-voice-head .muted { margin-left: 8px; }
+.taurus-voice-bar { height: 4px; overflow: hidden; border-radius: 4px; background: var(--rule); }
+.taurus-voice-bar span { display: block; height: 100%; background: var(--ink); transform-origin: 0 50%; transition: transform .5s ease; }
+.taurus-voices { display: grid; gap: 0; margin-top: 4px; }
+.taurus-voices li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.taurus-voices li:last-child { border-bottom: 0; }
+.taurus-voice-pick { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; gap: 4px 10px; flex: 1; min-width: 0; cursor: pointer; }
+.taurus-voice-pick input { align-self: center; }
+.taurus-voice-name { font-weight: 650; }
+.taurus-voices li[data-on="true"] .taurus-voice-name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.taurus-voice-pace { display: grid; grid-template-columns: auto minmax(0, 1fr) 4.5em; align-items: center; gap: 12px; margin-top: 6px; }
+.taurus-voice-pace input { accent-color: var(--ink); }
+@media (max-width: 700px) { .taurus-voice-pick { grid-template-columns: auto minmax(0, 1fr); } .taurus-voice-pick .muted { grid-column: 2; } }
 
-/* ---------- Ask, November 6, 2026: Ox large and quiet in the middle, then a plain chat ---------- */
+/* ---------- Ask, November 6, 2026: Taurus large and quiet in the middle, then a plain chat ---------- */
 main.ask.ask-empty { position: relative; z-index: 1; display: grid; place-items: center; min-height: calc(100dvh - 220px); background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .ask-hero { display: grid; justify-items: center; gap: 14px; padding: 48px 16px 120px; text-align: center; }
 /* Room above the horns, so a breath or a blink never touches anything. */
-.ask-ox { display: grid; place-items: center; width: 260px; height: 230px; padding-top: 30px; margin-bottom: 4px; border-radius: 50%;
+.ask-taurus { display: grid; place-items: center; width: 260px; height: 230px; padding-top: 30px; margin-bottom: 4px; border-radius: 50%;
   background: radial-gradient(closest-side, color-mix(in srgb, var(--ink) 9%, transparent), transparent); color: var(--ink); }
-.ask-ox .ox { opacity: .92; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .35)); }
+.ask-taurus .taurus { opacity: .92; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .35)); }
 .ask-hero h1 { font-size: clamp(26px, 3.2vw, 34px); font-weight: 700; letter-spacing: -.02em; }
 .ask-hero p { max-width: 46ch; font-size: 15px; }
 main.ask .page-head { justify-content: flex-end; padding-bottom: 0; border-bottom: 0; }
 main.ask .transcript { gap: 22px; margin-top: 4px; padding-bottom: 120px; }
-/* Your messages sit on the right in a soft bubble; Ox's are plain text on the left, like any chat. */
+/* Your messages sit on the right in a soft bubble; Taurus's are plain text on the left, like any chat. */
 .ask .turn.user { display: grid; justify-items: end; }
 .ask .turn.user .speaker { display: none; }
 .ask .turn.user .words { max-width: 78%; padding: 10px 14px; border-radius: 18px 18px 6px 18px; background: var(--wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--glass-border); }
@@ -740,8 +740,8 @@ main.ask .transcript { gap: 22px; margin-top: 4px; padding-bottom: 120px; }
 .attach-menu button:hover { background: var(--wash); }
 .composer-bar.drop-over { box-shadow: inset 0 0 0 2px var(--ink), var(--shadow); }
 @media (max-width: 700px) {
-  .ask-ox { width: 190px; height: 160px; padding-top: 22px; }
-  .ask-ox .ox { width: 124px; height: auto; }
+  .ask-taurus { width: 190px; height: 160px; padding-top: 22px; }
+  .ask-taurus .taurus { width: 124px; height: auto; }
   .ask .turn.user .words { max-width: 90%; }
 }
 

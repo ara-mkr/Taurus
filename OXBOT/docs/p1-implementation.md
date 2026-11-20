@@ -2,7 +2,7 @@
 
 October 21, 2026. Objective: implement the bounded Today shell and fictional email approval drawer proposed in `p0-first-slice.md`.
 
-Follow-up: Akhil has now approved the Today design and the bounded Ask Ox slice. The current owner decision is recorded in `decision-log.md` and `PROJECT_STATE.json`; the initial delivery evidence below remains historical. See `p1-zoom-review.md` for the zoom fix and `p2-ask-implementation.md` for the next slice.
+Follow-up: Akhil has now approved the Today design and the bounded Ask Taurus slice. The current owner decision is recorded in `decision-log.md` and `PROJECT_STATE.json`; the initial delivery evidence below remains historical. See `p1-zoom-review.md` for the zoom fix and `p2-ask-implementation.md` for the next slice.
 
 ## Authorization and current scope
 
@@ -52,7 +52,7 @@ The first tooling attempt exposed TypeScript 7 incompatibility with typescript-e
 
 ## Independent audit and resolved findings
 
-The loaded Ox UI skill requested independent review, so a separate auditor used the Ox UI audit skill in a read-only subagent session. It inspected desktop/mobile rendering, both themes, error/unknown/long fixtures, keyboard behavior, exact payload and source evidence. Final observed rubric: 94/100, technical pass; human visual approval remains separate.
+The loaded Taurus UI skill requested independent review, so a separate auditor used the Taurus UI audit skill in a read-only subagent session. It inspected desktop/mobile rendering, both themes, error/unknown/long fixtures, keyboard behavior, exact payload and source evidence. Final observed rubric: 94/100, technical pass; human visual approval remains separate.
 
 1. **P2: Reset left transient messages and command input.** Fixed: Reset clears both app availability and unsupported-command notices plus input, while preserving theme. Added a regression case; independently retested.
 2. **Mobile controls below 44px product target.** Fixed: mobile navigation, icon controls and drawer actions now meet 44px target. Independently measured and retested at 320px with zero overflow.
@@ -83,4 +83,4 @@ The supplied original blueprint, token CSS and fixture specification are the pro
 
 The October 21 [browser-zoom follow-up](p1-zoom-review.md) fixes the short-height email drawer and records the current 36/36 browser-suite result, eight independent review cases, screenshots and the next bounded proposal.
 
-The owner approved the Today direction and authorized only P2-01 Ask Ox. Actual screen-reader and Safari checks remain useful acceptance work. Ask Ox visual review and any further P2 slice require a new owner decision; the broader phase is not complete.
+The owner approved the Today direction and authorized only P2-01 Ask Taurus. Actual screen-reader and Safari checks remain useful acceptance work. Ask Taurus visual review and any further P2 slice require a new owner decision; the broader phase is not complete.

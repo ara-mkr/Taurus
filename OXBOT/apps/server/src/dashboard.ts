@@ -16,7 +16,7 @@ function sample(): Omit<Dashboard, 'generatedAt' | 'brief' | 'briefBy' | 'sectio
       { id: 's1', title: 'Term sheet redlines: board seat clause needs your call', who: 'Dana Whitfield', from: 'dana@example.com', detail: 'They accepted the valuation. Open item is the independent seat.', source: 'Gmail', at: at(-38), vip: true },
       { id: 's2', title: 'Can you approve the Q4 hiring plan before 3?', who: 'Priya Raman', detail: '#leadership', source: 'Slack', at: at(-52) },
       { id: 's3', title: 'Offer letter, VP Engineering: needs your signature', who: 'People Ops', from: 'people@example.com', detail: 'Candidate asked to start December 1.', source: 'Outlook', at: at(-95) },
-      { id: 's4', title: 'OX-412 Checkout outage postmortem', detail: 'Urgent · In review', source: 'Linear', at: at(-130) },
+      { id: 's4', title: 'TAURUS-412 Checkout outage postmortem', detail: 'Urgent · In review', source: 'Linear', at: at(-130) },
       { id: 's5', title: 'Pricing page v3', who: 'mkovacs', detail: 'Review requested · acme/web', source: 'GitHub', at: at(-200) },
     ],
     schedule: [
@@ -175,7 +175,7 @@ export async function dashboard(refresh = false): Promise<Dashboard> {
   return withBrief(await inflight);
 }
 
-// For Ox's answers (November 7, 2026: "replies very quickly"): the last pull right away, even a few minutes old,
+// For Taurus's answers (November 7, 2026: "replies very quickly"): the last pull right away, even a few minutes old,
 // while a fresh one comes in behind it. Pulling every connector took about 4 s here, before every answer whose
 // 60-second cache had run out. Older than 15 minutes, or never pulled, waits for a fresh one as before.
 export async function dashboardSoon(): Promise<Dashboard> {

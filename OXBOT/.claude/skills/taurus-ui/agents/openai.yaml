@@ -1,0 +1,5 @@
+interface:
+  display_name: "Taurus UI Builder"
+  short_description: "Build one polished, phase-scoped Taurus interface slice."
+  brand_color: "#4C54C9"
+  default_prompt: "Use the taurus-ui skill for this Taurus task. Read the project phase and constraints first."

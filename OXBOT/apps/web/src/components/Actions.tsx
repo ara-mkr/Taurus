@@ -3,7 +3,7 @@ import { api, ago, type ActionsInfo, type ConnectorInfo, type Grant, type Propos
 import { ApprovalCard } from './Approval';
 import { Connector } from './Connections';
 
-// Settings, then Actions (owner, November 1, 2026): what OXBOT may do, each permission its own step, and
+// Settings, then Actions (owner, November 1, 2026): what Taurus may do, each permission its own step, and
 // everything it proposed and did. Reading stays on the Connections page.
 
 const asRow = (g: Grant): ConnectorInfo => ({
@@ -23,20 +23,20 @@ export function Actions({ onChange }: { onChange: (p: Proposal) => void }) {
 
   return <main id="main" tabIndex={-1} className="connections actions-page">
     <div className="page-head"><h1>Actions</h1>{info && <span className="muted">{allowed} of {info.grants.length} allowed</span>}</div>
-    <p className="lede">OXBOT does something only after you approve that exact action: who it goes to, the words, and for food the item, place and total. Approvals expire after 15 minutes, food after 10. Every action is kept in the list below.</p>
+    <p className="lede">Taurus does something only after you approve that exact action: who it goes to, the words, and for food the item, place and total. Approvals expire after 15 minutes, food after 10. Every action is kept in the list below.</p>
     {error && <p className="problem">{error}</p>}
     {waiting.length > 0 && <section aria-labelledby="a-waiting">
       <h2 id="a-waiting">Waiting for your OK</h2>
       {waiting.map(p => <ApprovalCard key={p.id} p={p} onChange={next => { onChange(next); void load(); }} />)}
     </section>}
     {info && <section aria-labelledby="a-may">
-      <h2 id="a-may">What OXBOT may do</h2>
+      <h2 id="a-may">What Taurus may do</h2>
       <p className="muted">Each is separate from reading. Taking one away never touches the connection it reads with.</p>
       {info.grants.map(g => <Connector key={g.id} c={asRow(g)} allow onChange={() => void load()} />)}
     </section>}
     {info && <section aria-labelledby="a-log">
       <h2 id="a-log">What it did</h2>
-      {past.length === 0 ? <p className="muted">Nothing yet. Ask Ox to reply, text, call or order, and it shows here.</p>
+      {past.length === 0 ? <p className="muted">Nothing yet. Ask Taurus to reply, text, call or order, and it shows here.</p>
         : <ul className="action-log">{past.map(p => <li key={p.id}>
           <span className="action-log-title">{p.title}</span>
           <span className={p.state === 'failed' || p.state === 'unknown' ? 'problem' : 'muted'}>{states[p.state]}{p.via && p.state !== 'expired' ? `, ${p.via === 'voice' ? 'by voice' : `on the ${p.via === 'board' ? 'board' : p.via === 'ring' ? 'ring screen' : 'phone'}`}` : ''} · {ago(p.decidedAt ?? p.createdAt)}</span>

@@ -22,7 +22,7 @@
 .swarm-cursor[data-act="click"] .swarm-arrow { animation: swarm-press .26s ease-out; }
 @keyframes swarm-click { from { opacity: 1; transform: scale(.25); } to { opacity: 0; transform: scale(1.9); } }
 @keyframes swarm-press { 40% { transform: rotate(var(--lean, 0deg)) scale(.82); } }
-/* Each helper folding into Ox sends one ring through him in its colour. */
+/* Each helper folding into Taurus sends one ring through him in its colour. */
 .swarm-nest { position: fixed; top: 0; left: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 2px solid var(--c, #fff); border-radius: 50%; opacity: 0; }
 .swarm-nest.ping { animation: swarm-nest .7s cubic-bezier(.2, .7, .2, 1); }
 @keyframes swarm-nest { from { opacity: .85; transform: scale(1.5); } to { opacity: 0; transform: scale(.25); } }

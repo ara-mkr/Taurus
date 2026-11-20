@@ -18,7 +18,7 @@ const plain = (key: string, label: string, placeholder?: string, optional?: bool
 const basic = (user: string, pass = '') => ({ Authorization: `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}` });
 const host = (raw = '') => raw.trim().replace(/\/+$/, '').replace(/^(?!https?:\/\/)/, 'https://');
 const updates = (source: string, items: any[], map: (x: any) => Omit<Update, 'source'> | undefined): { updates: Update[] } => ({ updates: items.map(map).filter(Boolean).slice(0, 8).map(u => ({ ...u!, source })) });
-// A need with no time of its own is stamped now, when OXBOT saw it.
+// A need with no time of its own is stamped now, when Taurus saw it.
 const needs = (source: string, items: any[], map: (x: any) => (Omit<Need, 'source' | 'at'> & { at?: string }) | undefined): { needs: Need[] } => ({ needs: items.map(map).filter(Boolean).slice(0, 8).map(x => ({ at: iso(Date.now()), ...x!, source }) as Need) });
 const numbers = (source: string, rows: [string, string, string?][]): { numbers: Metric[] } => ({ numbers: rows.map(([label, value, change]) => ({ label, value, source, ...(change ? { change } : {}) })) });
 const event = (e: Omit<CalendarEvent, 'allDay'> & { allDay?: boolean }) => ({ allDay: false, ...e }) as CalendarEvent;
@@ -188,7 +188,7 @@ const work: Def[] = [
   { id: 'harvest', name: 'Harvest', group: 'Numbers', mockOnly: true, reads: 'Hours logged this week, and the billable share.',
     fields: [plain('HARVEST_ACCOUNT', 'Account ID'), secret('HARVEST_TOKEN', 'Personal access token')], setup: 'Developers, Create new personal access token.', setupUrl: 'https://id.getharvest.com/developers',
     async pull({ field }) {
-      const r = await api<any>(`https://api.harvestapp.com/v2/time_entries?from=${day(ago(6))}&to=${day(Date.now())}&per_page=200`, { token: field('HARVEST_TOKEN'), headers: { 'Harvest-Account-Id': field('HARVEST_ACCOUNT')!, 'User-Agent': 'OXBOT' } });
+      const r = await api<any>(`https://api.harvestapp.com/v2/time_entries?from=${day(ago(6))}&to=${day(Date.now())}&per_page=200`, { token: field('HARVEST_TOKEN'), headers: { 'Harvest-Account-Id': field('HARVEST_ACCOUNT')!, 'User-Agent': 'Taurus' } });
       const e = r.time_entries ?? []; const all = e.reduce((a: number, x: any) => a + x.hours, 0), bill = e.filter((x: any) => x.billable).reduce((a: number, x: any) => a + x.hours, 0);
       return numbers('Harvest', [['Hours, 7 days', all.toFixed(1), all ? `${Math.round((bill / all) * 100)}% billable` : undefined]]);
     } },
@@ -209,7 +209,7 @@ const work: Def[] = [
     async pull({ field }) { const r = await api<any>('https://wakatime.com/api/v1/users/current/stats/last_7_days', { headers: basic(field('WAKATIME_KEY')!) }); return numbers('WakaTime', [['Coding, 7 days', r.data?.human_readable_total ?? '0 mins', r.data?.languages?.[0]?.name]]); } },
   { id: 'habitica', name: 'Habitica', group: 'Tasks', mockOnly: true, reads: 'Dailies you haven’t checked off today.',
     fields: [plain('HABITICA_USER', 'User ID'), secret('HABITICA_KEY', 'API token')], setup: 'Settings, Site data, API.', setupUrl: 'https://habitica.com/user/settings/siteData',
-    async pull({ field }) { const r = await api<any>('https://habitica.com/api/v3/tasks/user?type=dailys', { headers: { 'x-api-user': field('HABITICA_USER')!, 'x-api-key': field('HABITICA_KEY')!, 'x-client': `${field('HABITICA_USER')}-OXBOT` } }); return needs('Habitica', (r.data ?? []).filter((t: any) => t.isDue && !t.completed), t => ({ id: `habitica:${t.id}`, title: t.text, detail: 'Daily' })); } },
+    async pull({ field }) { const r = await api<any>('https://habitica.com/api/v3/tasks/user?type=dailys', { headers: { 'x-api-user': field('HABITICA_USER')!, 'x-api-key': field('HABITICA_KEY')!, 'x-client': `${field('HABITICA_USER')}-Taurus` } }); return needs('Habitica', (r.data ?? []).filter((t: any) => t.isDue && !t.completed), t => ({ id: `habitica:${t.id}`, title: t.text, detail: 'Daily' })); } },
   { id: 'beeminder', name: 'Beeminder', group: 'Tasks', mockOnly: true, reads: 'Goals that derail within two days.',
     fields: [secret('BEEMINDER_TOKEN', 'Auth token')], setup: 'Copy your token at beeminder.com/api/v1/auth_token.json while signed in.', setupUrl: 'https://www.beeminder.com/api/v1/auth_token.json',
     async pull({ field }) { const r = await api<any[]>(`https://www.beeminder.com/api/v1/users/me/goals.json?auth_token=${encodeURIComponent(field('BEEMINDER_TOKEN')!)}`); return needs('Beeminder', r.filter(g => g.losedate * 1000 < Date.now() + 2 * DAY), g => ({ id: `beeminder:${g.slug}`, title: g.title || g.slug, detail: g.limsum, at: iso(g.losedate * 1000), url: `https://www.beeminder.com/me/${g.slug}` })); } },
@@ -329,7 +329,7 @@ const growth: Def[] = [
   { id: 'mailchimp', name: 'Mailchimp', group: 'Numbers', mockOnly: true, reads: 'Audience size and your last campaign’s open rate.',
     fields: [secret('MAILCHIMP_KEY', 'API key', 'abc123-us21')], setup: 'Profile, Extras, API keys, Create A Key.', setupUrl: 'https://us1.admin.mailchimp.com/account/api/',
     async pull({ field }) {
-      const key = field('MAILCHIMP_KEY')!, dc = key.split('-').pop(), h = basic('oxbot', key);
+      const key = field('MAILCHIMP_KEY')!, dc = key.split('-').pop(), h = basic('taurus', key);
       const [lists, camps] = await Promise.all([api<any>(`https://${dc}.api.mailchimp.com/3.0/lists?count=10`, { headers: h }), api<any>(`https://${dc}.api.mailchimp.com/3.0/campaigns?status=sent&sort_field=send_time&sort_dir=DESC&count=1`, { headers: h })]);
       const last = camps.campaigns?.[0];
       return numbers('Mailchimp', [['Subscribers', n((lists.lists ?? []).reduce((a: number, l: any) => a + (l.stats?.member_count ?? 0), 0))], ...(last ? [['Last open rate', `${Math.round((last.report_summary?.open_rate ?? 0) * 100)}%`] as [string, string]] : [])]);
@@ -466,7 +466,7 @@ const social: Def[] = [
     fields: [plain('PLEX_URL', 'Server address', 'http://192.168.1.10:32400'), secret('PLEX_TOKEN', 'X-Plex-Token')], setup: 'Find your token from any item’s Get Info, View XML (the X-Plex-Token in the address).', setupUrl: 'https://support.plex.tv/articles/204059436',
     async pull({ field }) { const r = await api<any>(`${field('PLEX_URL')!.replace(/\/+$/, '')}/status/sessions`, { headers: { 'X-Plex-Token': field('PLEX_TOKEN')!, Accept: 'application/json' } }); return updates('Plex', r.MediaContainer?.Metadata ?? [], m => ({ id: `plex:${m.sessionKey}`, title: m.grandparentTitle ? `${m.grandparentTitle}: ${m.title}` : m.title, detail: `Playing for ${m.User?.title ?? 'someone'}` })); } },
   { id: 'jellyfin', name: 'Jellyfin', group: 'Media', mockOnly: true, reads: 'What’s playing on your Jellyfin server right now.',
-    fields: [plain('JELLYFIN_URL', 'Server address'), secret('JELLYFIN_KEY', 'API key')], setup: 'Dashboard, API keys, add one for OXBOT.', setupUrl: 'https://jellyfin.org/docs/',
+    fields: [plain('JELLYFIN_URL', 'Server address'), secret('JELLYFIN_KEY', 'API key')], setup: 'Dashboard, API keys, add one for Taurus.', setupUrl: 'https://jellyfin.org/docs/',
     async pull({ field }) { const r = await api<any[]>(`${field('JELLYFIN_URL')!.replace(/\/+$/, '')}/Sessions?activeWithinSeconds=600`, { headers: { 'X-Emby-Token': field('JELLYFIN_KEY')! } }); return updates('Jellyfin', r.filter(s => s.NowPlayingItem), s => ({ id: `jellyfin:${s.Id}`, title: s.NowPlayingItem.Name, detail: `Playing for ${s.UserName}` })); } },
   { id: 'twitch', name: 'Twitch', group: 'Media', mockOnly: true, reads: 'Whether the channels you name are live.',
     fields: [plain('TWITCH_CHANNELS', 'Channels, comma separated'), plain('TWITCH_CLIENT', 'Client ID'), secret('TWITCH_TOKEN', 'App access token')], setup: 'Register an app at dev.twitch.tv/console, then get an app access token (client credentials).', setupUrl: 'https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#client-credentials-grant-flow',
@@ -510,7 +510,7 @@ const world: Def[] = [
     async pull() { const r = await api<any>('https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=8'); return updates('Show HN', r.hits ?? [], h => ({ id: `showhn:${h.objectID}`, title: h.title, detail: `${h.points ?? 0} points`, at: h.created_at, url: `https://news.ycombinator.com/item?id=${h.objectID}` })); } },
   { id: 'github-rising', name: 'GitHub rising repos', group: 'Feeds', mockOnly: true, toggle: true, reads: 'Repositories created this week that are gaining stars fastest. Public.',
     fields: [{ key: 'GH_RISING_ON', label: 'On' }], setup: 'Switch it on. Uses GitHub’s public search.', setupUrl: 'https://docs.github.com/en/rest/search/search',
-    async pull() { const r = await api<any>(`https://api.github.com/search/repositories?q=${encodeURIComponent(`created:>${day(ago(7))}`)}&sort=stars&order=desc&per_page=6`, { headers: { 'User-Agent': 'OXBOT' } }); return updates('GitHub', r.items ?? [], x => ({ id: `ghrise:${x.id}`, title: x.full_name, detail: `${n(x.stargazers_count)} stars · ${String(x.description ?? '').slice(0, 80)}`, at: x.created_at, url: x.html_url })); } },
+    async pull() { const r = await api<any>(`https://api.github.com/search/repositories?q=${encodeURIComponent(`created:>${day(ago(7))}`)}&sort=stars&order=desc&per_page=6`, { headers: { 'User-Agent': 'Taurus' } }); return updates('GitHub', r.items ?? [], x => ({ id: `ghrise:${x.id}`, title: x.full_name, detail: `${n(x.stargazers_count)} stars · ${String(x.description ?? '').slice(0, 80)}`, at: x.created_at, url: x.html_url })); } },
   { id: 'arxiv', name: 'arXiv', group: 'Feeds', mockOnly: true, reads: 'Newest papers on the topics you name. Public.',
     fields: [plain('ARXIV_QUERY', 'Topics', 'large language models')], setup: 'Type a topic. Results come from arXiv’s public API.', setupUrl: 'https://info.arxiv.org/help/api/',
     async pull({ field }) { const xml = await text(`https://export.arxiv.org/api/query?search_query=${encodeURIComponent(`all:"${field('ARXIV_QUERY')}"`)}&sortBy=submittedDate&sortOrder=descending&max_results=6`); const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => ({ title: decode(m[1].match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/\s+/g, ' ').trim() ?? ''), id: m[1].match(/<id>([\s\S]*?)<\/id>/)?.[1], at: m[1].match(/<published>([\s\S]*?)<\/published>/)?.[1] })); return updates('arXiv', entries, e => ({ id: `arxiv:${e.id}`, title: e.title, detail: 'New paper', at: e.at, url: e.id })); } },

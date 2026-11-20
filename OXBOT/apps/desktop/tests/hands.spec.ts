@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { check, defaults, never, type HandsSettings } from '../src/hands-policy';
 
 // Helpers in other apps (owner, November 5, 2026; docs/19-computer-use.md): the rules every step passes, and the real
-// oxbot-hands program asked only things that touch nothing (no picture of the screen, no mouse, no keys).
+// taurus-hands program asked only things that touch nothing (no picture of the screen, no mouse, no keys).
 const here = dirname(fileURLToPath(import.meta.url));
 const on: HandsSettings = { ...defaults, on: true };
 const win = { x: 100, y: 100, w: 800, h: 600 };
@@ -23,8 +23,8 @@ test('the owner’s first choices: Canva and Notes may act, Chrome may only be l
   expect(check('look', { app: 'Mail' }, on)).toMatch(/may look at/);
 });
 
-test('password managers, settings, terminals, money apps and OXBOT itself are never touched, whatever the list says', () => {
-  const everything: HandsSettings = { on: true, act: ['1Password', 'System Settings', 'Terminal', 'Chase Mobile', 'Coinbase', 'OXBOT', 'Keychain Access'], look: ['Bitwarden'], chrome: false };
+test('password managers, settings, terminals, money apps and Taurus itself are never touched, whatever the list says', () => {
+  const everything: HandsSettings = { on: true, act: ['1Password', 'System Settings', 'Terminal', 'Chase Mobile', 'Coinbase', 'Taurus', 'Keychain Access'], look: ['Bitwarden'], chrome: false };
   for (const app of everything.act) expect(check('press', { app, id: 0 }, everything), app).toMatch(/never works in/);
   expect(check('tree', { app: 'Bitwarden' }, everything)).toMatch(/isn’t on your list/);
   expect(never('Robinhood')).toBe(true);
@@ -40,9 +40,9 @@ test('pointing steps land only inside the app’s own window, and only after it 
   expect(check('shell', { app: 'Canva' }, on)).toMatch(/can’t shell/);
 });
 
-test('oxbot-hands answers on stdin and refuses what it must, without touching the screen', () => {
-  const binary = join(here, '../dist/oxbot-hands');
-  test.skip(process.platform !== 'darwin' || !existsSync(binary), 'oxbot-hands is built on a Mac by scripts/bundle.mjs');
+test('taurus-hands answers on stdin and refuses what it must, without touching the screen', () => {
+  const binary = join(here, '../dist/taurus-hands');
+  test.skip(process.platform !== 'darwin' || !existsSync(binary), 'taurus-hands is built on a Mac by scripts/bundle.mjs');
   const input = [
     { id: 1, verb: 'status', args: {} }, { id: 2, verb: 'apps', args: {} }, { id: 3, verb: 'shell', args: { cmd: 'ls' } },
     { id: 4, verb: 'tree', args: { app: 'No Such App Here' } }, { id: 5, verb: 'tree', args: {} },

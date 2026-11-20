@@ -7,11 +7,11 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { attributedBody, makeChatDb } from './chatdb-fixture.ts';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-messages-'));
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-messages-'));
 delete process.env.MAC_MESSAGES_ON;
-const dir = mkdtempSync(join(tmpdir(), 'oxbot-chatdb-'));
+const dir = mkdtempSync(join(tmpdir(), 'taurus-chatdb-'));
 const long = 'Running late, the 405 is a parking lot again. '.repeat(4).trim();
-process.env.OXBOT_CHAT_DB = await makeChatDb(dir, [
+process.env.TAURUS_CHAT_DB = await makeChatDb(dir, [
   { from: '+15550100', text: 'Dinner Friday at 7?', minutesAgo: 90 },
   { from: '+15550101', body: 'Can you sign the offer letter today?', minutesAgo: 60 },
   { from: '+15550100', text: 'Loved “Dinner Friday at 7?”', minutesAgo: 59, reaction: true },
@@ -63,18 +63,18 @@ test('it filters by who, by words (even words only in attributedBody), and by wh
 });
 
 test('it opens the database read-only and never changes it', async () => {
-  const before = readFileSync(process.env.OXBOT_CHAT_DB!);
+  const before = readFileSync(process.env.TAURUS_CHAT_DB!);
   await readMessages({ limit: 50 });
-  assert.deepEqual(readFileSync(process.env.OXBOT_CHAT_DB!), before);
+  assert.deepEqual(readFileSync(process.env.TAURUS_CHAT_DB!), before);
   const src = readFileSync(new URL('../src/messages.ts', import.meta.url), 'utf8');
   assert.match(src, /readOnly: true/);
   assert.doesNotMatch(src, /\b(INSERT|UPDATE|DELETE|DROP|ALTER)\b/);
 });
 
 test('without Full Disk Access it says so with the steps, instead of failing quietly', async () => {
-  process.env.OXBOT_CHAT_DB = join(dir, 'locked.db');
+  process.env.TAURUS_CHAT_DB = join(dir, 'locked.db');
   const locked = await messagesStatus();
   assert.equal(locked.state, 'no-access');
   assert.match(locked.steps!.join(' '), /Full Disk Access/);
-  await assert.rejects(readMessages(), /hasn’t given OXBOT access/);
+  await assert.rejects(readMessages(), /hasn’t given Taurus access/);
 });

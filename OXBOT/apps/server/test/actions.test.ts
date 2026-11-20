@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-actions-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-actions-'));
+process.env.TAURUS_BROKER_URL = '';
 const { store } = await import('../src/store.ts');
 const actions = await import('../src/actions/index.ts');
 const { grantDefs, connectorDefs } = await import('../src/connectors.ts');
@@ -54,7 +54,7 @@ function reply(c: Call): Response {
   if (/slack\.com\/api\/(chat\.postMessage|reactions\.add)$/.test(u)) return json({ ok: true, ts: '1.2' });
   if (/api\.twilio\.com/.test(u)) return json({ sid: 'SM1' }, 201);
   if (/api\.github\.com/.test(u)) return json({ id: 9 });
-  if (/api\.linear\.app\/graphql$/.test(u)) return json(/mutation/.test(c.body) ? { data: { ok: { success: true } } } : { data: { issue: { id: 'uuid-412', identifier: 'OX-412', title: 'Checkout outage', state: { name: 'In Review' }, team: { states: { nodes: [{ id: 's-done', name: 'Done' }, { id: 's-rev', name: 'In Review' }] } } } } });
+  if (/api\.linear\.app\/graphql$/.test(u)) return json(/mutation/.test(c.body) ? { data: { ok: { success: true } } } : { data: { issue: { id: 'uuid-412', identifier: 'TAURUS-412', title: 'Checkout outage', state: { name: 'In Review' }, team: { states: { nodes: [{ id: 's-done', name: 'Done' }, { id: 's-rev', name: 'In Review' }] } } } } });
   if (/composio\.dev\/api\/v3\.1\/connected_accounts/.test(u)) return json({ items: u.includes('toolkit_slugs=canva') ? [{ id: 'ca_canva', toolkit: { slug: 'canva' } }] : [] });
   if (/composio\.dev\/api\/v3\.1\/tools\/CANVA_CREATE_DESIGN$/.test(u)) return json({ slug: 'CANVA_CREATE_DESIGN', name: 'Create design', toolkit: { slug: 'canva', name: 'Canva' }, tags: ['createHint'], input_parameters: { properties: { title: { type: 'string' } } } });
   if (/composio\.dev\/api\/v3\.1\/tools\/CANVA_DELETE_DESIGN$/.test(u)) return json({ slug: 'CANVA_DELETE_DESIGN', name: 'Delete design', toolkit: { slug: 'canva', name: 'Canva' }, tags: ['destructiveHint'] });
@@ -97,7 +97,7 @@ test('a proposal shows exactly what will go out, and sends nothing until approve
   assert.equal(p.to, 'dana@example.com');
   assert.equal(p.text, 'Thursday at 10 works.');
   assert.deepEqual(p.lines.map(l => l.value), ['Thursday', 'Gmail']);
-  assert.match(p.caution ?? '', /First time OXBOT contacts dana@example\.com/);
+  assert.match(p.caution ?? '', /First time Taurus contacts dana@example\.com/);
   assert.ok(Date.parse(p.expiresAt) - Date.parse(p.createdAt) === 15 * 60_000);
   assert.equal(sent(/messages\/send$/).length, 0);
   assert.ok(actions.pending().some(x => x.id === p.id));
@@ -107,7 +107,7 @@ test('a proposal shows exactly what will go out, and sends nothing until approve
   assert.match(raw, /^To: dana@example\.com\r\nSubject: Thursday\r\n/);
   assert.equal(Buffer.from(raw.split('\r\n\r\n')[1].replace(/\r\n/g, ''), 'base64').toString(), 'Thursday at 10 works.');
   assert.equal(actions.log().find(x => x.id === p.id)?.state, 'done');
-  assert.equal(store.doc<any[]>('actions.json', []).find(x => x.id === p.id)?.state, 'done', 'logged in ~/.oxbot');
+  assert.equal(store.doc<any[]>('actions.json', []).find(x => x.id === p.id)?.state, 'done', 'logged in ~/.taurus');
 });
 
 test('approval is bound to the version you saw, runs once, and never after it expires', async () => {
@@ -177,8 +177,8 @@ test('Outlook, Slack, Twilio, GitHub and Linear build the documented requests', 
   await run('github.review', { pr: 'https://github.com/example/web/pull/7', event: 'approve' });
   assert.match(sent(/reviews$/)[0].url, /repos\/example\/web\/pulls\/7\/reviews$/);
   assert.equal(JSON.parse(sent(/reviews$/)[0].body).event, 'APPROVE');
-  const moved = await run('linear.status', { issue: 'OX-412', status: 'done' });
-  assert.equal(moved.title, 'Move OX-412 to Done');
+  const moved = await run('linear.status', { issue: 'TAURUS-412', status: 'done' });
+  assert.equal(moved.title, 'Move TAURUS-412 to Done');
   assert.deepEqual(JSON.parse(sent(/linear\.app/).at(-1)!.body).variables, { id: 'uuid-412', input: { stateId: 's-done' } });
 });
 
@@ -232,7 +232,7 @@ test('food: one pick with item, place and total, and approving only opens the ap
   assert.equal(p.purchase?.place, 'Example Burgers', 'not what you had in the last 20 hours');
   assert.equal(p.purchase?.total, 'About $31.20');
   assert.equal(Date.parse(p.expiresAt) - Date.parse(p.createdAt), 10 * 60_000, 'purchases expire sooner');
-  assert.match(p.caution ?? '', /No delivery app lets OXBOT place an order/);
+  assert.match(p.caution ?? '', /No delivery app lets Taurus place an order/);
   assert.equal(p.open, 'https://www.ubereats.com/search?q=Example%20Burgers');
   const done = await actions.approve(p.id, { digest: p.digest });
   assert.match(done.result ?? '', /Tap Place order/);
@@ -257,6 +257,6 @@ test('write scopes: only for action connectors, each its own sign-in, never thro
   }
   for (const scopes of Object.values(readScopes)) assert.ok(!scopes.some(s => /send|write/i.test(s)), 'the sign-in service still asks only to read');
   assert.ok(connectorDefs().every(d => !d.write), 'read connectors carry no write power');
-  // Spotify playback joined on November 4, 2026 (owner: "hey ox play juice wrld on spotify").
+  // Spotify playback joined on November 4, 2026 (owner: "hey taurus play juice wrld on spotify").
   assert.deepEqual(Object.keys(writeScopes).sort(), ['google', 'microsoft', 'spotify']);
 });

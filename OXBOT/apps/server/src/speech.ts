@@ -7,9 +7,9 @@ import { allGreetings } from './greetings.ts';
 import { HttpError, store } from './store.ts';
 import type { SpeechState, SpeechVoice } from './types.ts';
 
-// Ox's voice (owner, November 5, 2026: "find an opensource text to speech for when it talks to u ... no money ... not
+// Taurus's voice (owner, November 5, 2026: "find an opensource text to speech for when it talks to u ... no money ... not
 // monotonous and roboticy"). Kokoro-82M (Apache-2.0, hexgrad/Kokoro-82M, ONNX build by onnx-community), run by
-// kokoro-js on this Mac's CPU. The model (about 90 MB) downloads once from Hugging Face into ~/.oxbot/models the
+// kokoro-js on this Mac's CPU. The model (about 90 MB) downloads once from Hugging Face into ~/.taurus/models the
 // first time you turn it on; after that every word is made on this Mac, offline, and nothing is sent anywhere.
 // The same engine Ultron used in the browser, moved to the server so the Mac, the desktop app and the phone all
 // hear the same voice without each one downloading the model.
@@ -39,7 +39,7 @@ let model: Promise<Engine> | undefined;
 const state: SpeechState = { status: 'off', progress: 0 };
 const files = new Map<string, { loaded: number; total: number }>();
 const cache = new Map<string, Buffer>();
-// Short lines are kept on disk as well (November 18, 2026: the owner's Mac choked at every launch while Ox re-made
+// Short lines are kept on disk as well (November 18, 2026: the owner's Mac choked at every launch while Taurus re-made
 // the same greetings on the CPU), so each one is made once ever instead of once per start, without the model loaded.
 const diskDir = () => join(store.dir, 'speech-cache');
 const diskFile = (key: string) => join(diskDir(), `${createHash('sha1').update(key).digest('hex')}.wav`);
@@ -49,7 +49,7 @@ function toDisk(key: string, wav: Buffer) {
 }
 const greetingKey = (text: string) => `${DEFAULT_VOICE}|1|${speakable(text).slice(0, MAX_TEXT)}`;
 const greetingsMissing = () => allGreetings.filter(text => !existsSync(diskFile(greetingKey(text))));
-// Downloaded once already: the model loads the first time Ox has something new to say, not at every start.
+// Downloaded once already: the model loads the first time Taurus has something new to say, not at every start.
 const downloaded = () => existsSync(join(store.dir, 'models', MODEL));
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -59,13 +59,13 @@ export function useEngine(make?: () => Promise<Engine>) {
 }
 
 // The desktop app bundles the server but leaves Kokoro outside (native files). Run from source, it has no
-// node_modules of its own with Kokoro in it, so main.ts points OXBOT_VOICE_MODULES at apps/server, which does.
+// node_modules of its own with Kokoro in it, so main.ts points TAURUS_VOICE_MODULES at apps/server, which does.
 type VoiceModules = [typeof import('kokoro-js'), typeof import('@huggingface/transformers')];
 export async function voiceModules(): Promise<VoiceModules> {
   try {
     return await Promise.all([import('kokoro-js'), import('@huggingface/transformers')]);
   } catch (error) {
-    const dir = process.env.OXBOT_VOICE_MODULES;
+    const dir = process.env.TAURUS_VOICE_MODULES;
     if (!dir || (error as { code?: string }).code !== 'ERR_MODULE_NOT_FOUND') throw error;
     // Their CommonJS builds, required: import() of them loses the named exports. Kokoro's own copy of transformers,
     // so the cache folder set by the caller is the one Kokoro reads.
@@ -99,7 +99,7 @@ export function prepare(): Promise<Engine> {
   const started = Date.now();
   model = load().then(engine => {
     Object.assign(state, { status: 'ready', progress: 1 });
-    note('voice', `Ox’s voice is ready (${Math.max(1, Math.round((Date.now() - started) / 1000))} s)`, { by: 'ox' });
+    note('voice', `Taurus’s voice is ready (${Math.max(1, Math.round((Date.now() - started) / 1000))} s)`, { by: 'taurus' });
     if (!override) void warmGreetings();
     return engine;
   }, error => {
@@ -142,7 +142,7 @@ export async function speak(input: { text?: unknown; voice?: unknown; speed?: un
   if (hit) { cache.delete(key); cache.set(key, hit); return hit; }
   const saved = text.length <= 160 ? fromDisk(key) : undefined;
   if (saved) { cache.set(key, saved); while (cache.size > 90) cache.delete(cache.keys().next().value!); return saved; }
-  if (state.status !== 'ready' && state.status !== 'loading' && !speechState().on) throw new HttpError(409, 'Ox’s voice isn’t on yet. Turn it on in Settings, Look, Voice.');
+  if (state.status !== 'ready' && state.status !== 'loading' && !speechState().on) throw new HttpError(409, 'Taurus’s voice isn’t on yet. Turn it on in Settings, Look, Voice.');
   const engine = await prepare();
   // One sentence at a time: the CPU is shared, and the next sentence waits right behind this one.
   const job = queue.then(async () => Buffer.from((await engine.generate(text, { voice, speed })).toWav()));
@@ -152,8 +152,8 @@ export async function speak(input: { text?: unknown; voice?: unknown; speed?: un
   return wav;
 }
 
-// "Hey." and the other hellos, made ahead so the first "Hey Ox" is answered out loud at once (November 7, 2026).
-// One line at a time, so anything Ox is asked to say meanwhile waits for at most one short line.
+// "Hey." and the other hellos, made ahead so the first "Hey Taurus" is answered out loud at once (November 7, 2026).
+// One line at a time, so anything Taurus is asked to say meanwhile waits for at most one short line.
 // It waits until startup has settled and rests between lines, so it never holds up a real answer.
 async function warmGreetings() {
   const rest = (ms: number) => new Promise(r => setTimeout(r, ms));

@@ -6,7 +6,7 @@ import type { Prefs } from '../api';
 // like add new widget or like font size"). A double click, a right click or a two-finger click on empty background
 // opens a small glass card where the pointer is. Esc, a click elsewhere or any choice closes it.
 
-// Anything you can use or read is not background: cards, controls, Ox, the chat bar, other popups.
+// Anything you can use or read is not background: cards, controls, Taurus, the chat bar, other popups.
 const solid = '.card, .cloud-panel, .cloud-core, .cloud-said, .cloud-facts, .cloud-hello, .cloud-time, .cloud-widget-line, button, a, input, textarea, select, label, [role="dialog"], .bg-menu, .board-bar, .builder, .people-strip';
 
 export interface Spot { x: number; y: number }

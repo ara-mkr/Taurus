@@ -19,4 +19,4 @@ createServer(async (req, res) => {
     console.error(error);
     res.writeHead(500, { 'Content-Type': 'text/plain' }).end('Server error');
   }
-}).listen(port, () => console.log(`OXBOT sign-in service on :${port}`));
+}).listen(port, () => console.log(`Taurus sign-in service on :${port}`));

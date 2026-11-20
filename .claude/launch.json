@@ -258,6 +258,41 @@
         "--strictPort"
       ],
       "port": 5211
+    },
+    {
+      "name": "taurus-hud-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TAURUS_PORT=8841",
+        "TAURUS_HTTPS_PORT=8842",
+        "TAURUS_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan--claude-spares-spare-p9V8LG/92ea3699-274c-4963-a552-7df205921ad1/scratchpad/taurus-home",
+        "TAURUS_BROKER_URL=",
+        "TAURUS_NO_SCHEDULER=1",
+        "TAURUS_APP_URL=http://127.0.0.1:5221",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/server",
+        "start"
+      ],
+      "port": 8841
+    },
+    {
+      "name": "taurus-hud",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TAURUS_PORT=8841",
+        "pnpm",
+        "--dir",
+        "OXBOT/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5221",
+        "--strictPort"
+      ],
+      "port": 5221
     }
   ]
 }

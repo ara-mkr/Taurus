@@ -1,10 +1,10 @@
 {
-  "name": "oxbot-desktop",
-  "productName": "OXBOT",
+  "name": "taurus-desktop",
+  "productName": "Taurus",
   "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "OXBOT on the desktop: the local server and the dashboard in one window, with a menu bar or tray item that rings.",
+  "description": "Taurus on the desktop: the local server and the dashboard in one window, with a menu bar or tray item that rings.",
   "homepage": "http://localhost:8787",
   "author": "Akhil",
   "main": "dist/main.mjs",

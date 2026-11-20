@@ -1,4 +1,4 @@
-// The new shell's server parts (owner, November 1, 2026): OXBOT's read-only browser walls, the activity log, and
+// The new shell's server parts (owner, November 1, 2026): Taurus's read-only browser walls, the activity log, and
 // the profile and background kept in prefs. Nothing here opens a browser or contacts anything outside this Mac.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-shell-'));
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-shell-'));
 const { refuse, toUrl } = await import('../src/browser.ts');
 const { begin, note, recent, resetActivity } = await import('../src/activity.ts');
 const { sanitize } = await import('../src/boards.ts');

@@ -1,4 +1,4 @@
-// End-to-end: OXBOT on a Mac signs in to WHOOP through the sign-in service, with WHOOP faked.
+// End-to-end: Taurus on a Mac signs in to WHOOP through the sign-in service, with WHOOP faked.
 // Run: node apps/broker/test/flow.test.ts
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
@@ -6,10 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { handle, type Env } from '../src/worker.ts';
 
-const BROKER = 'https://signin.oxbot.test';
-const env: Env = { STATE_SECRET: 'x'.repeat(40), BROKER_URL: BROKER, WHOOP_CLIENT_ID: 'oxbot-whoop-id', WHOOP_CLIENT_SECRET: 'oxbot-whoop-secret' };
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-test-'));
-process.env.OXBOT_BROKER_URL = BROKER;
+const BROKER = 'https://signin.taurus.test';
+const env: Env = { STATE_SECRET: 'x'.repeat(40), BROKER_URL: BROKER, WHOOP_CLIENT_ID: 'taurus-whoop-id', WHOOP_CLIENT_SECRET: 'taurus-whoop-secret' };
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-test-'));
+process.env.TAURUS_BROKER_URL = BROKER;
 for (const key of ['WHOOP_CLIENT_ID', 'WHOOP_CLIENT_SECRET']) delete process.env[key];
 
 let refreshes = 0;
@@ -19,7 +19,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (url.startsWith(BROKER)) return handle(new Request(url, init), env);
   if (url === 'https://api.prod.whoop.com/oauth/oauth2/token') {
     const body = new URLSearchParams(String(init?.body));
-    assert.equal(body.get('client_secret'), 'oxbot-whoop-secret', 'only the service knows the secret');
+    assert.equal(body.get('client_secret'), 'taurus-whoop-secret', 'only the service knows the secret');
     if (body.get('grant_type') === 'authorization_code') {
       assert.equal(body.get('code'), 'CODE-123');
       assert.equal(body.get('redirect_uri'), `${BROKER}/callback`);
@@ -41,21 +41,21 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 const { checkBroker, connectorInfo, finishHandoff, pullAll, startOAuth } = await import('../../server/src/connectors.ts');
 const { store } = await import('../../server/src/store.ts');
 
-// 1. OXBOT learns the service has a WHOOP app, so WHOOP becomes one click.
+// 1. Taurus learns the service has a WHOOP app, so WHOOP becomes one click.
 await checkBroker();
 const whoop = connectorInfo().find(c => c.id === 'whoop')!;
 assert.equal(whoop.oneClick, true);
 assert.equal(whoop.ready, true);
 assert.equal(connectorInfo().find(c => c.id === 'oura')!.oneClick, false, 'providers the service lacks still need own keys');
 
-// 2. Sign-in goes to the service, then to WHOOP with OXBOT's client ID.
+// 2. Sign-in goes to the service, then to WHOOP with Taurus's client ID.
 const start = new URL(await startOAuth('whoop'));
 assert.equal(start.origin + start.pathname, `${BROKER}/start`);
 const toWhoop = await handle(new Request(start), env);
 assert.equal(toWhoop.status, 302);
 const authorize = new URL(toWhoop.headers.get('Location')!);
 assert.equal(authorize.origin + authorize.pathname, 'https://api.prod.whoop.com/oauth/oauth2/auth');
-assert.equal(authorize.searchParams.get('client_id'), 'oxbot-whoop-id');
+assert.equal(authorize.searchParams.get('client_id'), 'taurus-whoop-id');
 assert.equal(authorize.searchParams.get('scope'), 'offline read:recovery read:sleep read:cycles');
 
 // 3. WHOOP sends the user back to the service; the service hands tokens to this Mac, encrypted.
@@ -67,7 +67,7 @@ assert.equal(await finishHandoff(handoff.searchParams.get('nonce')!, handoff.sea
 assert.equal(store.tokens('whoop')?.access_token, 'access-1');
 await assert.rejects(finishHandoff(handoff.searchParams.get('nonce')!, handoff.searchParams.get('payload')!), /expired|not started/, 'a handoff works once');
 
-// 4. When the token expires, OXBOT refreshes through the service, then reads WHOOP.
+// 4. When the token expires, Taurus refreshes through the service, then reads WHOOP.
 store.setTokens('whoop', { ...store.tokens('whoop')!, expires_at: Date.now() - 1 });
 const result = (await pullAll()).find(r => r.id === 'whoop')!;
 assert.equal(result.error, undefined, result.error);

@@ -1,4 +1,4 @@
-/* Onboarding (owner, November 17, 2026): the calm welcome Ox gives you the first time. One ink, one glass panel,
+/* Onboarding (owner, November 17, 2026): the calm welcome Taurus gives you the first time. One ink, one glass panel,
    high contrast in both themes, nothing under 13px. It floats above everything (swarm is 70, menus 80). */
 
 .ob-screen {
@@ -12,8 +12,8 @@
   animation: ob-fade .4s ease both;
 }
 
-.ob-ox { color: var(--ink); margin-bottom: 18px; filter: drop-shadow(0 10px 28px rgba(0, 0, 0, .28)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
-.ob-ox[data-big="true"] { margin-bottom: 26px; }
+.ob-taurus { color: var(--ink); margin-bottom: 18px; filter: drop-shadow(0 10px 28px rgba(0, 0, 0, .28)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+.ob-taurus[data-big="true"] { margin-bottom: 26px; }
 
 .ob-head {
   position: absolute; top: max(16px, env(safe-area-inset-top)); left: 20px; right: 20px;
@@ -92,10 +92,10 @@ a.ob-account { text-decoration: none; }
 @media (max-width: 560px) {
   .ob-body { padding: 24px 18px 22px; border-radius: 22px; }
   .ob-screen { align-items: start; }
-  .ob-ox { margin-top: 36px; }
+  .ob-taurus { margin-top: 36px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ob-screen, .ob-body { animation: none; }
-  .ob-ox { transition: none; }
+  .ob-taurus { transition: none; }
 }

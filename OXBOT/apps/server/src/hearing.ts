@@ -3,12 +3,12 @@ import { note } from './activity.ts';
 import { voiceModules } from './speech.ts';
 import { HttpError, store } from './store.ts';
 
-// Ox's ears in the desktop app (owner, November 7, 2026: "i said hey ox nothing happened ... the clapping or snapping
-// then also when i clcik the big ox circle"). The desktop window's Chromium has no speech service, so the window
+// Taurus's ears in the desktop app (owner, November 7, 2026: "i said hey taurus nothing happened ... the clapping or snapping
+// then also when i clcik the big taurus circle"). The desktop window's Chromium has no speech service, so the window
 // sends short stretches of speech (16 kHz, 16-bit, mono) to this Mac's own server, and Moonshine tiny (MIT, Useful
-// Sensors; ONNX build by onnx-community) turns them into words on this Mac's CPU with the same library as Ox's voice.
+// Sensors; ONNX build by onnx-community) turns them into words on this Mac's CPU with the same library as Taurus's voice.
 // Moonshine over Whisper: Whisper pads every clip to 30 s and took 3 to 10 s a phrase here; Moonshine took 0.3 to
-// 0.6 s with the Mac at load 33 (measured November 7, 2026). The model (about 110 MB) downloads once from Hugging Face into ~/.oxbot/models; after that nothing leaves the Mac.
+// 0.6 s with the Mac at load 33 (measured November 7, 2026). The model (about 110 MB) downloads once from Hugging Face into ~/.taurus/models; after that nothing leaves the Mac.
 // Audio is held in memory for the one request and never stored or logged.
 
 const MODEL = 'onnx-community/moonshine-tiny-ONNX';
@@ -30,7 +30,7 @@ async function load(): Promise<Ears> {
   env.allowLocalModels = false;
   const started = Date.now();
   const asr = await pipeline('automatic-speech-recognition', MODEL, { dtype: { encoder_model: 'fp32', decoder_model_merged: 'q8' }, device: 'cpu' });
-  note('voice', `Ox can hear in the desktop app (${Math.max(1, Math.round((Date.now() - started) / 1000))} s to load)`, { by: 'ox' });
+  note('voice', `Taurus can hear in the desktop app (${Math.max(1, Math.round((Date.now() - started) / 1000))} s to load)`, { by: 'taurus' });
   return async audio => {
     // transformers.js caps Moonshine at 6 tokens per whole second, which cut "open my notes app" to "open my notes".
     const out = await asr(audio, { max_new_tokens: Math.ceil(audio.length / RATE * 13) + 8 }) as { text?: string } | { text?: string }[];
@@ -59,7 +59,7 @@ export function pcm(body: Buffer): Float32Array {
   return samples;
 }
 
-// One stretch at a time: the CPU is shared with Ox's voice.
+// One stretch at a time: the CPU is shared with Taurus's voice.
 export async function hear(body: Buffer): Promise<string> {
   const audio = pcm(body);
   const listen = await prepareEars();

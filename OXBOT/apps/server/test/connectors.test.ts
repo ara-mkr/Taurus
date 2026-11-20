@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-connectors-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-connectors-'));
+process.env.TAURUS_BROKER_URL = '';
 const { connectorDefs, connectorInfo } = await import('../src/connectors.ts');
 const { readScopes } = await import('../src/providers.ts');
 const { moreFixtures, morePosts } = await import('./more-fixtures.ts');
@@ -25,7 +25,7 @@ interface Fixture { fields?: Record<string, string>; routes: Route[]; check: (pu
 // Reads that providers only offer as POST. Anything else must be a GET.
 const readPosts = [/\/jmap\/api\/?$/, /api\.monday\.com\/v2$/, /conversations\/search$/, /:runReport$/, /\/admin\/api\/[\d-]+\/graphql\.json$/, /\/2\/files\/list_folder$/, /backend\.composio\.dev\/api\/v3\.1\/tools\/execute\/proxy$/, ...morePosts];
 
-const tmp = process.env.OXBOT_HOME!;
+const tmp = process.env.TAURUS_HOME!;
 const healthFile = join(tmp, 'export.xml');
 const day = (offset: number) => new Date(now + offset).toISOString().replace('T', ' ').slice(0, 19) + ' +0000';
 writeFileSync(healthFile, `<?xml version="1.0"?>\n<HealthData>
@@ -161,9 +161,9 @@ const fixtures: Record<string, Fixture> = {
   jira: {
     routes: [
       [/api\.atlassian\.com\/oauth\/token\/accessible-resources$/, [{ id: 'cloud1', url: 'https://example.atlassian.net' }]],
-      [/api\.atlassian\.com\/ex\/jira\/cloud1\/rest\/api\/3\/search\/jql\?/, { issues: [{ id: '1', key: 'OX-7', fields: { summary: 'Checkout outage', priority: { name: 'Highest' }, status: { name: 'In Progress' }, updated: iso(-HOUR) } }] }],
+      [/api\.atlassian\.com\/ex\/jira\/cloud1\/rest\/api\/3\/search\/jql\?/, { issues: [{ id: '1', key: 'TAURUS-7', fields: { summary: 'Checkout outage', priority: { name: 'Highest' }, status: { name: 'In Progress' }, updated: iso(-HOUR) } }] }],
     ],
-    check: p => { assert.equal(p.needs[0].title, 'OX-7 Checkout outage'); assert.equal(p.needs[0].url, 'https://example.atlassian.net/browse/OX-7'); },
+    check: p => { assert.equal(p.needs[0].title, 'TAURUS-7 Checkout outage'); assert.equal(p.needs[0].url, 'https://example.atlassian.net/browse/TAURUS-7'); },
   },
   monday: {
     routes: [[/api\.monday\.com\/v2$/, (c: Call) => {
@@ -351,7 +351,7 @@ const fixtures: Record<string, Fixture> = {
       [/backend\.composio\.dev\/api\/v3\.1\/connected_accounts\?/, (c: Call) => {
         assert.equal(c.headers.get('x-api-key'), 'cmp-test');
         assert.match(c.url, /user_ids=akhil/);
-        // Every app OXBOT has a reader for, one that fails, and one it can't read yet.
+        // Every app Taurus has a reader for, one that fails, and one it can't read yet.
         return { items: [...Object.keys(composioMocks).map(slug => ({ id: `ca_${slug}`, toolkit: { slug: slug.toUpperCase() }, state: { val: { subdomain: 'acme' } } })), { id: 'ca_attio', toolkit: { slug: 'attio' }, state: { val: {} } }] };
       }],
       [/backend\.composio\.dev\/api\/v3\.1\/tools\/execute\/proxy$/, (c: Call) => {
@@ -454,7 +454,7 @@ test('every Composio reader has a mocked response', async () => {
   assert.ok(Object.keys(readers).length >= 25);
 });
 
-test('the Connections page lists Composio apps OXBOT cannot read yet, and errors per app', async () => {
+test('the Connections page lists Composio apps Taurus cannot read yet, and errors per app', async () => {
   const { composioApps } = await import('../src/connectors/composio.ts');
   const apps = composioApps();
   assert.equal(apps.find(a => a.slug === 'attio')?.reads, undefined);

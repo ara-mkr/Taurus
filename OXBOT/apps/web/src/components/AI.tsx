@@ -18,13 +18,13 @@ function TestAnswer({ id }: { id: string }) {
 
 // Which AI writes the brief, builds boards and answers Ask. Owner, October 31, 2026; laid out as cards on three tabs on
 // November 19, 2026 ("make it just cards sectioned off by plan or api u click a tab at the top then u can just do it from
-// there"): plans you already pay for, API keys (OXBOT's free models through OpenRouter first), and who answers what.
+// there"): plans you already pay for, API keys (Taurus's free models through OpenRouter first), and who answers what.
 type Tab = 'plans' | 'keys' | 'route';
 const tabNames: Record<Tab, string> = { plans: 'Plans', keys: 'API keys', route: 'Who answers' };
 const shortName = (name: string) => name.replace(/ \(.*\)$/, '').replace(/ plan$/, '');
 const logoId = (id: string) => id === 'glm-plan' ? 'glm' : id.replace(/-plan$/, '');
 const planWho: Record<string, string> = { 'claude-plan': 'Claude', 'chatgpt-plan': 'ChatGPT', 'gemini-plan': 'Google' };
-const readTab = (): Tab | null => { try { const v = localStorage.getItem('oxbot-ai-tab'); return v === 'plans' || v === 'keys' || v === 'route' ? v : null; } catch { return null; } };
+const readTab = (): Tab | null => { try { const v = localStorage.getItem('taurus-ai-tab'); return v === 'plans' || v === 'keys' || v === 'route' ? v : null; } catch { return null; } };
 
 export function AI() {
   const [info, setInfo] = useState<AiInfo | null>(null);
@@ -34,7 +34,7 @@ export function AI() {
   const [busy, setBusy] = useState(false);
   const [tab, setTabState] = useState<Tab | null>(readTab);
   const [open, setOpen] = useState<string | null>(null);
-  const setTab = (t: Tab) => { setTabState(t); try { localStorage.setItem('oxbot-ai-tab', t); } catch { /* storage blocked: the tab lasts this visit */ } };
+  const setTab = (t: Tab) => { setTabState(t); try { localStorage.setItem('taurus-ai-tab', t); } catch { /* storage blocked: the tab lasts this visit */ } };
   const load = useCallback(async (fresh = false) => {
     try {
       const [a, c] = await Promise.all([api.ai(), api.connectors()]);
@@ -226,7 +226,7 @@ function AiSheet({ c, info, plan, busy, onClose, onSave, onChange, onRefresh }: 
   </dialog>;
 }
 
-// How much each plan has been used through OXBOT, from what each app reported.
+// How much each plan has been used through Taurus, from what each app reported.
 function Usage({ info }: { info: AiInfo }) {
   if (!info.usage?.length) return null;
   const n = (v: number) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : String(v);
@@ -241,7 +241,7 @@ function Usage({ info }: { info: AiInfo }) {
     return parts.join(' · ');
   };
   return <div className="plan-usage">
-    <h2>Used through OXBOT</h2>
+    <h2>Used through Taurus</h2>
     <table><thead><tr><th scope="col">Plan</th><th scope="col">Today</th><th scope="col">7 days</th><th scope="col">30 days</th><th scope="col">Limits</th></tr></thead>
       <tbody>{info.usage.map(u => <tr key={u.id}>
         <th scope="row">{shortName(info.providers.find(p => p.id === u.id)?.name ?? u.name)}</th>
@@ -255,7 +255,7 @@ function Usage({ info }: { info: AiInfo }) {
 }
 
 // Who answers what (owner, November 17, 2026: "u should be able to set like all free, all claude which ones which").
-// Quick asks, everyday asks and big jobs each go to OXBOT's free models or to one AI you connected. You can also just
+// Quick asks, everyday asks and big jobs each go to Taurus's free models or to one AI you connected. You can also just
 // say it: "use Claude for big jobs", "make it all free".
 const tierKeys = ['simple', 'medium', 'hard'] as const;
 const tierHelp: Record<typeof tierKeys[number], string> = { simple: 'Hi, a quick fact, a joke. No tools.', medium: 'Your day, mail, messages, music, the house.', hard: 'Plans, research, drafts, working in your apps.' };
@@ -273,24 +273,24 @@ function Route({ info, onChange }: { info: AiInfo; onChange: (next: AiInfo) => v
     try { onChange(await api.aiRoute(body)); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const presets: [string, string][] = [
-    ...(free ? [['all-free', 'All OXBOT (free)']] as [string, string][] : []),
-    ...(has(/^claude/) ? [['all-claude', 'All Claude'], ...(free ? [['mixed-claude', 'OXBOT for quick, Claude for big jobs']] as [string, string][] : [])] as [string, string][] : []),
-    ...(has(/^chatgpt/) ? [['all-chatgpt', 'All ChatGPT'], ...(free ? [['mixed-chatgpt', 'OXBOT for quick, ChatGPT for big jobs']] as [string, string][] : [])] as [string, string][] : []),
+    ...(free ? [['all-free', 'All Taurus (free)']] as [string, string][] : []),
+    ...(has(/^claude/) ? [['all-claude', 'All Claude'], ...(free ? [['mixed-claude', 'Taurus for quick, Claude for big jobs']] as [string, string][] : [])] as [string, string][] : []),
+    ...(has(/^chatgpt/) ? [['all-chatgpt', 'All ChatGPT'], ...(free ? [['mixed-chatgpt', 'Taurus for quick, ChatGPT for big jobs']] as [string, string][] : [])] as [string, string][] : []),
   ];
   const fastest = (info.speeds ?? []).filter(s => /\//.test(s.model) && !s.busy).slice(0, 3);
   return <section aria-labelledby="route-h">
     <h2 id="route-h">Who answers what</h2>
-    <p className="muted">Pick one for everything, or a different AI for each kind of ask. You can also just tell Ox: “use Claude for big jobs”, “make it all free”.</p>
+    <p className="muted">Pick one for everything, or a different AI for each kind of ask. You can also just tell Taurus: “use Claude for big jobs”, “make it all free”.</p>
     {error && <p className="problem" role="alert">{error}</p>}
     {presets.length > 0 && <div className="actions route-presets">{presets.map(([id, label]) => <button key={id} type="button" disabled={busy} onClick={() => void go({ preset: id })}>{label}</button>)}</div>}
     <div className="route-rows">{tierKeys.map(t => <label key={t} className="route-row">
       <span><strong>{names[t]}</strong><span className="muted"> {tierHelp[t]}</span></span>
       <select value={route[t] ?? ''} disabled={busy} onChange={e => void go({ route: { ...route, [t]: e.target.value } })}>
         <option value="">Whichever writes ({info.using?.name ?? 'none yet'})</option>
-        {free && <option value="free">OXBOT (free, fastest model right now)</option>}
+        {free && <option value="free">Taurus (free, fastest model right now)</option>}
         {others.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
     </label>)}</div>
-    {fastest.length > 0 && <p className="muted">OXBOT’s free models lately, first word in: {fastest.map(s => `${shortModel(s.model)} ${(s.firstWordMs / 1000).toFixed(1)} s`).join(' · ')}. Quick asks go to the fastest, with no thinking first.</p>}
+    {fastest.length > 0 && <p className="muted">Taurus’s free models lately, first word in: {fastest.map(s => `${shortModel(s.model)} ${(s.firstWordMs / 1000).toFixed(1)} s`).join(' · ')}. Quick asks go to the fastest, with no thinking first.</p>}
   </section>;
 }

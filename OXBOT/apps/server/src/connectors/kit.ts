@@ -16,13 +16,13 @@ export interface Def {
   toggle?: boolean;
   // Built from the provider's documentation and tested only against mocked responses, never a real account.
   mockOnly?: boolean;
-  // A write grant (November 1, 2026): lets OXBOT carry out actions you approve. Never offered through the read-only sign-in service.
+  // A write grant (November 1, 2026): lets Taurus carry out actions you approve. Never offered through the read-only sign-in service.
   write?: boolean;
   setup: string; setupUrl: string;
   pull?: (ctx: Ctx) => Promise<Pull>;
 }
 
-// Own-app keys are optional when OXBOT's sign-in service (OXBOT_BROKER_URL) has that provider.
+// Own-app keys are optional when Taurus's sign-in service (TAURUS_BROKER_URL) has that provider.
 export const appFields = (app: AppName): Field[] => [
   { key: apps[app].id, label: `${apps[app].name} client ID`, appKey: true },
   { key: apps[app].secret, label: `${apps[app].name} client secret`, secret: true, appKey: true },

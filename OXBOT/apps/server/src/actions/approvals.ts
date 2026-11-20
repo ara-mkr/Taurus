@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { note } from '../activity.ts';
+import { learnDecline, learnEdit } from '../learn.ts';
 import { onConnect, send } from '../ring.ts';
 import { HttpError, store } from '../store.ts';
 import type { ApprovedVia, Proposal } from '../types.ts';
 
-// The approval system (owner, November 1, 2026): OXBOT proposes one concrete action, the owner approves, edits or
+// The approval system (owner, November 1, 2026): Taurus proposes one concrete action, the owner approves, edits or
 // declines it, and only then does it run. Nothing here runs an action on its own. Every proposal and its outcome
-// is kept in ~/.oxbot/actions.json, owner-only, never in the repo.
+// is kept in ~/.taurus/actions.json, owner-only, never in the repo.
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- action arguments come from the AI as JSON */
 export type Args = Record<string, any>;
@@ -66,19 +67,19 @@ export const get = (id: string) => { expire(); const p = all.find(x => x.id === 
 let running = 0;
 export const runningNow = () => running;
 
-// Has OXBOT ever finished an action to this exact address before? A first time is worth a second look.
+// Has Taurus ever finished an action to this exact address before? A first time is worth a second look.
 const seen = (kind: string, to?: string) => Boolean(to && all.some(p => p.state === 'done' && p.to === to && p.kind.split('.')[0] === kind.split('.')[0]));
 
 export async function propose(kind: string, args: Args, from: Proposal['from']): Promise<Proposal> {
   const s = specs.get(kind);
-  if (!s) throw new HttpError(400, `OXBOT has no action called ${kind}.`);
+  if (!s) throw new HttpError(400, `Taurus has no action called ${kind}.`);
   const missing = s.missing();
   if (missing) throw new HttpError(409, missing);
   expire();
   if (all.filter(p => p.state === 'pending').length >= MAX_PENDING) throw new HttpError(429, 'Twelve actions are already waiting for you. Approve or decline some first.');
   const ready = await s.prepare(args);
-  // Only for people: an address or number that came from a message OXBOT read is worth a second look.
-  const first = ready.to && /^(email|text|call)\./.test(kind) && !seen(kind, ready.to) ? `First time OXBOT contacts ${ready.to}.` : undefined;
+  // Only for people: an address or number that came from a message Taurus read is worth a second look.
+  const first = ready.to && /^(email|text|call)\./.test(kind) && !seen(kind, ready.to) ? `First time Taurus contacts ${ready.to}.` : undefined;
   const now = Date.now();
   const p: Stored = {
     id: randomUUID(), kind, app: s.app, title: ready.title, to: ready.to, text: ready.text, lines: ready.lines ?? [], purchase: ready.purchase,
@@ -99,6 +100,7 @@ export function decline(id: string, via: ApprovedVia = 'board'): Proposal {
   if (p.state !== 'pending') throw new HttpError(409, `That action is already ${p.state}.`);
   Object.assign(p, { state: 'declined', decidedAt: new Date().toISOString(), via });
   save(); send('approval', shown(p));
+  learnDecline(p);
   note('action', `You declined: ${p.title}`);
   return shown(p);
 }
@@ -109,7 +111,7 @@ export async function approve(id: string, input: { digest: string; text?: string
   expire();
   const p = all.find(x => x.id === id);
   if (!p) throw new HttpError(404, 'No such action.');
-  if (p.state === 'expired') throw new HttpError(410, 'That approval expired. Ask again and OXBOT will check everything afresh.');
+  if (p.state === 'expired') throw new HttpError(410, 'That approval expired. Ask again and Taurus will check everything afresh.');
   if (p.state !== 'pending') throw new HttpError(409, `That action is already ${p.state}.`);
   if (!input.digest || input.digest !== p.digest) throw new HttpError(409, 'That action changed after you saw it. Look at it again before approving.');
   const s = specs.get(p.kind)!;
@@ -131,6 +133,8 @@ export async function approve(id: string, input: { digest: string; text?: string
     if (missing) throw new HttpError(409, missing);
     if (typeof input.text === 'string' && input.text.trim() && input.text !== p.text) {
       if (!p.editable) throw new HttpError(400, 'This action can’t be edited.');
+      // What Taurus drafted against what the owner chose to send: a lesson for next time (learn.ts).
+      learnEdit(p, p.text, input.text.trim());
       const again = await s.prepare({ ...p.args, text: input.text.trim().slice(0, 8000) });
       Object.assign(p, { title: again.title, to: again.to, text: again.text, lines: again.lines ?? [], payload: again.payload });
       p.digest = digestOf(p);
@@ -142,10 +146,10 @@ export async function approve(id: string, input: { digest: string; text?: string
     p.state = 'done';
   } catch (error) {
     // A provider that answered "no" failed cleanly. Anything else (timeout, dropped connection) may have gone
-    // through, so OXBOT never retries it on its own: the owner checks and asks again if it didn't.
+    // through, so Taurus never retries it on its own: the owner checks and asks again if it didn't.
     const said = error instanceof HttpError && error.status < 500;
     p.state = said ? 'failed' : 'unknown';
-    p.result = said ? (error as Error).message : `OXBOT can’t tell whether this went through (${(error as Error).message}). Check ${p.app} before trying again.`;
+    p.result = said ? (error as Error).message : `Taurus can’t tell whether this went through (${(error as Error).message}). Check ${p.app} before trying again.`;
   }
   save(); send('approval', shown(p));
   note('action', `${p.state === 'done' ? 'Done' : p.state === 'failed' ? 'Failed' : 'Not sure it went through'}: ${p.title}`, p.result ? { detail: p.result.slice(0, 300) } : {});

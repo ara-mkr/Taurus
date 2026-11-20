@@ -1,22 +1,22 @@
 import { useSyncExternalStore } from 'react';
 
-// Ox's voice in the app (owner, November 5, 2026: "find a good voice ... not monotonous and roboticy"). The words go to
-// OXBOT on this Mac, which speaks them with Kokoro and sends back audio; nothing goes anywhere else. The first sentence
-// is sent alone so Ox starts talking in about a second, and the rest follows while it plays. If Ox's voice isn't on
+// Taurus's voice in the app (owner, November 5, 2026: "find a good voice ... not monotonous and roboticy"). The words go to
+// Taurus on this Mac, which speaks them with Kokoro and sends back audio; nothing goes anywhere else. The first sentence
+// is sent alone so Taurus starts talking in about a second, and the rest follows while it plays. If Taurus's voice isn't on
 // (or the Mac can't be reached) the browser's own best voice reads it instead. Tapping Talk, or anything new to say,
 // cuts him off, the way you'd interrupt a person.
 
 export interface SpeechPrefs { voice: string; speed: number }
-const key = 'oxbot-speech';
+const key = 'taurus-speech';
 export function readSpeech(): SpeechPrefs {
   try { const v = JSON.parse(localStorage.getItem(key) ?? '{}') as Partial<SpeechPrefs>; return { voice: typeof v.voice === 'string' ? v.voice : 'am_michael', speed: typeof v.speed === 'number' ? v.speed : 1 }; }
   catch { return { voice: 'am_michael', speed: 1 }; }
 }
 export function saveSpeech(v: SpeechPrefs) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* storage blocked: lasts this visit */ } }
 
-// ---------- What's being said, for Ox's face ----------
+// ---------- What's being said, for Taurus's face ----------
 
-export interface Speaking { active: boolean; level: number; text: string; engine: 'ox' | 'browser' | '' }
+export interface Speaking { active: boolean; level: number; text: string; engine: 'taurus' | 'browser' | '' }
 let now: Speaking = { active: false, level: 0, text: '', engine: '' };
 const listeners = new Set<() => void>();
 const emit = (next: Partial<Speaking>) => { now = { ...now, ...next }; listeners.forEach(l => l()); };
@@ -114,7 +114,7 @@ function sayInBrowser(text: string, id: number, speed: number): Promise<void> {
 }
 
 async function fetchChunk(text: string, prefs: SpeechPrefs, signal: AbortSignal): Promise<ArrayBuffer> {
-  const r = await fetch('/api/speech/say', { method: 'POST', credentials: 'same-origin', signal, headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify({ text, voice: prefs.voice, speed: prefs.speed }) });
+  const r = await fetch('/api/speech/say', { method: 'POST', credentials: 'same-origin', signal, headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: JSON.stringify({ text, voice: prefs.voice, speed: prefs.speed }) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? `Voice failed (${r.status})`);
   return r.arrayBuffer();
 }
@@ -128,7 +128,7 @@ export async function say(text: string, prefs: SpeechPrefs = readSpeech()): Prom
   const c = audio();
   if (!c) return sayInBrowser(text, id, prefs.speed);
   if (c.state === 'suspended') await c.resume().catch(() => undefined);
-  // Every sentence is asked for now; OXBOT makes them in order, so the next is ready while one plays.
+  // Every sentence is asked for now; Taurus makes them in order, so the next is ready while one plays.
   const jobs = parts.map(part => { const a = new AbortController(); aborts.push(a); return fetchChunk(part, prefs, a.signal); });
   jobs.forEach(j => j.catch(() => undefined));
   let at = c.currentTime, last: Promise<void> = Promise.resolve();
@@ -146,12 +146,12 @@ export async function say(text: string, prefs: SpeechPrefs = readSpeech()): Prom
       source.start(start);
       at = start + buffer.duration;
       last = new Promise(resolve => { source.onended = () => { playing.delete(source); resolve(); }; });
-      if (i === 0) { emit({ active: true, text, engine: 'ox' }); watchLevel(id); }
+      if (i === 0) { emit({ active: true, text, engine: 'taurus' }); watchLevel(id); }
     }
     await last;
   } catch (error) {
     if (id !== run || (error as Error).name === 'AbortError') return;
-    // Ox's own voice is off or failed before a word: the browser reads it instead.
+    // Taurus's own voice is off or failed before a word: the browser reads it instead.
     if (!playing.size) await sayInBrowser(parts.join(' '), id, prefs.speed);
   } finally {
     if (id === run) { cancelAnimationFrame(meter); emit({ active: false, level: 0, text: '', engine: '' }); aborts = []; }

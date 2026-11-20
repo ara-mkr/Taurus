@@ -2,7 +2,7 @@
 """Optional visual-study smoke test. Requires Playwright and an installed Chromium browser.
 Install a compatible Playwright release in a virtual environment, then run
 python -m playwright install chromium if no local Chromium is available.
-This tests the static HTML study, not the future Ox application.
+This tests the static HTML study, not the future Taurus application.
 """
 from pathlib import Path
 import json, shutil, os

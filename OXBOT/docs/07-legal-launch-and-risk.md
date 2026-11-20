@@ -8,7 +8,7 @@ The fact that the product is open source would not remove these obligations. A s
 
 ## Name and intellectual property
 
-Keep OXBOT and any company name provisional until clearance. Palladium AI and Osmium AI already have related commercial uses. Do not purchase an expensive domain, commission a full identity, print merchandise, or launch under a name based only on an available handle. A comprehensive check includes similar spelling/pronunciation and relevant goods/services, not only exact matches. [R57-R60]
+Keep Taurus and any company name provisional until clearance. Palladium AI and Osmium AI already have related commercial uses. Do not purchase an expensive domain, commission a full identity, print merchandise, or launch under a name based only on an available handle. A comprehensive check includes similar spelling/pronunciation and relevant goods/services, not only exact matches. [R57-R60]
 
 Create original wordmarks, mascot illustrations, icons where necessary, and website copy. Use properly licensed fonts and stock assets. The plan intentionally does not bundle commercial fonts or competitor imagery. A reference screenshot can guide analysis without becoming an asset the product is entitled to redistribute.
 
@@ -64,9 +64,9 @@ Keep essential privacy and control features available across tiers. Pausing auto
 
 **Before real integrations:** only the minimum legitimate verification/support surface required by providers: actual publisher identity, support, privacy, and accurate product description. No fake customer logos or unbuilt feature promises.
 
-**After a usable core:** a focused Ox product site with a real demo, concise explanation, supported-feature matrix, download/waitlist, docs, source link when genuinely open source, security/privacy information, and release notes. Use real product screenshots, not glossy scenes the app cannot reproduce.
+**After a usable core:** a focused Taurus product site with a real demo, concise explanation, supported-feature matrix, download/waitlist, docs, source link when genuinely open source, security/privacy information, and release notes. Use real product screenshots, not glossy scenes the app cannot reproduce.
 
-**After company-name clearance:** a small parent-company site explaining the mission, relationship to Ox, and contact details. It does not need to duplicate the product website. Corporate branding can remain understated while the product builds recognition.
+**After company-name clearance:** a small parent-company site explaining the mission, relationship to Taurus, and contact details. It does not need to duplicate the product website. Corporate branding can remain understated while the product builds recognition.
 
 ## Marketing that supports trust
 

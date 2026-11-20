@@ -1,4 +1,4 @@
-// November 7, 2026: "Hey Ox" answers at once, with no AI, and Ox's default voice is the witty one.
+// November 7, 2026: "Hey Taurus" answers at once, with no AI, and Taurus's default voice is the witty one.
 // Run: pnpm --dir apps/server test
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-greet-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-greet-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 
 const { greeting, allGreetings } = await import('../src/greetings.ts');
@@ -33,18 +33,18 @@ test('the time of day shows in the witty hello, and the plain tones stay plain',
   assert.ok(allGreetings.every(l => l.split(/\s+/).length <= 8), 'short enough to say at once');
 });
 
-test('“Hey Ox” and “yo Ox, what’s up” are answered instantly, with no AI', async () => {
-  for (const raw of ['Hey Ox', 'Hey, Ox.', 'yo ox what\'s up', 'OXBOT', 'hi ox how are you']) {
+test('“Hey Taurus” and “yo Taurus, what’s up” are answered instantly, with no AI', async () => {
+  for (const raw of ['Hey Taurus', 'Hey, Taurus.', 'yo taurus what\'s up', 'Taurus', 'hi taurus how are you']) {
     const started = performance.now();
     const reply = await instant(raw, 'talk');
     const ms = performance.now() - started;
     assert.ok(reply?.text, raw);
     assert.ok(ms < 250, `${raw}: ${ms} ms`);
   }
-  assert.equal(await instant('hey ox what is on my calendar', 'talk'), null);
+  assert.equal(await instant('hey taurus what is on my calendar', 'talk'), null);
 });
 
-test('Ox is witty by default; Brief, Warm and Direct keep the calm voice', () => {
+test('Taurus is witty by default; Brief, Warm and Direct keep the calm voice', () => {
   assert.equal(prefs().profile.tone, 'witty');
   const sharp = persona('22:00', '07:00', { name: '', tone: 'witty' });
   assert.match(sharp, /Jarvis/);

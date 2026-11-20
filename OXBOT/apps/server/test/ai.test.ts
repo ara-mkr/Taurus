@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-ai-'));
-process.env.OXBOT_BROKER_URL = '';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-ai-'));
+process.env.TAURUS_BROKER_URL = '';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY']) delete process.env[key];
 const ai = await import('../src/ai.ts');
 const { store } = await import('../src/store.ts');
@@ -44,11 +44,11 @@ test('nothing is connected by default, and asking says how to connect one', asyn
   const listed = connectorInfo().filter(c => c.group === 'AI');
   assert.equal(listed.length, ai.providers.length);
   assert.ok(listed.every(c => !c.connected));
-  // Called just OXBOT since November 17, 2026 (the owner: "its not oxbot free js oxbot").
-  assert.ok(listed.some(c => c.name === 'OXBOT (OpenRouter)'));
+  // Called just Taurus since November 17, 2026 (the owner: "its not taurus free js taurus").
+  assert.ok(listed.some(c => c.name === 'Taurus (OpenRouter)'));
 });
 
-test('OXBOT Free lists only free text models, Nemotron 3 Ultra first', async () => {
+test('Taurus Free lists only free text models, Nemotron 3 Ultra first', async () => {
   routes.push([/openrouter\.ai\/api\/v1\/models$/, () => ({ data: [
     { id: 'openai/gpt-sol', name: 'GPT Sol', pricing: { prompt: '0.000002', completion: '0.00001' }, context_length: 400000 },
     { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B (free)', pricing: { prompt: '0', completion: '0' }, context_length: 262144 },
@@ -83,20 +83,20 @@ test('Sign in with OpenRouter is PKCE with S256, comes back to this Mac, and sav
   await assert.rejects(ai.openRouterFinish(start.searchParams.get('state')!, 'code-from-openrouter'), /expired/, 'a state is single use');
 });
 
-test('OXBOT asks the chosen free model with your key', async () => {
+test('Taurus asks the chosen free model with your key', async () => {
   store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'google/gemma-4-31b-it:free' });
   routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, () => reply('<think>planning</think>Your 10:00 with Dana is next.')]);
-  const answer = await ai.ask('You are OXBOT.', [{ role: 'user', text: 'What is next?' }]);
-  assert.deepEqual(answer, { provider: 'OXBOT', text: 'Your 10:00 with Dana is next.', model: 'google/gemma-4-31b-it:free' });
+  const answer = await ai.ask('You are Taurus.', [{ role: 'user', text: 'What is next?' }]);
+  assert.deepEqual(answer, { provider: 'Taurus', text: 'Your 10:00 with Dana is next.', model: 'google/gemma-4-31b-it:free' });
   const [call] = calls;
   assert.equal(call.method, 'POST');
   assert.equal(call.headers.get('Authorization'), 'Bearer sk-or-test-key');
-  assert.equal(call.headers.get('X-Title'), 'OXBOT');
+  assert.equal(call.headers.get('X-Title'), 'Taurus');
   assert.equal(call.body.model, 'google/gemma-4-31b-it:free');
-  assert.deepEqual(call.body.messages, [{ role: 'system', content: 'You are OXBOT.' }, { role: 'user', content: 'What is next?' }]);
+  assert.deepEqual(call.body.messages, [{ role: 'system', content: 'You are Taurus.' }, { role: 'user', content: 'What is next?' }]);
 });
 
-test('a paid model picked for OXBOT free that is out of credit hands the question to a free model', async () => {
+test('a paid model picked for Taurus free that is out of credit hands the question to a free model', async () => {
   store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'deepseek/deepseek-v4.1-flash' });
   routes.push([/openrouter\.ai\/api\/v1\/models$/, () => ({ data: [
     { id: 'google/gemma-4-31b-it:free', name: 'Gemma', pricing: { prompt: '0', completion: '0' }, context_length: 128000 },
@@ -104,17 +104,17 @@ test('a paid model picked for OXBOT free that is out of credit hands the questio
   routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, call => call.body.model === 'deepseek/deepseek-v4.1-flash'
     ? { status: 402, body: { error: { message: 'Insufficient credits. Add more using https://openrouter.ai/settings/credits', code: 402 } } }
     : reply('Hello from a free model.')]);
-  const answer = await ai.ask('You are OXBOT.', [{ role: 'user', text: 'Say hello.' }]);
+  const answer = await ai.ask('You are Taurus.', [{ role: 'user', text: 'Say hello.' }]);
   assert.equal(answer.text, 'Hello from a free model.');
   assert.match(answer.model ?? '', /:free$|^openrouter\/free$/);
   const asked = calls.filter(c => /chat\/completions$/.test(c.url)).map(c => c.body.model);
   assert.equal(asked[0], 'deepseek/deepseek-v4.1-flash');
 });
 
-test('a free model picked for OXBOT free still reports its own errors', async () => {
+test('a free model picked for Taurus free still reports its own errors', async () => {
   store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test-key', OPENROUTER_MODEL: 'google/gemma-4-31b-it:free' });
   routes.push([/openrouter\.ai\/api\/v1\/chat\/completions$/, () => ({ status: 401, body: { error: { message: 'No auth credentials found', code: 401 } } })]);
-  await assert.rejects(ai.ask('You are OXBOT.', [{ role: 'user', text: 'Say hello.' }]), /401/);
+  await assert.rejects(ai.ask('You are Taurus.', [{ role: 'user', text: 'Say hello.' }]), /401/);
   assert.equal(calls.filter(c => /chat\/completions$/.test(c.url)).length, 1);
 });
 

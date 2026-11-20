@@ -2,9 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { store } from './store.ts';
 
 // Skills (owner, November 6, 2026: "make it so u can add skills for the ai not just plugins and also mcp servers"). A
-// skill is a named set of instructions, written by the owner or pasted from a SKILL.md, that Ox follows when it fits
-// what was asked. Skills are words only: they can't run code, add tools or widen what Ox may do, and actions still
-// wait for an approval card. Saved in ~/.oxbot/skills.json.
+// skill is a named set of instructions, written by the owner or pasted from a SKILL.md, that Taurus follows when it fits
+// what was asked. Skills are words only: they can't run code, add tools or widen what Taurus may do, and actions still
+// wait for an approval card. Saved in ~/.taurus/skills.json.
 
 export interface Skill { id: string; name: string; description: string; instructions: string; on: boolean; added: string }
 const FILE = 'skills.json';
@@ -30,7 +30,7 @@ export function saveSkill(input: Partial<Skill> & { text?: string }): Skill {
   const name = String(input.name || parsed?.name || existing?.name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const instructions = String(input.instructions || parsed?.instructions || existing?.instructions || '').trim().slice(0, 20_000);
   if (!name) throw new Error('Give the skill a name.');
-  if (!instructions) throw new Error('Write what Ox should do in this skill.');
+  if (!instructions) throw new Error('Write what Taurus should do in this skill.');
   if (!existing && all.length >= MAX) throw new Error(`Up to ${MAX} skills. Remove one first.`);
   const skill: Skill = {
     id: existing?.id ?? `s-${randomBytes(3).toString('hex')}`, name, instructions,

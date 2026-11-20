@@ -3,9 +3,9 @@ import { store } from './store.ts';
 import type { Memory } from './types.ts';
 import { show } from './windows.ts';
 
-// What Ox remembers about you (owner, November 4, 2026), the feature people say makes OpenClaw feel like theirs:
+// What Taurus remembers about you (owner, November 4, 2026), the feature people say makes OpenClaw feel like theirs:
 // "remember I take my coffee black", "forget the gym thing", "what do you know about me". Only what you tell it
-// to remember, in your words, saved in ~/.oxbot/memory.json and sent to your chosen AI with each question.
+// to remember, in your words, saved in ~/.taurus/memory.json and sent to your chosen AI with each question.
 
 const FILE = 'memory.json';
 const MAX = 200;

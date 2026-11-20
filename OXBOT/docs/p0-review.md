@@ -4,7 +4,7 @@ Reviewed October 21, 2026. Active phase: P0. Recommendation: owner review of the
 
 ## Work completed
 
-Extracted the supplied blueprint into `OXBOT/` without replacing the adjacent `ui-direction.html`. Read the root instructions, README, state, all canonical sections 00–09, decision log, validation report, reference catalog, prompts, license note, tokens, original HTML, custom skills/references and local validation scripts/templates. Checked that the master Markdown exactly reproduces the ten canonical sections. Its PDF reading edition has 43 pages; text extraction confirms it contains the blueprint narrative. The canonical Markdown was the reading source; this is not a new visual audit of all PDF pages.
+Extracted the supplied blueprint into `Taurus/` without replacing the adjacent `ui-direction.html`. Read the root instructions, README, state, all canonical sections 00–09, decision log, validation report, reference catalog, prompts, license note, tokens, original HTML, custom skills/references and local validation scripts/templates. Checked that the master Markdown exactly reproduces the ten canonical sections. Its PDF reading edition has 43 pages; text extraction confirms it contains the blueprint narrative. The canonical Markdown was the reading source; this is not a new visual audit of all PDF pages.
 
 The pack contains proposed product choices and an HTML study. It has no React application, package manifest, installed product dependencies or Git repository in the supplied project directory. No current owner approval for P1 is recorded in the documents or session. The request to read the documents and start work authorizes this preparation; it does not explicitly resolve the phase gate required by those documents.
 
@@ -76,4 +76,4 @@ The smallest next implementation is the shell, Today and one email drawer specif
 
 ## Why an owner decision is required
 
-The project `AGENTS.md` says “Never advance the phase or expand permissions on your own.” The loaded `.agents/skills/oxbot-ui/SKILL.md` explicitly says “P0 is planning only; P1-P2 allow a simulated frontend after owner approval.” The first-build prompt similarly requires returning the exact scope/design decisions when P0 is still active. This report and the proposed slice supply those decisions for review. PROJECT_STATE.json has not been changed.
+The project `AGENTS.md` says “Never advance the phase or expand permissions on your own.” The loaded `.agents/skills/taurus-ui/SKILL.md` explicitly says “P0 is planning only; P1-P2 allow a simulated frontend after owner approval.” The first-build prompt similarly requires returning the exact scope/design decisions when P0 is still active. This report and the proposed slice supply those decisions for review. PROJECT_STATE.json has not been changed.

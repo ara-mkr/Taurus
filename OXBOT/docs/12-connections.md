@@ -2,7 +2,7 @@
 
 Forty-nine data connectors, all read-only, plus 16 ways to connect an AI, Twilio and ntfy for ringing your phone, and two public feeds for the board. Each one runs on your Mac, inside `apps/server`, and talks straight to the service. Nothing goes through a third party except one-click sign-in (below), which only relays the sign-in itself, and Composio (added November 1), which you choose to route apps through.
 
-**Where secrets live:** `~/.oxbot/` (folder 0700, files 0600): `tokens.json` (OAuth tokens), `secrets.json` (keys you paste on the Connections page), `settings.json`, `pairing.json`, `desktop.json`. A value in `.env` overrides the same value in `secrets.json`. Nothing secret is in the repo.
+**Where secrets live:** `~/.taurus/` (folder 0700, files 0600): `tokens.json` (OAuth tokens), `secrets.json` (keys you paste on the Connections page), `settings.json`, `pairing.json`, `desktop.json`. A value in `.env` overrides the same value in `secrets.json`. Nothing secret is in the repo.
 
 **One redirect URL for every sign-in:** `http://localhost:8787/api/oauth/callback`. Register exactly that with each OAuth provider.
 
@@ -10,7 +10,7 @@ Forty-nine data connectors, all read-only, plus 16 ways to connect an AI, Twilio
 
 ## Connected October 30
 
-| Group | Connector | Sign-in and scopes | What OXBOT reads | Lands in |
+| Group | Connector | Sign-in and scopes | What Taurus reads | Lands in |
 |---|---|---|---|---|
 | Mail | Gmail | Google OAuth, `gmail.readonly` | Unread, last 3 days, from people only: list mail, promos, social, forums and no-reply senders are dropped; security alerts and VIPs always kept. Inbox unread count | Needs you, Inbox |
 | Mail | Outlook Mail | Microsoft OAuth, `Mail.Read` | Unread Focused, last 3 days; unread count | Needs you, Inbox |
@@ -36,15 +36,15 @@ Forty-nine data connectors, all read-only, plus 16 ways to connect an AI, Twilio
 
 ## Added October 31 (tested against mocks only)
 
-"From your apps" is a new board widget (Add widget → From your apps) for things that don't ask anything of you: files, music, feeds, weather. It never shows sample data; with nothing connected it says so. Ox talks about it when he sits on that card (the weather first).
+"From your apps" is a new board widget (Add widget → From your apps) for things that don't ask anything of you: files, music, feeds, weather. It never shows sample data; with nothing connected it says so. Taurus talks about it when he sits on that card (the weather first).
 
-| Group | Connector | Sign-in and scopes | What OXBOT reads | Lands in |
+| Group | Connector | Sign-in and scopes | What Taurus reads | Lands in |
 |---|---|---|---|---|
 | Mail | Fastmail | API token, read-only, Mail scope (JMAP) | Unread inbox, last 3 days, newsletters dropped; unread count | Needs you, Inbox |
 | Calendar | Calendly | Personal access token | Meetings booked with you, today and tomorrow | Calendar, meeting rings |
 | Calendar | Zoom | Zoom OAuth, `meeting:read:list_meetings cloud_recording:read:list_user_recordings user:read:user` | Upcoming meetings today and tomorrow; recordings from the last 3 days | Calendar, From your apps |
 | Chat | Discord | Bot token (no read-only token exists; invite the bot with only View Channels and Read Message History) + channel IDs + your user ID | Mentions of you in those channels, last 3 days | Needs you, Inbox |
-| Chat | Telegram | Bot token from @BotFather (no read-only option exists; OXBOT only calls `getMe`/`getUpdates`, never sends) | Messages sent to your bot in the last day | Needs you, Inbox |
+| Chat | Telegram | Bot token from @BotFather (no read-only option exists; Taurus only calls `getMe`/`getUpdates`, never sends) | Messages sent to your bot in the last day | Needs you, Inbox |
 | Chat | Microsoft Teams | Microsoft OAuth, `Chat.Read` | Chats with an unread message, last 3 days | Needs you, Inbox |
 | Tasks | Todoist | Todoist OAuth, `data:read` | Due today or overdue, by priority | Needs you |
 | Tasks | Asana | Asana OAuth, `tasks:read projects:read users:read workspaces:read` | Your incomplete tasks due today or earlier | Needs you |
@@ -71,28 +71,28 @@ Forty-nine data connectors, all read-only, plus 16 ways to connect an AI, Twilio
 | Files | Obsidian | None: the vault folder on this Mac | Open tasks due today or earlier (`📅` date), notes edited last; nothing leaves the Mac | Needs you, From your apps |
 | Music | Spotify | Spotify OAuth, `user-read-currently-playing user-read-recently-played` | Now playing, last 5 tracks. Playback (Nov 4, 2026) is the separate `spotify-play` grant on the Actions page | From your apps |
 | Feeds | RSS and Atom | None: feed addresses | Newest posts across your feeds | From your apps |
-| Feeds | Weather (Open-Meteo) | None: a city or coordinates (only that is sent) | Now, high, low, chance of rain | From your apps, Ox, the headline when nothing else is connected |
+| Feeds | Weather (Open-Meteo) | None: a city or coordinates (only that is sent) | Now, high, low, chance of rain | From your apps, Taurus, the headline when nothing else is connected |
 | Feeds | Hacker News | A switch, no account | Top 5 stories | From your apps |
 
-The new OAuth apps (Todoist, Asana, Atlassian, monday.com, Dropbox, Box, Spotify, Zoom, Xero, Withings) are in `apps/server/src/providers.ts` with their read-only scopes, so the sign-in service (`apps/broker`) can offer one-click sign-in for them too once OXBOT's own app keys for each are added there. The service refuses any scope not on that list. Google and Microsoft gained `tasks.readonly`, `drive.metadata.readonly`, `analytics.readonly`, `Chat.Read`, `Tasks.Read` and `Files.Read` on the same list.
+The new OAuth apps (Todoist, Asana, Atlassian, monday.com, Dropbox, Box, Spotify, Zoom, Xero, Withings) are in `apps/server/src/providers.ts` with their read-only scopes, so the sign-in service (`apps/broker`) can offer one-click sign-in for them too once Taurus's own app keys for each are added there. The service refuses any scope not on that list. Google and Microsoft gained `tasks.readonly`, `drive.metadata.readonly`, `analytics.readonly`, `Chat.Read`, `Tasks.Read` and `Files.Read` on the same list.
 
 ## Added November 18 (tested against mocks only)
 
-| Group | Connector | Sign-in and scopes | What OXBOT reads | Lands in |
+| Group | Connector | Sign-in and scopes | What Taurus reads | Lands in |
 |---|---|---|---|---|
 | Tasks | Canvas (Instructure) | Your school's Canvas address plus a personal access token you make yourself (Canvas → Account → Settings → Approved Integrations → New Access Token). Not OAuth: Canvas OAuth needs a developer key issued by each school, which the one-click sign-in service can't hold | Coursework that is overdue (last 14 days) or due in the next 7 days (course, title, due date), and the last 7 days of course announcements. Work you have handed in is left out | Needs you, From your apps |
 
 Canvas details (`apps/server/src/connectors/canvas.ts`, tests in `apps/server/test/canvas.test.ts` and `connectors.test.ts`, fake `*.instructure.com` data only):
 - **Read only, GET only.** Reads `/api/v1/courses?enrollment_state=active`, `/api/v1/planner/items?filter=incomplete_items` (what Canvas's own student dashboard uses, so submitted, excused and marked-complete work is left out), `/api/v1/users/self/todo`, `/api/v1/users/self/missing_submissions` (with the same filters Canvas's planner uses) and `/api/v1/announcements`. Never submits, posts, marks or deletes anything, and never calls the todo "ignore" links. Teacher "grading" to-dos are skipped. `/users/self/upcoming_events` is deliberately not used: it ignores its parameters and lists work already handed in.
-- **On the board:** each item is a "Needs you" row with the course as the name and the due date in the detail line. Overdue work keeps its due date as its time; work still coming counts from now, because the board shows that time as "how long ago" and sorts by it. Ox reads it like any other task source, including when you ask out loud.
+- **On the board:** each item is a "Needs you" row with the course as the name and the due date in the detail line. Overdue work keeps its due date as its time; work still coming counts from now, because the board shows that time as "how long ago" and sorts by it. Taurus reads it like any other task source, including when you ask out loud.
 - **The address is checked before the token goes anywhere:** https only, a real public domain (schools often use their own, like `canvas.school.edu`), no `localhost`, `.local`, `.internal`, no IP addresses or private networks, no user name in the address, no custom port. Only the scheme and host are kept. Redirects are never followed.
-- **The token** is sent only as `Authorization: Bearer <token>`, is stored in `~/.oxbot/secrets.json` like every other pasted key, and is never put in an error message. A 401 says to check the token; a 403 says the school may not allow tokens.
+- **The token** is sent only as `Authorization: Bearer <token>`, is stored in `~/.taurus/secrets.json` like every other pasted key, and is never put in an error message. A 401 says to check the token; a 403 says the school may not allow tokens.
 - **Capped:** 10 assignments and 5 announcements (140 characters each, tags stripped). If a school hides one of the lists, the others still show; a bad token always shows.
 - **Not tried with a real token yet.** Settings says so until the owner signs in with one.
 
 ### Looked at, not built
 
-Compared with OpenClaw (formerly Clawdbot and Moltbot) and similar personal agents, whose integration lists centre on chat channels (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Teams), notes and tasks (Notion, Obsidian, Apple Notes and Reminders, Things, Todoist, Trello), developer tools, music, smart home and the web. The list was checked from memory of those projects: web search wasn't available in this session. Every item they share with OXBOT's read-only scope is above, except:
+Compared with OpenClaw (formerly Clawdbot and Moltbot) and similar personal agents, whose integration lists centre on chat channels (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Teams), notes and tasks (Notion, Obsidian, Apple Notes and Reminders, Things, Todoist, Trello), developer tools, music, smart home and the web. The list was checked from memory of those projects: web search wasn't available in this session. Every item they share with Taurus's read-only scope is above, except:
 
 - **Salesforce** and **QuickBooks**: neither offers a read-only OAuth scope (`api` and `com.intuit.quickbooks.accounting` both allow writes). Not built, because the rule is read-only scopes only.
 - **ClickUp**, **Pipedrive personal tokens**, **Home Assistant**, **Philips Hue**: tokens are always full access. Not built.
@@ -108,7 +108,7 @@ Owner, October 31, 2026: a free plan plus any of the big labs. Pick one in **Set
 
 | Provider | How you connect | Default model when none is saved | Tested |
 |---|---|---|---|
-| **OXBOT Free** (OpenRouter) | **Sign in with OpenRouter** on the Mac: OAuth PKCE (S256), the callback is `http://localhost:8787/api/ai/openrouter/callback`, and the result is a key on your own free account. No app secret exists or is shipped. Or paste a key. | The best free model on OpenRouter's public list at the time: `nvidia/nemotron-3-ultra-550b-a55b:free`, then `openrouter/free` | Model list read live from OpenRouter's public endpoint on October 31 (17 free models). Sign-in and chat against mocks only. |
+| **Taurus Free** (OpenRouter) | **Sign in with OpenRouter** on the Mac: OAuth PKCE (S256), the callback is `http://localhost:8787/api/ai/openrouter/callback`, and the result is a key on your own free account. No app secret exists or is shipped. Or paste a key. | The best free model on OpenRouter's public list at the time: `nvidia/nemotron-3-ultra-550b-a55b:free`, then `openrouter/free` | Model list read live from OpenRouter's public endpoint on October 31 (17 free models). Sign-in and chat against mocks only. |
 | Claude (Anthropic) | API key | `claude-opus-5-5` | Existing, October 30 |
 | ChatGPT (OpenAI) | API key | `gpt-5` | Existing, October 30 |
 | Gemini (Google) | AI Studio key; OpenAI-compatible endpoint | Newest `gemini-*-pro` or `-flash` from Google's own model list, else `gemini-2.5-flash` | Mocks only |
@@ -125,11 +125,11 @@ Owner, October 31, 2026: a free plan plus any of the big labs. Pick one in **Set
 | Ollama (on this Mac) | Model name; nothing leaves the Mac | You choose | Mocks only |
 | Any other AI | Address of an OpenAI-style `/chat/completions` endpoint, optional key, model | You choose | Mocks only |
 
-Default model names drift; each provider has a Model field, and a saved model always wins. **Free models may keep and train on what you send**; the AI page says so before you sign in. If you pick nothing, OXBOT uses the first connected paid lab, then OXBOT Free. Code: `apps/server/src/ai.ts`; tests: `apps/server/test/ai.test.ts` (8 tests, in `pnpm check`).
+Default model names drift; each provider has a Model field, and a saved model always wins. **Free models may keep and train on what you send**; the AI page says so before you sign in. If you pick nothing, Taurus uses the first connected paid lab, then Taurus Free. Code: `apps/server/src/ai.ts`; tests: `apps/server/test/ai.test.ts` (8 tests, in `pnpm check`).
 
 ## Composio: hundreds more apps (added November 1, tested against mocks only)
 
-One connector, group "Hundreds more apps, through Composio". Paste your Composio project API key and, if you used one, the user ID you connected apps under (blank means `default`). OXBOT lists your active connected accounts and reads these 29 through Composio's proxy, always with GET:
+One connector, group "Hundreds more apps, through Composio". Paste your Composio project API key and, if you used one, the user ID you connected apps under (blank means `default`). Taurus lists your active connected accounts and reads these 29 through Composio's proxy, always with GET:
 
 | Lands in | Apps |
 |---|---|
@@ -138,26 +138,26 @@ One connector, group "Hundreds more apps, through Composio". Paste your Composio
 | Numbers | Pipedrive, Salesforce, Close (open pipeline, deals closing this week), Brex (cash), Ramp (card spend, 7 days), PayPal (balance), Square, Gumroad, Lemon Squeezy (sales, 7 days), Mailchimp (subscribers), YouTube, X, Instagram (followers), Toggl (hours, 7 days) |
 | From your apps | Coda, Miro, Canva (recently changed, names only), Webflow (last published), Typeform (new responses today), X (mentions) |
 
-Any of the other apps Composio lists (1,694 on November 1) can be looked up on the Connections page; once connected in Composio they show as "Connected. OXBOT has no reader for it yet". To add a reader, add one entry to `readers` in `apps/server/src/connectors/composio.ts` and its mocked reply to `composioMocks` in the test.
+Any of the other apps Composio lists (1,694 on November 1) can be looked up on the Connections page; once connected in Composio they show as "Connected. Taurus has no reader for it yet". To add a reader, add one entry to `readers` in `apps/server/src/connectors/composio.ts` and its mocked reply to `composioMocks` in the test.
 
-Composio keeps the sign-ins for those apps in its cloud and may ask an app for more than read access. OXBOT keeps only the API key and only reads: it never runs a Composio tool and never proxies anything but GET, and the test fails if it does.
+Composio keeps the sign-ins for those apps in its cloud and may ask an app for more than read access. Taurus keeps only the API key and only reads: it never runs a Composio tool and never proxies anything but GET, and the test fails if it does.
 
 ## One-click sign-in (for everyone else)
 
-With `OXBOT_BROKER_URL` set, every OAuth connector shows a single **Sign in with …** button whenever OXBOT's sign-in service (`apps/broker`) has keys for that provider. Users never see a client ID or secret; "Use your own app keys instead" stays available under the button. How the service works, why it can't read anyone's data, and how to deploy it: `apps/broker/README.md`.
+With `TAURUS_BROKER_URL` set, every OAuth connector shows a single **Sign in with …** button whenever Taurus's sign-in service (`apps/broker`) has keys for that provider. Users never see a client ID or secret; "Use your own app keys instead" stays available under the button. How the service works, why it can't read anyone's data, and how to deploy it: `apps/broker/README.md`.
 
 ## Setup notes that will save you an hour
 
-- **Google (Gmail, Calendar, Sheets, Google Health):** one OAuth client of type *Web application*. Enable each API you use. While the consent screen is in *Testing*, add yourself as a test user, and expect Google to expire the refresh token after 7 days: you'll have to sign in again weekly until the app is published (personal use can stay in Testing). Gmail's read scope is "restricted": fine for your own account, a security review only if you ever ship OXBOT to others.
+- **Google (Gmail, Calendar, Sheets, Google Health):** one OAuth client of type *Web application*. Enable each API you use. While the consent screen is in *Testing*, add yourself as a test user, and expect Google to expire the refresh token after 7 days: you'll have to sign in again weekly until the app is published (personal use can stay in Testing). Gmail's read scope is "restricted": fine for your own account, a security review only if you ever ship Taurus to others.
 - **Google Health** replaces the Fitbit Web API, which Google turns off on November 2, 2026. Your Fitbit or Pixel account must be linked to Google Health, or the API answers `ACCOUNT_NOT_LINKED`.
 - **Microsoft:** register one app for "Accounts in any organizational directory and personal Microsoft accounts", platform *Web*, add the redirect URL, create a client secret. Work tenants may require admin consent for `Mail.Read`.
-- **Slack** requires HTTPS redirect URLs for OAuth, so OXBOT uses a user token instead: create an app, add user scope `search:read`, install to your workspace, copy the `xoxp-` token.
+- **Slack** requires HTTPS redirect URLs for OAuth, so Taurus uses a user token instead: create an app, add user scope `search:read`, install to your workspace, copy the `xoxp-` token.
 - **Strava:** "Authorization Callback Domain" must be `localhost`.
 - **WHOOP:** create the app in the developer dashboard, scopes `offline read:recovery read:sleep read:cycles`. If the dashboard refuses an `http://localhost` redirect, use the Tailscale HTTPS URL.
 - **Stripe:** use a restricted key with Read on Balance and Charges only. Revenue sums the first 100 charges per 30 days; above that the number shows a `+` and no comparison.
-- **Sheets:** make a tab named `OXBOT` with three columns: metric, value, change. Example: `Monthly burn | $612,000 | -3.0%`. A header row is skipped.
+- **Sheets:** make a tab named `Taurus` with three columns: metric, value, change. Example: `Monthly burn | $612,000 | -3.0%`. A header row is skipped.
 - **Apple Calendar:** iCloud.com → Calendar → share a calendar as Public → copy the `webcal://` link. Treat it like a password.
-- **Twilio:** save the Twilio number in Contacts as "OXBOT" and add it to Favorites, so Focus lets it ring.
+- **Twilio:** save the Twilio number in Contacts as "Taurus" and add it to Favorites, so Focus lets it ring.
 
 ## How failures show
 
@@ -169,4 +169,4 @@ Add one object to a list in `apps/server/src/connectors/` (`work.ts`, `numbers-b
 
 ## Actions (November 1, 2026)
 
-Everything above reads. Since November 1, 2026 OXBOT can also act, only after the owner approves each action, through separate write permissions on Settings, then Actions: Gmail and Outlook sending (`gmail.send`, `Mail.Send`, own OAuth app only), Slack (`chat:write`, `reactions:write`), Twilio texts and calls, GitHub reviews, Linear updates, and Composio tools. See `docs/14-actions.md`.
+Everything above reads. Since November 1, 2026 Taurus can also act, only after the owner approves each action, through separate write permissions on Settings, then Actions: Gmail and Outlook sending (`gmail.send`, `Mail.Send`, own OAuth app only), Slack (`chat:write`, `reactions:write`), Twilio texts and calls, GitHub reviews, Linear updates, and Composio tools. See `docs/14-actions.md`.

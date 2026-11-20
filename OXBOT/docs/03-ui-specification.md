@@ -2,9 +2,9 @@
 
 ## Information architecture
 
-The main navigation has five destinations: **Today, Ask Ox, Tasks, Memory, and Connections**. Put Settings and help at the bottom of the desktop rail. Notifications, receipts, and execution history belong within task details and Today; they do not each need a separate top-level destination. Search and a command entry are available globally.
+The main navigation has five destinations: **Today, Ask Taurus, Tasks, Memory, and Connections**. Put Settings and help at the bottom of the desktop rail. Notifications, receipts, and execution history belong within task details and Today; they do not each need a separate top-level destination. Search and a command entry are available globally.
 
-Today answers, "What needs me, and what has Ox handled?" Ask Ox is a conversational command surface, not a second unrelated app. Tasks holds planned work, approvals, active work, and receipts. Memory explains what Ox knows and why. Connections explains where context comes from and exactly what is available.
+Today answers, "What needs me, and what has Taurus handled?" Ask Taurus is a conversational command surface, not a second unrelated app. Tasks holds planned work, approvals, active work, and receipts. Memory explains what Taurus knows and why. Connections explains where context comes from and exactly what is available.
 
 Do not create a generic home dashboard containing an AI usage graph, productivity score, revenue chart, streak, token meter, wellness ring, and social feed. Most do not help the user make a decision. Every visible module must support a named user task or a justified operational status.
 
@@ -30,7 +30,7 @@ Start with a sentence such as "Two items need your decision. Tomorrow's plan is 
 
 A **Tomorrow plan** module connects the signature experience: meeting change, preparation, suggested wake time, and later an app-managed alarm. Until native implementation exists, use "Alarm preview" and "No alarm is scheduled by this demo." Do not bury this limitation in a tooltip.
 
-## Ask Ox
+## Ask Taurus
 
 The composer is simple: a multiline input, an optional attachment control with explicit capability, a send button, and a keyboard hint. The assistant is not a carnival of suggested prompts. Show two or three genuinely useful starter requests only when the history is empty.
 
@@ -42,7 +42,7 @@ The frontend should support cancellation and a visible paused state. Later strea
 
 ## Task detail and approval inspector
 
-The inspector is where confidence is earned. Include a concise goal, current status, the exact action, relevant source evidence, permissions, and the next step. Keep a readable activity trail that separates what Ox proposed from what the user approved and what the provider actually did.
+The inspector is where confidence is earned. Include a concise goal, current status, the exact action, relevant source evidence, permissions, and the next step. Keep a readable activity trail that separates what Taurus proposed from what the user approved and what the provider actually did.
 
 For an email, the approval view includes sender account, recipient name and full address, subject, body, attachments with exact version identifiers, signature, and any unresolved uncertainty. Approve, edit, reject, and cancel should not have visually equal weight. Make the expected primary choice clear without using dark patterns.
 
@@ -50,7 +50,7 @@ For a future purchase, show merchant, items, substitutions, fees, tip, total, ad
 
 Evidence references show source name, permission context, last synced time, and a brief excerpt. A "Why this matters" explanation should describe the relevant user priority, not expose hidden model reasoning or invented certainty. Link to original content only when the source is actually available to the user.
 
-A result-unknown state is first-class: "The request was submitted, but confirmation did not arrive. Ox is checking before retrying." It should not look like an ordinary failure with a tempting repeat button. This is essential for avoiding duplicate sends and purchases.
+A result-unknown state is first-class: "The request was submitted, but confirmation did not arrive. Taurus is checking before retrying." It should not look like an ordinary failure with a tempting repeat button. This is essential for avoiding duplicate sends and purchases.
 
 ## Tasks, Memory, and Connections
 
@@ -102,7 +102,7 @@ Use motion to explain a transition, not decorate inactivity. Most feedback trans
 
 The mascot has a neutral idle state, a restrained working state, a clear needs-input state, a brief completion acknowledgement, and a paused state. Task labels carry the meaning. Do not make the avatar look sad because the user has not answered or make it repeatedly demand attention.
 
-An interrupted or offline state should not be hidden by an endless cute animation. Use a textual status such as "Ox is paused" or "Waiting for the connection." Let people hide the companion animation while retaining the functional interface.
+An interrupted or offline state should not be hidden by an endless cute animation. Use a textual status such as "Taurus is paused" or "Waiting for the connection." Let people hide the companion animation while retaining the functional interface.
 
 ## Accessibility and interaction detail
 

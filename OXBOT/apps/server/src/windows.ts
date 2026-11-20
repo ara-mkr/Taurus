@@ -1,17 +1,17 @@
 import { onConnect, send } from './ring.ts';
-import type { OxWindow } from './types.ts';
+import type { TaurusWindow } from './types.ts';
 
-// Ox windows (owner, November 4, 2026): the glass window that pops up on every open screen when Ox does something
+// Taurus windows (owner, November 4, 2026): the glass window that pops up on every open screen when Taurus does something
 // you asked for out loud, so you see it happened. Kept in memory only. The ones still open (music, running timers,
 // due reminders) come back when a screen connects; closing one closes it on every screen.
 
-const open = new Map<string, OxWindow>();
+const open = new Map<string, TaurusWindow>();
 const MAX = 12;
 
 // Omit spread over each kind, so every kind keeps its own fields.
-type Showing = OxWindow extends infer W ? W extends OxWindow ? Omit<W, 'at'> & { at?: string } : never : never;
-export function show(win: Showing): OxWindow {
-  const full = { ...win, at: win.at ?? new Date().toISOString() } as OxWindow;
+type Showing = TaurusWindow extends infer W ? W extends TaurusWindow ? Omit<W, 'at'> & { at?: string } : never : never;
+export function show(win: Showing): TaurusWindow {
+  const full = { ...win, at: win.at ?? new Date().toISOString() } as TaurusWindow;
   open.delete(full.id);
   open.set(full.id, full);
   while (open.size > MAX) open.delete(open.keys().next().value!);

@@ -4,7 +4,7 @@ import { DAY, iso, stripTags, type Def, type Pull } from './kit.ts';
 // Canvas LMS (Instructure): coursework for students. Read-only, GET only, built from Canvas's documented REST API v1
 // (https://canvas.instructure.com/doc/api/) and tested only against mocked responses.
 //
-// Canvas OAuth needs a developer key issued by each school, so OXBOT's one-click sign-in cannot serve it. The student
+// Canvas OAuth needs a developer key issued by each school, so Taurus's one-click sign-in cannot serve it. The student
 // pastes their school's Canvas address and a personal access token they generate themselves (Account → Settings →
 // "New Access Token"). Nothing is ever submitted, posted, marked or changed. The only reads are
 //   GET /api/v1/courses, /planner/items, /users/self/todo, /users/self/missing_submissions, /announcements.
@@ -21,7 +21,7 @@ const AHEAD_DAYS = 7; // Coming up: the next week.
 const BEHIND_DAYS = 14; // Overdue: the last two weeks, so a term's worth of old misses doesn't bury today.
 
 // "https://school.instructure.com/anything" -> "https://school.instructure.com". Throws a plain sentence when the
-// address is not one OXBOT should send a token to: https only, a real public domain, no credentials, no odd port.
+// address is not one Taurus should send a token to: https only, a real public domain, no credentials, no odd port.
 export function canvasBase(input: string | undefined): string {
   const text = (input ?? '').trim();
   if (!text) throw new Error('Canvas: add your school’s Canvas address, like https://yourschool.instructure.com.');
@@ -135,12 +135,12 @@ export async function canvasPull(baseField: string | undefined, token: string | 
 export const canvasDefs: Def[] = [
   {
     id: 'canvas', name: 'Canvas', group: 'Tasks', mockOnly: true,
-    reads: 'Your coursework that is overdue or due in the next week, with the course and due date, and the last week of course announcements. Work you have handed in is left out. Read only: OXBOT never submits or posts anything.',
+    reads: 'Your coursework that is overdue or due in the next week, with the course and due date, and the last week of course announcements. Work you have handed in is left out. Read only: Taurus never submits or posts anything.',
     fields: [
       { key: 'CANVAS_URL', label: 'Your school’s Canvas address', placeholder: 'https://yourschool.instructure.com' },
       { key: 'CANVAS_TOKEN', label: 'Access token', secret: true },
     ],
-    setup: 'Sign in to Canvas → Account → Settings → Approved Integrations → New Access Token. Name it OXBOT, leave the expiry as you like, and copy the token (Canvas shows it once). Paste it with the address you sign in at.',
+    setup: 'Sign in to Canvas → Account → Settings → Approved Integrations → New Access Token. Name it Taurus, leave the expiry as you like, and copy the token (Canvas shows it once). Paste it with the address you sign in at.',
     setupUrl: 'https://community.canvaslms.com/t5/Canvas-Basics-Guide/How-do-I-manage-API-access-tokens-in-my-user-account/ta-p/615312',
     pull: ({ field }) => canvasPull(field('CANVAS_URL'), field('CANVAS_TOKEN')),
   },

@@ -3,7 +3,7 @@ import { dashboard } from '../dashboard.ts';
 import { api, HttpError, store } from '../store.ts';
 import { register } from './approvals.ts';
 
-// "Order me some food" (owner, November 1, 2026): OXBOT picks one good option and asks once, with the item, the
+// "Order me some food" (owner, November 1, 2026): Taurus picks one good option and asks once, with the item, the
 // place and the total. No questionnaire. It learns from past delivery receipts in Gmail (read-only) and from orders
 // you approved here. No delivery app offers an ordering API (Composio lists none of DoorDash, Uber Eats, Grubhub,
 // Postmates or Instacart), so approving opens the order in the app and you tap Place order there.
@@ -86,7 +86,7 @@ register({
       title: `Order from ${o.place}`, to: o.place,
       purchase: { item, place: o.place, total: o.total ? `About ${o.total}` : `Shown in ${o.app}` },
       lines: [{ label: 'Why', value: picked.why }, { label: 'App', value: o.app }],
-      caution: `No delivery app lets OXBOT place an order. Approving opens ${o.app} at ${o.place}, where you check the final total and tap Place order.`,
+      caution: `No delivery app lets Taurus place an order. Approving opens ${o.app} at ${o.place}, where you check the final total and tap Place order.`,
       open: orderLink(o.app, o.place),
       payload: { place: o.place, item, total: o.total, app: o.app },
     };

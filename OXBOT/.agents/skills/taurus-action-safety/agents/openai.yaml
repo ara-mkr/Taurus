@@ -1,0 +1,5 @@
+interface:
+  display_name: "Taurus Action Safety"
+  short_description: "Review permission, disclosure and real-action failure paths."
+  brand_color: "#4C54C9"
+  default_prompt: "Use the taurus-action-safety skill for this Taurus task. Read the project phase and constraints first."

@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 
-// Keeping Ox's tool loop honest (owner, November 16, 2026: "look at openmausbot repo and look at the code they use for
+// Keeping Taurus's tool loop honest (owner, November 16, 2026: "look at openmausbot repo and look at the code they use for
 // ai to actually do agentic actions"). Adapted from OpenMausBot (Copyright 2026 Milind Soni and OpenMausBot
 // contributors, Apache License 2.0): server/drivers/chat-repeat-guard.ts and the English rules of
-// server/drivers/chat-announcement.ts. See NOTICE at the OXBOT root. Changes: OXBOT's wording, a smaller stop limit
-// for OXBOT's shorter loop, and no Chinese-language rules.
+// server/drivers/chat-announcement.ts. See NOTICE at the Taurus root. Changes: Taurus's wording, a smaller stop limit
+// for Taurus's shorter loop, and no Chinese-language rules.
 
 // A model that is stuck says so by repeating itself: the same call, the same answer. Counted per call rather than back
 // to back, so taking turns between two stuck calls is still stuck. A different answer starts the count over.
@@ -64,7 +64,7 @@ export function announcesAction(text: string): boolean {
     const tail = reply.split(/\n\s*\n/).at(-1)!.trim();
     return tail.length <= 400 && /^(?:let me|i['’]ll|i will|i(?:['’]m| am) going to)\s+(?:now\s+)?(?:execute|send|type|press|launch|open|check|inspect|read|fetch|run|create|write|verify|look|search|find|pull)\b/i.test(tail);
   }
-  // OXBOT's persona says defaults out loud ("I'll tell Dana Thursday at 10 works."), so "I'll" alone is not an
+  // Taurus's persona says defaults out loud ("I'll tell Dana Thursday at 10 works."), so "I'll" alone is not an
   // announcement here: only "I'll check / look / pull …", the -ing openers, and a reply that trails off.
   return /(?:[:—–]|\.\.\.|…)$/.test(reply) ||
     /^(?:checking|let me(?! know\b)|(?:i'll|i’ll|i will|i'm going to|i’m going to|i am going to)\s+(?:now\s+)?(?:check|look|pull|search|open|read|fetch|find|grab|see|browse)|opening|pulling|looking|searching|navigating|reading|fetching|loading|one sec|hang on|now (?:let me|opening|checking|pulling|reading))\b/i.test(reply);

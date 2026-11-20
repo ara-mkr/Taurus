@@ -8,9 +8,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, test } from 'node:test';
 
-process.env.OXBOT_HOME = mkdtempSync(join(tmpdir(), 'oxbot-profinder-'));
-process.env.OXBOT_BROKER_URL = '';
-process.env.OXBOT_NO_SCHEDULER = '1';
+process.env.TAURUS_HOME = mkdtempSync(join(tmpdir(), 'taurus-profinder-'));
+process.env.TAURUS_BROKER_URL = '';
+process.env.TAURUS_NO_SCHEDULER = '1';
 for (const key of ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'ADZUNA_APP_ID', 'ADZUNA_APP_KEY']) delete process.env[key];
 const { store } = await import('../src/store.ts');
 const pf = await import('../src/profinder.ts');
@@ -109,7 +109,7 @@ test('a board that fails is reported and the rest still count; “run ProFinder�
   pf.resetProfinder();
   setup();
   pf.savePrefs({ boards: ['greenhouse:examplecorp', 'lever:nobody'], aiScoring: false });
-  const r = await instant('Hey Ox, run ProFinder', 'ask');
+  const r = await instant('Hey Taurus, run ProFinder', 'ask');
   assert.match(r!.text, /^ProFinder: \d+ new match/);
   assert.equal(pf.pipeline().lastRun!.errors.length, 1);
   assert.match(pf.pipeline().lastRun!.errors[0], /^lever:nobody/);
@@ -226,7 +226,7 @@ test('no confirmation means “needs you”, never a second press; a changed res
   assert.match(jb.needs!, /CAPTCHA/);
   assert.equal(fake.submitted.length, 1);
   assert.deepEqual(pf.submissions().map(l => l.outcome), ['unconfirmed', 'needs-you']);
-  // An unconfirmed job can't be prepared again by Ox; the owner marks it applied after checking.
+  // An unconfirmed job can't be prepared again by Taurus; the owner marks it applied after checking.
   await assert.rejects(pf.prepare([a.id]), /Pick shortlisted jobs/);
   pf.setStage(a.id, 'applied');
   assert.equal(pf.pipeline().jobs.find(j => j.id === a.id)!.stage, 'applied');

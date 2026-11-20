@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 // Settings > Notch (owner, November 17, 2026: "the settings shouldnt all js show up in the notch it should open up to
-// the oxbot app and theres all ther settings", then "same settings options"). Vorssaint's Dynamic Island settings, in
-// its order and words (UI/Settings/NotchSettings.swift and NotchAgentsSettings.swift, GPL-3.0), for Ox's notch
-// (apps/notch-mac), plus the few that are OXBOT's own. Only in the desktop app, which keeps them in
-// ~/.oxbot/desktop.json and applies each change straight away.
+// the taurus app and theres all ther settings", then "same settings options"). Vorssaint's Dynamic Island settings, in
+// its order and words (UI/Settings/NotchSettings.swift and NotchAgentsSettings.swift, GPL-3.0), for Taurus's notch
+// (apps/notch-mac), plus the few that are Taurus's own. Only in the desktop app, which keeps them in
+// ~/.taurus/desktop.json and applies each change straight away.
 
 type Native = {
   size: 'compact' | 'spacious' | 'custom'; customWidth: number; customHeight: number; glass: boolean; shape: 'capsule' | 'notch';
@@ -15,7 +15,7 @@ type Native = {
 };
 type Settings = {
   on: boolean; display: 'automatic' | 'builtin' | 'main' | 'all'; open: 'hover' | 'click'; hoverDelay: number; closeDelay: number;
-  mascotSide: 'left' | 'right'; idle: 'ox' | 'nothing'; show: { answer: boolean; music: boolean; timers: boolean; ask: boolean };
+  mascotSide: 'left' | 'right'; idle: 'taurus' | 'nothing'; show: { answer: boolean; music: boolean; timers: boolean; ask: boolean };
   overFullScreen: boolean; inCaptures: boolean; noNotch: 'pill' | 'hidden'; native?: Partial<Native>; nativeNotch?: boolean;
 };
 type Bridge = { get(): Promise<Settings | null>; set(partial: Partial<Settings>): Promise<Settings | null> };
@@ -43,13 +43,13 @@ function Range({ label, value, min, max, step, unit, onPick }: { label: string; 
 }
 
 export function NotchPage() {
-  const bridge = (window as { oxbotDesktop?: { notch?: Bridge } }).oxbotDesktop?.notch;
+  const bridge = (window as { taurusDesktop?: { notch?: Bridge } }).taurusDesktop?.notch;
   const [s, setS] = useState<Settings | null>(null);
   useEffect(() => { void bridge?.get().then(setS).catch(() => undefined); }, [bridge]);
 
   if (!bridge) return <main id="main" tabIndex={-1} className="settings-page">
     <div className="page-head"><h1>Notch</h1></div>
-    <p className="muted">Ox’s notch is part of OXBOT’s desktop app on your Mac. Open OXBOT there to change it.</p>
+    <p className="muted">Taurus’s notch is part of Taurus’s desktop app on your Mac. Open Taurus there to change it.</p>
   </main>;
   if (!s) return <main id="main" tabIndex={-1} className="settings-page"><div className="page-head"><h1>Notch</h1></div><p className="muted">Loading</p></main>;
 
@@ -62,7 +62,7 @@ export function NotchPage() {
     <fieldset className="choice">
       <legend>Dynamic Island</legend>
       <label className="check"><input type="checkbox" checked={s.on} onChange={e => save({ on: e.target.checked })} />Enable Dynamic Island</label>
-      <p className="muted">Ox, your music, agents and everyday tools, together at the top of your screen.{s.nativeNotch ? ' The native notch is running; changes show straight away.' : ''}</p>
+      <p className="muted">Taurus, your music, agents and everyday tools, together at the top of your screen.{s.nativeNotch ? ' The native notch is running; changes show straight away.' : ''}</p>
     </fieldset>
 
     <fieldset className="choice">
@@ -106,7 +106,7 @@ export function NotchPage() {
 
     <fieldset className="choice">
       <legend>At rest</legend>
-      <label className="check"><input type="checkbox" checked={s.idle === 'ox'} onChange={e => save({ idle: e.target.checked ? 'ox' : 'nothing' })} />Show Ox beside the camera</label>
+      <label className="check"><input type="checkbox" checked={s.idle === 'taurus'} onChange={e => save({ idle: e.target.checked ? 'taurus' : 'nothing' })} />Show Taurus beside the camera</label>
       <div className="bg-kinds">{(['left', 'right'] as const).map(side => <label key={side} className="check"><input type="radio" name="side" checked={s.mascotSide === side} onChange={() => save({ mascotSide: side })} />{side === 'left' ? 'Left' : 'Right'}</label>)}</div>
       <div className="bg-kinds">{(['none', 'music', 'battery', 'agents'] as const).map(r => <label key={r} className="check"><input type="radio" name="resting" checked={n.resting === r} onChange={() => setN({ resting: r })} />{{ none: 'Nothing', music: 'Music', battery: 'Battery', agents: 'AI Agents' }[r]}</label>)}</div>
     </fieldset>
@@ -130,8 +130,8 @@ export function NotchPage() {
     </fieldset>
 
     <fieldset className="choice">
-      <legend>Ox</legend>
-      {(['answer', 'music', 'timers', 'ask'] as const).map(k => <label key={k} className="check"><input type="checkbox" checked={s.show[k]} onChange={e => save({ show: { ...s.show, [k]: e.target.checked } })} />{{ answer: 'Show Ox’s answers', music: 'Show what’s playing', timers: 'Show timers', ask: 'Ask Ox from the island' }[k]}</label>)}
+      <legend>Taurus</legend>
+      {(['answer', 'music', 'timers', 'ask'] as const).map(k => <label key={k} className="check"><input type="checkbox" checked={s.show[k]} onChange={e => save({ show: { ...s.show, [k]: e.target.checked } })} />{{ answer: 'Show Taurus’s answers', music: 'Show what’s playing', timers: 'Show timers', ask: 'Ask Taurus from the island' }[k]}</label>)}
     </fieldset>
 
     <h2>AI Agents</h2>

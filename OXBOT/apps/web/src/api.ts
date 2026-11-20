@@ -2,8 +2,8 @@ import type { HomeState, MacState, SpeechState, Device } from '../../server/src/
 import type { AiCard, AiInfo, AskTurn, Activity, Board, BrowserState, ConnectorInfo, Dashboard, Grant, History, Memory, MusicState, MarketRange, NewsTopic, PhoneSettings, Prefs, Proposal, Quote, Reminder, Ring } from '../../server/src/types';
 
 export type { Grant, Proposal } from '../../server/src/types';
-export type { Device, DeviceKind, HomeState, MacState, PanelSize, SpeechState, SpeechVoice, Taurus, TaurusPanel } from '../../server/src/types';
-export type { Activity, Background, BrowserState, Memory, MusicState, OxWindow, Profile, Reminder, Timer, Tone } from '../../server/src/types';
+export type { Device, DeviceKind, HomeState, MacState, PanelSize, SpeechState, SpeechVoice, Hud, HudPanel } from '../../server/src/types';
+export type { Activity, Background, BrowserState, Memory, MusicState, TaurusWindow, Profile, Reminder, Timer, Tone } from '../../server/src/types';
 export type { AiCard, AiInfo, AskTurn, Board, CalendarEvent, ConnectorInfo, Dashboard, Group, Update, History, HistoryDay, MarketRange, Need, NewsTopic, Person, PhoneSettings, Prefs, Quote, Ring, Section, Tint, Todo, TrendMetric, Widget, WidgetConfig, WidgetSize, WidgetType } from '../../server/src/types';
 
 export class ApiError extends Error {
@@ -17,11 +17,11 @@ async function request<T>(path: string, init?: { method?: string; body?: unknown
     response = await fetch(path, {
       method: init?.method ?? 'GET',
       credentials: 'same-origin',
-      headers: init?.body !== undefined || init?.method ? { 'Content-Type': 'application/json', 'x-oxbot': '1' } : undefined,
+      headers: init?.body !== undefined || init?.method ? { 'Content-Type': 'application/json', 'x-taurus': '1' } : undefined,
       body: init?.body === undefined ? undefined : JSON.stringify(init.body),
     });
   } catch {
-    throw new ApiError(0, 'The OXBOT server is not running. Start it with pnpm dev from the OXBOT folder.');
+    throw new ApiError(0, 'The Taurus server is not running. Start it with pnpm dev from the Taurus folder.');
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(response.status, data.error ?? `Request failed (${response.status})`);
@@ -48,12 +48,12 @@ export interface MessagesStatus { on: boolean; state: 'off' | 'ready' | 'no-acce
 export interface ScansInfo { scans: Scan[]; feed: FeedItem[]; messages: MessagesStatus; sources: ScanSource[]; error?: string; result?: { note: string } }
 export interface PlanStatus { id: string; installed: boolean; signedIn?: boolean; plan?: string; how?: string; error?: string }
 
-// Ask, streamed: lines of JSON as Ox works. Falls back to the error a non-streamed reply carries.
+// Ask, streamed: lines of JSON as Taurus works. Falls back to the error a non-streamed reply carries.
 async function askStream(turns: AskTurn[], options: { image?: string; files?: { name: string; text: string }[]; via?: 'ask' | 'talk' }, on: { text?: (delta: string) => void; reset?: () => void; step?: (text: string) => void }): Promise<Answer> {
   let response: Response;
   try {
-    response = await fetch('/api/ask', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'x-oxbot': '1' }, body: JSON.stringify({ turns: turns.map(({ role, text }) => ({ role, text })), ...options, stream: true }) });
-  } catch { throw new ApiError(0, 'The OXBOT server is not running. Start it with pnpm dev from the OXBOT folder.'); }
+    response = await fetch('/api/ask', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: JSON.stringify({ turns: turns.map(({ role, text }) => ({ role, text })), ...options, stream: true }) });
+  } catch { throw new ApiError(0, 'The Taurus server is not running. Start it with pnpm dev from the Taurus folder.'); }
   if (!response.ok || !response.body || !(response.headers.get('content-type') ?? '').includes('ndjson')) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new ApiError(response.status, data.error ?? `Request failed (${response.status})`);
@@ -73,7 +73,7 @@ async function askStream(turns: AskTurn[], options: { image?: string; files?: { 
       else if (event.type === 'reset') on.reset?.();
       else if (event.type === 'step' && event.text) on.step?.(event.text);
       else if (event.type === 'done' && event.answer) return event.answer;
-      else if (event.type === 'error') throw new ApiError(409, event.error ?? 'Ox couldn’t answer.');
+      else if (event.type === 'error') throw new ApiError(409, event.error ?? 'Taurus couldn’t answer.');
     }
     if (done) throw new ApiError(0, 'The answer was cut off. Ask again.');
   }
@@ -130,7 +130,7 @@ export const api = {
   buildBoard: (prompt: string, current?: Board) => request<{ board: Board; by: string }>('/api/boards/generate', { method: 'POST', body: { prompt, current } }),
   card: (prompt: string) => request<AiCard>('/api/cards', { method: 'POST', body: { prompt } }),
   activity: () => request<{ activity: Activity[] }>('/api/activity'),
-  // Ox windows (November 4, 2026) and the buttons inside them.
+  // Taurus windows (November 4, 2026) and the buttons inside them.
   closeWindow: (id: string) => request<{ ok: boolean }>('/api/windows/close', { method: 'POST', body: { id } }),
   music: () => request<MusicState>('/api/music'),
   musicControl: (what: string, value?: number) => request<{ text: string; music: MusicState }>('/api/music', { method: 'POST', body: { do: what, value } }),
@@ -144,13 +144,13 @@ export const api = {
   // A photo or video for the background goes up as itself, not as JSON.
   background: async (file: File) => {
     let response: Response;
-    try { response = await fetch('/api/background', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'x-oxbot': '1' }, body: file }); }
-    catch { throw new ApiError(0, 'The OXBOT server is not running.'); }
+    try { response = await fetch('/api/background', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'x-taurus': '1' }, body: file }); }
+    catch { throw new ApiError(0, 'The Taurus server is not running.'); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new ApiError(response.status, data.error ?? `Upload failed (${response.status})`);
     return data as { file: string; video: boolean };
   },
-  // Ox's voice, the home and this Mac (November 5, 2026).
+  // Taurus's voice, the home and this Mac (November 5, 2026).
   speech: () => request<SpeechState>('/api/speech'),
   setSpeech: (on: boolean) => request<SpeechState>('/api/speech', { method: 'POST', body: { on } }),
   home: (refresh = false) => request<HomeState>(`/api/home${refresh ? '?refresh' : ''}`),
@@ -170,8 +170,8 @@ export const api = {
   decideSuggestion: (id: string, add: boolean) => request<{ suggestions: BrainSuggestion[]; graph: BrainGraph }>(`/api/brain/suggestions/${id}`, { method: 'POST', body: { add } }),
   attachFile: async (note: string, file: File) => {
     let response: Response;
-    try { response = await fetch(`/api/brain/file?note=${encodeURIComponent(note)}&name=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream', 'x-oxbot': '1' }, body: file }); }
-    catch { throw new ApiError(0, 'The OXBOT server is not running.'); }
+    try { response = await fetch(`/api/brain/file?note=${encodeURIComponent(note)}&name=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream', 'x-taurus': '1' }, body: file }); }
+    catch { throw new ApiError(0, 'The Taurus server is not running.'); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new ApiError(response.status, data.error ?? `Upload failed (${response.status})`);
     return data as { note: BrainNote; file: string; graph: BrainGraph };
@@ -187,7 +187,7 @@ export const api = {
   profinderSchedule: (on: boolean) => request<ProFinderInfo>('/api/profinder/schedule', { method: 'POST', body: { on } }),
 };
 
-// The Brain: Obsidian-style notes in ~/.oxbot/brain (shapes from apps/server/src/brain.ts).
+// The Brain: Obsidian-style notes in ~/.taurus/brain (shapes from apps/server/src/brain.ts).
 export interface BrainNode { id: string; title: string; kind: 'hub' | 'note' | 'file' | 'missing'; up?: string; size: number }
 export interface BrainGraph { nodes: BrainNode[]; links: { source: string; target: string }[] }
 export interface BrainNote { title: string; path: string; hub: boolean; up?: string; tags: string[]; updated: string; body: string; links: string[]; files: string[] }

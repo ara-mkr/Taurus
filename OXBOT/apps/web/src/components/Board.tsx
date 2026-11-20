@@ -55,7 +55,7 @@ export function BoardView({ board, ctx }: { board: Board; ctx: Ctx }) {
       if (mode === 'new') { ctx.setPrefs(p => ({ ...p, boards: [...p.boards, made] })); location.hash = `b/${made.id}`; }
       else ctx.setPrefs(p => ({ ...p, boards: p.boards.map(b => b.id === board.id ? { ...b, widgets: made.widgets } : b) }));
       setPrompt(''); setBuilding(false);
-      if (by === 'rules') setNote('Built from keywords. Connect an AI in Settings, then AI, for boards that follow any description. OXBOT Free costs nothing.');
+      if (by === 'rules') setNote('Built from keywords. Connect an AI in Settings, then AI, for boards that follow any description. Taurus Free costs nothing.');
     } catch (error) { setNote((error as Error).message); }
     finally { setBusy(''); }
   }

@@ -1,8 +1,8 @@
 import type { NotchSettings, NotchState } from './notch-settings';
 
-// Ox in the notch, the page (November 6, 2026). Closed, it is a black pill around the camera with Ox on one side and
+// Taurus in the notch, the page (November 6, 2026). Closed, it is a black pill around the camera with Taurus on one side and
 // what he is doing on the other. Hovered (or clicked, by setting), it opens downward into a small assistant. All text
-// from OXBOT goes in as text, never as markup. Clicks fall through the window everywhere but the pill.
+// from Taurus goes in as text, never as markup. Clicks fall through the window everywhere but the pill.
 
 interface Bridge {
   onState(cb: (s: NotchState) => void): void; onCommand(cb: (c: string) => void): void;
@@ -10,7 +10,7 @@ interface Bridge {
   ask(text: string): Promise<{ text: string } | { error: string }>; say(text: string): Promise<{ text: string } | { error: string }>;
   save(partial: unknown): Promise<NotchSettings>;
 }
-const bridge = (window as unknown as { oxNotch: Bridge }).oxNotch;
+const bridge = (window as unknown as { taurusNotch: Bridge }).taurusNotch;
 const $ = (id: string) => document.getElementById(id)!;
 const notch = $('notch'), left = $('left'), right = $('right'), panel = $('panel');
 const root = document.documentElement.style;
@@ -19,7 +19,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let state: NotchState | null = null;
 let open = false, view: 'main' | 'settings' = 'main', inside = false, asking = false, problem = '';
 let hoverTimer = 0, closeTimer = 0, lastAnswerAt = '', lastNewsAt = '';
-// Each part is redrawn only when what it shows has changed: nothing is swapped out under a click or a drag, and Ox's
+// Each part is redrawn only when what it shows has changed: nothing is swapped out under a click or a drag, and Taurus's
 // listening animation isn't restarted every second.
 const drawn = new Map<string, string>();
 const changed = (part: string, ...what: unknown[]) => { const sig = JSON.stringify(what); if (drawn.get(part) === sig) return false; drawn.set(part, sig); return true; };
@@ -33,11 +33,11 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLEle
   return el;
 }
 
-// Ox: two eyes under the horn crescent, from design/logo/ox-mascot.svg (OXBOT's own mark).
-function ox() {
+// Taurus: two eyes under the horn crescent, from design/logo/taurus-mascot.svg (Taurus's own mark).
+function taurus() {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '455 738 1138 857'); svg.setAttribute('class', 'ox'); svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('viewBox', '455 738 1138 857'); svg.setAttribute('class', 'taurus'); svg.setAttribute('aria-hidden', 'true');
   const path = (d: string, cls: string) => { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); p.setAttribute('class', cls); p.setAttribute('fill', 'currentColor'); return p; };
   svg.append(
     path('M477 760A547 547 0 0 0 1024 1307L1024 1185A425 425 0 0 1 599 760Z', 'horn'),
@@ -50,8 +50,8 @@ function ox() {
 
 const clock = (ms: number) => { const s = Math.max(0, Math.round(ms / 1000)), m = Math.floor(s / 60); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`; };
 const recent = (at?: string, ms = 12_000) => Boolean(at) && Date.now() - Date.parse(at!) < ms;
-// Listening and thinking out loud belong to Ox at the bottom of the screen, not the notch (owner, November 19, 2026:
-// "why does it also say listening the ox is alr chilling at the bottom"). The notch thinks only for a question typed
+// Listening and thinking out loud belong to Taurus at the bottom of the screen, not the notch (owner, November 19, 2026:
+// "why does it also say listening the taurus is alr chilling at the bottom"). The notch thinks only for a question typed
 // into it.
 function phase(): 'thinking' | 'answer' | 'error' | 'idle' {
   const v = state?.voice;
@@ -80,7 +80,7 @@ function busy() { return phase() !== 'idle' || status() !== ''; }
 function bar() {
   const s = state!.settings;
   const word = open ? (state!.connected ? (status() || 'Ready') : 'Not running') : status();
-  const mascot = !open && s.idle === 'nothing' && !busy() ? null : ox();
+  const mascot = !open && s.idle === 'nothing' && !busy() ? null : taurus();
   const label = word ? h('span', { className: `status ${phase() !== 'idle' ? 'live' : ''}`, textContent: word }) : null;
   const [a, b] = s.mascotSide === 'left' ? [mascot, label] : [label, mascot];
   if (changed('bar', open, s.mascotSide, Boolean(mascot), word, phase())) {
@@ -97,10 +97,10 @@ function bar() {
 const answerBox = h('div', { className: 'said-box' });
 const musicBox = h('div');
 const timerBox = h('div');
-const input = h('input', { type: 'text', placeholder: 'Ask Ox', maxLength: 500, ariaLabel: 'Ask Ox' });
+const input = h('input', { type: 'text', placeholder: 'Ask Taurus', maxLength: 500, ariaLabel: 'Ask Taurus' });
 const askForm = h('form', { className: 'ask' }, input);
 const foot = h('div', { className: 'foot' },
-  h('button', { type: 'button', className: 'link', textContent: 'Open OXBOT', onclick: () => bridge.openDashboard() }),
+  h('button', { type: 'button', className: 'link', textContent: 'Open Taurus', onclick: () => bridge.openDashboard() }),
   h('button', { type: 'button', className: 'link', textContent: 'Settings', onclick: () => { view = 'settings'; draw(); } }));
 const main = h('div', { className: 'main' });
 main.style.display = 'grid'; main.style.gap = '14px';
@@ -113,7 +113,7 @@ function drawAnswer() {
   const newsFirst = n && !(s.show.answer && v?.text && (v.phase === 'answer' || v.phase === 'error') && Date.parse(v.at) > Date.parse(n.at));
   if (!changed('answer', state!.connected, problem, p, s.show, v, newsFirst ? n : null)) return;
   const kids: Node[] = [];
-  if (!state!.connected) kids.push(h('p', { className: 'answer problem', textContent: 'OXBOT isn’t running. Open it and Ox is back.' }));
+  if (!state!.connected) kids.push(h('p', { className: 'answer problem', textContent: 'Taurus isn’t running. Open it and Taurus is back.' }));
   else if (problem) kids.push(h('p', { className: 'answer problem', textContent: problem }));
   else if (p === 'thinking') kids.push(h('p', { className: 'answer quiet', textContent: 'Thinking.' }));
   else if (n && newsFirst) {
@@ -179,7 +179,7 @@ function drawSettings() {
   const scroll = settingsBox.querySelector('.settings')?.scrollTop ?? 0;
   const list = h('div', { className: 'settings' },
     h('p', { className: 'group', textContent: 'Behaviour' }),
-    onOff('Ox in the notch', s.on, v => ({ on: v })),
+    onOff('Taurus in the notch', s.on, v => ({ on: v })),
     seg('Display', s.display, [['automatic', 'Automatic'], ['builtin', 'Built-in'], ['main', 'Main'], ['all', 'All']], v => ({ display: v })),
     seg('Opens', s.open, [['hover', 'On hover'], ['click', 'On click']], v => ({ open: v })),
     slider('Open after', s.hoverDelay, 0, 1000, 50, 'ms', v => ({ hoverDelay: v })),
@@ -188,10 +188,10 @@ function drawSettings() {
     onOff('In screenshots and recordings', s.inCaptures, v => ({ inCaptures: v })),
     h('p', { className: 'group', textContent: 'Look' }),
     seg('Size', s.size, [['compact', 'Compact'], ['comfortable', 'Comfortable'], ['spacious', 'Spacious']], v => ({ size: v })),
-    seg('Ox sits', s.mascotSide, [['left', 'Left'], ['right', 'Right']], v => ({ mascotSide: v })),
-    seg('While idle', s.idle, [['ox', 'Show Ox'], ['nothing', 'Just the notch']], v => ({ idle: v })),
+    seg('Taurus sits', s.mascotSide, [['left', 'Left'], ['right', 'Right']], v => ({ mascotSide: v })),
+    seg('While idle', s.idle, [['taurus', 'Show Taurus'], ['nothing', 'Just the notch']], v => ({ idle: v })),
     h('p', { className: 'group', textContent: 'What appears' }),
-    onOff('Ox’s answer', s.show.answer, show('answer')),
+    onOff('Taurus’s answer', s.show.answer, show('answer')),
     onOff('Now playing', s.show.music, show('music')),
     onOff('Timers', s.show.timers, show('timers')),
     onOff('Ask box', s.show.ask, show('ask')),
@@ -296,7 +296,7 @@ async function save(partial: Partial<NotchSettings>) {
 bridge.onState(next => {
   const before = state;
   state = next;
-  // News, or an answer that is a list, opens the notch for a few seconds so you see it, like a Live Activity. Ox
+  // News, or an answer that is a list, opens the notch for a few seconds so you see it, like a Live Activity. Taurus
   // listening, thinking or answering in words never does: he is at the bottom of the screen for that.
   const v = next.voice, n = next.news;
   const newNews = Boolean(n && n.at !== lastNewsAt && recent(n.at, 4000));
