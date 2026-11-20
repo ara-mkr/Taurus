@@ -229,6 +229,8 @@ export async function ask(system: string, turns: Turn[], quick = false, options:
 
 // "Use Claude for big jobs": the connected AI for a name the owner said. A plan installed on this Mac wins over a key,
 // and saying it switches the plan on, the same as its switch on the AI page.
+// OpenRouter's id for DeepSeek V4 Flash (its model list, November 20, 2026: about $0.09 in and $0.18 out per million tokens).
+export const OPENROUTER_DEEPSEEK = 'deepseek/deepseek-v4-flash';
 export function providerForBrand(brand: Brand): { id: string; name: string } | { error: string } {
   const pick = (planId: string, keyId: string, label: string) => {
     const plan = byId(planId);
@@ -241,7 +243,14 @@ export function providerForBrand(brand: Brand): { id: string; name: string } | {
     return { error: `${label} isn’t connected yet. Connect it in Settings, AI, then say it again.` };
   };
   if (brand === 'free') return ready('openrouter') ? { id: 'free', name: 'Taurus' } : { error: 'Taurus’s free models need a free OpenRouter sign-in first: Settings, AI.' };
-  if (brand === 'deepseek') return ready('deepseek') ? { id: 'deepseek', name: 'DeepSeek' } : { error: 'Add your DeepSeek key first: Settings, AI, API keys, DeepSeek. Then say it again.' };
+  // DeepSeek through the owner's own OpenRouter key (owner, November 20, 2026: "btw i use my openrouter for deepseek"):
+  // OpenRouter's model is pinned to DeepSeek V4 Flash, which runs first; if the account runs out of credit, Taurus's free
+  // models answer instead of an error. A DeepSeek key of his own, if he ever adds one, goes straight to DeepSeek.
+  if (brand === 'deepseek') {
+    if (ready('deepseek')) return { id: 'deepseek', name: 'DeepSeek' };
+    if (ready('openrouter')) { store.setSecrets({ OPENROUTER_MODEL: OPENROUTER_DEEPSEEK }); return { id: 'free', name: 'DeepSeek V4 Flash on OpenRouter' }; }
+    return { error: 'Paste your OpenRouter key first: Settings, AI, API keys, OpenRouter. Then say it again.' };
+  }
   if (brand === 'claude') return pick('claude-plan', 'claude', 'Claude');
   if (brand === 'chatgpt') return pick('chatgpt-plan', 'chatgpt', 'ChatGPT');
   return pick('gemini-plan', 'gemini', 'Gemini');

@@ -25,6 +25,11 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
     sent.push({ url, auth: new Headers(init.headers).get('Authorization'), body: JSON.parse(String(init.body)) });
     return new Response(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'From DeepSeek.' } }] }), { headers: { 'Content-Type': 'application/json' } });
   }
+  if (url === 'https://openrouter.ai/api/v1/models') return new Response(JSON.stringify({ data: [{ id: 'google/gemma-4-31b-it:free', name: 'Gemma', pricing: { prompt: '0', completion: '0' }, context_length: 128000 }] }), { headers: { 'Content-Type': 'application/json' } });
+  if (url === 'https://openrouter.ai/api/v1/chat/completions') {
+    sent.push({ url, auth: new Headers(init.headers).get('Authorization'), body: JSON.parse(String(init.body)) });
+    return new Response(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'From OpenRouter.' } }] }), { headers: { 'Content-Type': 'application/json' } });
+  }
   throw new Error(`Unexpected request: ${url}`);
 }) as typeof fetch;
 
@@ -35,9 +40,25 @@ test('saying it: DeepSeek for everything, Claude for big jobs', () => {
   assert.equal(settingsCommand('ask deepseek what the weather is'), null, 'naming an AI in a request is not a settings change');
 });
 
-test('without a DeepSeek key it says where to add it, and changes nothing', () => {
-  assert.match(applySettings('use deepseek for everything')!, /Add your DeepSeek key first/);
+test('with no OpenRouter or DeepSeek key it says where to paste one, and changes nothing', () => {
+  assert.match(applySettings('use deepseek for everything')!, /Paste your OpenRouter key first/);
   assert.deepEqual(getRoute(), {});
+});
+
+// The owner's setup: "btw i use my openrouter for deepseek".
+test('with only an OpenRouter key, DeepSeek means DeepSeek V4 Flash on OpenRouter, thinking off for quick asks', async () => {
+  store.setSecrets({ OPENROUTER_API_KEY: 'sk-or-test', ANTHROPIC_API_KEY: 'sk-ant-test' });
+  assert.equal(applySettings('use DeepSeek for everything and Claude for big jobs'), 'Done. DeepSeek V4 Flash on OpenRouter answers everything; Claude takes big jobs.');
+  assert.deepEqual(getRoute(), { simple: 'free', medium: 'free', hard: 'claude' });
+  assert.equal(store.secret('OPENROUTER_MODEL'), 'deepseek/deepseek-v4-flash');
+  const quick = await ask('You are Taurus.', [{ role: 'user', text: 'What time is it in Tokyo?' }], true, { tier: 'simple' });
+  assert.equal(quick.text, 'From OpenRouter.');
+  assert.equal(sent[0].auth, 'Bearer sk-or-test');
+  assert.equal(sent[0].body.model, 'deepseek/deepseek-v4-flash');
+  assert.deepEqual(sent[0].body.reasoning, { effort: 'none' });
+  sent.length = 0;
+  store.setSecrets({ OPENROUTER_API_KEY: '', OPENROUTER_MODEL: '', ANTHROPIC_API_KEY: '' });
+  store.saveSettings({ aiRoute: {} });
 });
 
 test('quick and everyday asks go to deepseek-flash without thinking; big jobs go to Claude', async () => {

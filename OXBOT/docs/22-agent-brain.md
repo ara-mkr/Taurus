@@ -123,7 +123,7 @@ On Taurus's free models:
 
 - **AI page, "Who answers what".**
   - Presets: All Taurus, All Claude, All ChatGPT, Taurus for quick and Claude (or ChatGPT) for big jobs.
-  - Since November 20, 2026, the owner's own setup: "DeepSeek, Claude for big jobs". DeepSeek V4 Flash (`deepseek-flash` with his DeepSeek key; owner: "cheap ash and fast and good enough") answers quick and everyday asks with DeepSeek's thinking switched off for speed, and his Claude app (Claude Code with his plan, or his Claude key when the app isn't on this Mac) takes big jobs. Shown once his DeepSeek key is in. By voice: "use DeepSeek for everything and Claude for big jobs".
+  - Since November 20, 2026, the owner's own setup: "DeepSeek, Claude for big jobs". DeepSeek V4 Flash (owner: "cheap ash and fast and good enough"; through his own OpenRouter key as `deepseek/deepseek-v4-flash`, since "btw i use my openrouter for deepseek", or `deepseek-flash` if he ever adds a DeepSeek key) answers quick and everyday asks with DeepSeek's thinking switched off for speed, and his Claude app (Claude Code with his plan, or his Claude key when the app isn't on this Mac) takes big jobs. Shown once his DeepSeek key is in. By voice: "use DeepSeek for everything and Claude for big jobs".
   - A choice per kind of ask.
   - The free models' measured first-word times.
 - **Or just say it** (`settingsCommand`, run before the AI, with no AI call):

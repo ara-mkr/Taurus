@@ -209,7 +209,8 @@ function AiSheet({ c, info, plan, busy, onClose, onSave, onChange, onRefresh }: 
           <select value={info.freeModel || ''} disabled={busy} onChange={e => void onSave({ freeModel: e.target.value })}>
             <option value="">Fastest for each ask</option>
             {info.free.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            {info.freeModel && !info.free.some(m => m.id === info.freeModel) && <option value={info.freeModel}>{info.freeModel}</option>}
+            {!info.free.some(m => m.id === 'deepseek/deepseek-v4-flash') && <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (paid, pennies)</option>}
+            {info.freeModel && info.freeModel !== 'deepseek/deepseek-v4-flash' && !info.free.some(m => m.id === info.freeModel) && <option value={info.freeModel}>{info.freeModel}</option>}
           </select>
         </label>}
         {c.id !== 'openrouter' && entry.filter(f => /_MODEL$/.test(f.key)).map(f => <form key={f.key} className="ai-key" onSubmit={e => { e.preventDefault(); void saveFields(); }}>
@@ -276,7 +277,7 @@ function Route({ info, onChange }: { info: AiInfo; onChange: (next: AiInfo) => v
     ...(free ? [['all-free', 'All Taurus (free)']] as [string, string][] : []),
     ...(has(/^claude/) ? [['all-claude', 'All Claude'], ...(free ? [['mixed-claude', 'Taurus for quick, Claude for big jobs']] as [string, string][] : [])] as [string, string][] : []),
     // The owner's own setup (November 20, 2026): DeepSeek V4 Flash for everyday, his Claude app for big jobs.
-    ...(info.providers.some(p => p.id === 'deepseek' && p.connected) && has(/^claude/) ? [['deepseek-claude', 'DeepSeek, Claude for big jobs']] as [string, string][] : []),
+    ...(info.providers.some(p => (p.id === 'deepseek' || p.id === 'openrouter') && p.connected) && has(/^claude/) ? [['deepseek-claude', 'DeepSeek, Claude for big jobs']] as [string, string][] : []),
     ...(has(/^chatgpt/) ? [['all-chatgpt', 'All ChatGPT'], ...(free ? [['mixed-chatgpt', 'Taurus for quick, ChatGPT for big jobs']] as [string, string][] : [])] as [string, string][] : []),
   ];
   const fastest = (info.speeds ?? []).filter(s => /\//.test(s.model) && !s.busy).slice(0, 3);
@@ -289,7 +290,7 @@ function Route({ info, onChange }: { info: AiInfo; onChange: (next: AiInfo) => v
       <span><strong>{names[t]}</strong><span className="muted"> {tierHelp[t]}</span></span>
       <select value={route[t] ?? ''} disabled={busy} onChange={e => void go({ route: { ...route, [t]: e.target.value } })}>
         <option value="">Whichever writes ({info.using?.name ?? 'none yet'})</option>
-        {free && <option value="free">Taurus (free, fastest model right now)</option>}
+        {free && <option value="free">{info.freeModel && !info.free.some(m => m.id === info.freeModel) ? `OpenRouter: ${shortModel(info.freeModel)}` : 'Taurus (free, fastest model right now)'}</option>}
         {others.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
     </label>)}</div>
