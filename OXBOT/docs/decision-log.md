@@ -418,3 +418,11 @@ The owner: "make it so u can connect multiple gmails or multiple accounts", and 
   - Remove takes away one account; removing the first lets the next take its place.
 - **Not built:** sending from more than one Gmail. Sending stays the one Gmail allowed in Actions; a reply to an email in another account says to reply from that account for now. Tests: `apps/server/test/accounts.test.ts`.
 
+## November 20, 2026: Spotify and Music that are already open, with nothing connected
+
+The owner: "it should look for sign ins it can use like just apps ing eneral like spotify without u having to connect to it like how vorrsaint sees when spotify is running and can skip and shit". Recorded in AGENTS.md.
+
+- **Built** (`mac.ts`, `music.ts`): with no Spotify playback sign-in, music commands, the music window's buttons and the AI's music tools use whichever of Spotify or Apple Music is open on this Mac, preferring the one playing. That covers play, pause, next, previous, volume, louder and quieter, shuffle, and "what's playing" with title, artist, album, art (Spotify) and position. The work is done through one fixed AppleScript per app with the action as an argument. It never launches an app that isn't open, and never names an app that isn't installed, so macOS doesn't ask where it is. "Play juice wrld" with no sign-in opens Spotify's own search for it in the app.
+- **Not built:** starting a specific song with no sign-in (Spotify's AppleScript can't search), and a background watcher that notices music starting on its own: it would mean asking macOS every few seconds, and the heat fix above argues against that. Taurus checks when asked. Other apps beyond music aren't detected yet.
+- **Checks:** `apps/server/test/media.test.ts` with a stand-in for macOS. Not tried on the owner's real Spotify, which would have played and paused his music; macOS will ask him once to allow it.
+

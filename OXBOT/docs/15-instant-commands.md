@@ -19,6 +19,8 @@ Say these after "Hey Taurus" (or tap Talk), type them in the chat bar, or say th
 
 The window shows the cover, title, artist, where it's playing, a live progress line, and Back, Pause and Skip. Setup: Settings → Actions → Spotify (your own Spotify app keys, same app as the Spotify connection). Spotify only lets Premium start music from another app; without Premium, or with no Spotify app open, the window shows Spotify's own player to press play on.
 
+With nothing connected (November 20, 2026): when Spotify or Apple Music is open on this Mac, "skip", "pause", "play", "previous", "what's playing", "turn it up", "volume 30" and "shuffle" work on that app directly, preferring the one that's playing. "Play <something>" with no Spotify sign-in opens Spotify's own search in the app. macOS asks once whether Taurus may control Spotify (or Music). Signing in to Spotify playback still adds starting any song, on any of your devices.
+
 ## Timers
 
 | Say | Does |
