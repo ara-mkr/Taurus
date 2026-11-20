@@ -6,7 +6,7 @@ import { begin } from './activity.ts';
 import { api, store, type Tokens } from './store.ts';
 import type { CalendarEvent, ConnectorInfo, Grant, Group } from './types.ts';
 
-import { appFields, DAY, iso, startOfToday, type Def, type Field, type Pull } from './connectors/kit.ts';
+import { appFields, DAY, iso, startOfToday, toggleField, type Def, type Field, type Pull } from './connectors/kit.ts';
 import { workDefs } from './connectors/work.ts';
 import { numbersBodyDefs } from './connectors/numbers-body.ts';
 import { filesFeedsDefs } from './connectors/files-feeds.ts';
@@ -82,12 +82,22 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'google-calendar', name: 'Google Calendar', group: 'Calendar', reads: 'Your primary calendar, today and tomorrow. Declined events are skipped.',
+    id: 'google-calendar', name: 'Google Calendar', group: 'Calendar', reads: 'Every calendar you have switched on, today and tomorrow, so it matches Notion Calendar too. Declined events are skipped.',
     oauth: { app: 'google', scopes: ['https://www.googleapis.com/auth/calendar.readonly'] }, fields: appFields('google'),
     setup: 'Same Google OAuth client as Gmail. Enable the Google Calendar API.', setupUrl: 'https://console.cloud.google.com/apis/library/calendar-json.googleapis.com',
+    // Every calendar you have switched on in Google Calendar, not only the main one (owner, November 20, 2026: "make it
+    // take ... notion calender"). Notion Calendar has no feed of its own: it shows the Google calendars you add to it, so
+    // this reads the same ones. An event on two of your calendars shows once.
     async pull({ token }) {
       const from = startOfToday();
-      const data = await api<any>(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${iso(from)}&timeMax=${iso(from + 2 * DAY)}&singleEvents=true&orderBy=startTime&maxResults=50`, { token: await token() });
+      const t = await token();
+      const list = await api<any>('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=50', { token: t }).catch(() => ({ items: [{ id: 'primary', selected: true }] }));
+      const calendars = (list.items ?? []).filter((c: any) => c.primary || c.selected).slice(0, 15);
+      const pages = await Promise.all((calendars.length ? calendars : [{ id: 'primary' }]).map((c: any) =>
+        api<any>(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(c.id)}/events?timeMin=${iso(from)}&timeMax=${iso(from + 2 * DAY)}&singleEvents=true&orderBy=startTime&maxResults=50`, { token: t }).catch((e: unknown) => { if (c.primary || c.id === 'primary') throw e; return { items: [] }; })));
+      const seen = new Set<string>();
+      const data = { items: pages.flatMap(p => p.items ?? []).filter((e: any) => { const k = e.iCalUID ?? e.id; if (seen.has(k)) return false; seen.add(k); return true; })
+        .sort((a: any, b: any) => String(a.start?.dateTime ?? a.start?.date).localeCompare(String(b.start?.dateTime ?? b.start?.date))) };
       return {
         schedule: (data.items ?? [])
           .filter((e: any) => e.status !== 'cancelled' && e.attendees?.find((a: any) => a.self)?.responseStatus !== 'declined')
@@ -114,7 +124,24 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'ics', name: 'Apple Calendar and others (ICS)', group: 'Calendar', reads: 'Any private calendar feed URL: iCloud, Fastmail, Proton, Fantastical, Notion Calendar.',
+    // Apple Calendar with nothing to paste (owner, November 20, 2026: "can u make it take apple and notion calender"):
+    // the Calendar app's events on this Mac, which include iCloud and any account added in System Settings (mac.ts).
+    id: 'apple-calendar', name: 'Apple Calendar on this Mac', group: 'Calendar', toggle: true,
+    reads: 'Every calendar in the Calendar app on this Mac (iCloud, and any Google, Exchange or subscribed calendar you added there), today and tomorrow. Read only.',
+    fields: [toggleField('apple-calendar')],
+    setup: 'Turn it on. macOS asks once whether Taurus may see your calendars.', setupUrl: 'https://support.apple.com/guide/calendar/welcome/mac',
+    async pull() {
+      const { macCalendar } = await import('./mac.ts');
+      const from = startOfToday();
+      const events = await macCalendar(from, from + 2 * DAY);
+      return {
+        schedule: events.map(e => ({ id: `acal:${e.id}`, title: e.title || 'Busy', start: new Date(e.start).toISOString(), end: new Date(e.end).toISOString(), allDay: e.allDay,
+          location: e.location, url: e.url, source: e.calendar ? `Apple Calendar · ${e.calendar}` : 'Apple Calendar' })),
+      };
+    },
+  },
+  {
+    id: 'ics', name: 'Apple Calendar and others (ICS)', group: 'Calendar', reads: 'Any private calendar feed URL: iCloud, Fastmail, Proton, Fantastical. For Apple Calendar with nothing to paste, use Apple Calendar on this Mac.',
     fields: [{ key: 'ICS_URLS', label: 'Calendar feed URLs, comma separated', secret: true, placeholder: 'webcal://p01-caldav.icloud.com/published/2/…' }],
     setup: 'In Apple Calendar on iCloud.com, share a calendar as Public and copy the link. Other apps call it "secret address in iCal format".', setupUrl: 'https://www.icloud.com/calendar/',
     async pull({ field }) {
@@ -190,7 +217,7 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose.',
+    id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose, and its items dated today or tomorrow on your schedule.',
     // Notion's own sign-in screen asks which pages Taurus may see; with no database named, it reads the first one shared.
     oauth: { app: 'notion', scopes: ['pages'] },
     fields: [...appFields('notion'), { key: 'NOTION_TOKEN', label: 'Internal integration secret', secret: true, instead: true }, { key: 'NOTION_DATABASE_ID', label: 'Task database ID', optional: true, placeholder: 'The first database you share' }],
@@ -209,7 +236,22 @@ const coreDefs: Def[] = [
         body: JSON.stringify({ page_size: 25, sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }] }),
       });
       const done = /^(done|complete|completed|shipped|archived|cancel)/i;
+      // Items with a date today or tomorrow go on your schedule, the way Notion Calendar shows them (November 20, 2026).
+      const from = startOfToday();
+      const schema = await api<any>(`https://api.notion.com/v1/databases/${database}`, { token: t, headers }).catch(() => undefined);
+      const dateProp = Object.entries(schema?.properties ?? {}).find(([, p]: [string, any]) => p.type === 'date')?.[0];
+      const dated = dateProp ? await api<any>(`https://api.notion.com/v1/databases/${database}/query`, { method: 'POST', token: t, headers,
+        body: JSON.stringify({ page_size: 25, filter: { and: [{ property: dateProp, date: { on_or_after: iso(from).slice(0, 10) } }, { property: dateProp, date: { before: iso(from + 2 * DAY).slice(0, 10) } }] } }) }).catch(() => ({ results: [] })) : { results: [] };
+      const schedule = (dated.results ?? []).flatMap((page: any) => {
+        const props = page.properties ?? {};
+        const d = props[dateProp!]?.date;
+        if (!d?.start) return [];
+        const title = (Object.values(props) as any[]).find(p => p.type === 'title')?.title?.map((x: any) => x.plain_text).join('') || 'Untitled';
+        const allDay = !/T/.test(d.start);
+        return [{ id: `notion-date:${page.id}`, title, start: d.start, end: d.end ?? d.start, allDay, url: page.url, source: 'Notion' }];
+      });
       return {
+        schedule,
         needs: (data.results ?? []).map((page: any) => {
           const props = Object.values(page.properties ?? {}) as any[];
           const title = props.find(p => p.type === 'title')?.title?.map((t: any) => t.plain_text).join('') || 'Untitled';

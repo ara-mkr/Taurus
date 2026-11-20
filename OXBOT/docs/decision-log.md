@@ -426,3 +426,11 @@ The owner: "it should look for sign ins it can use like just apps ing eneral lik
 - **Not built:** starting a specific song with no sign-in (Spotify's AppleScript can't search), and a background watcher that notices music starting on its own: it would mean asking macOS every few seconds, and the heat fix above argues against that. Taurus checks when asked. Other apps beyond music aren't detected yet.
 - **Checks:** `apps/server/test/media.test.ts` with a stand-in for macOS. Not tried on the owner's real Spotify, which would have played and paused his music; macOS will ask him once to allow it.
 
+## November 20, 2026: Apple Calendar and Notion Calendar
+
+The owner: "can u make it take apple and notion calender". Recorded in AGENTS.md.
+
+- **Apple Calendar on this Mac:** a switch under Connections. It reads the Calendar app's events for today and tomorrow (iCloud, and any Google, Exchange or subscribed calendar added in System Settings) through EventKit, run by `osascript -l JavaScript` with a fixed script. It skips cancelled and declined events, labels each event "Apple Calendar · <calendar>", and changes nothing. The desktop app now tells macOS why it asks for calendars. Before this, Apple Calendar needed a calendar made Public on iCloud.com and its link pasted, which still works under the feed connector.
+- **Notion Calendar:** it has no public API or feed. It is a view of the Google (and Outlook) calendars added to it, plus Notion database dates. So Google Calendar now reads every calendar switched on in each Google account, an event on two of them showing once, and Notion's database items dated today or tomorrow join the schedule. The feed connector no longer claims Notion Calendar.
+- **Checks:** `apps/server/test/calendars.test.ts`. On this Mac the script was run in check-only mode: it answered that macOS hasn't asked yet, and read nothing. It has not read a real calendar; the owner's Taurus will show macOS's question when he switches it on.
+

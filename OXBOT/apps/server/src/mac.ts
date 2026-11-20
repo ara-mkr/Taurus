@@ -299,3 +299,48 @@ export async function openInSpotify(query: string): Promise<boolean> {
   await runner('open', [`spotify:search:${query.replace(/[\r\n]+/g, ' ').trim().slice(0, 120)}`]);
   return true;
 }
+
+// ---------- The Calendar app on this Mac (owner, November 20, 2026: "can u make it take apple and notion calender") ----
+// Apple Calendar with no link to paste: Apple's own calendar framework (EventKit), through one fixed JavaScript for
+// Automation script, reads today's and tomorrow's events from every calendar this Mac already shows: iCloud, and any
+// Google, Exchange or subscribed calendar added in System Settings. Read only; the Calendar app isn't opened. The two
+// times are passed as arguments. The first time, macOS asks the owner whether Taurus may see his calendars.
+const CALENDAR = `function run(argv) {
+  ObjC.import('EventKit');
+  const store = $.EKEventStore.alloc.init;
+  let status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
+  if (status === 0 && argv[2] === 'ask') {
+    let done = false;
+    const answered = () => { done = true; };
+    if (store.respondsToSelector('requestFullAccessToEventsWithCompletion:')) store.requestFullAccessToEventsWithCompletion(answered);
+    else store.requestAccessToEntityTypeCompletion($.EKEntityTypeEvent, answered);
+    const until = $.NSDate.dateWithTimeIntervalSinceNow(90);
+    while (!done && $.NSDate.date.compare(until) < 0) $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.2));
+    status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
+  }
+  if (status !== 3) return JSON.stringify({ status: status });
+  const from = $.NSDate.dateWithTimeIntervalSince1970(Number(argv[0]) / 1000), to = $.NSDate.dateWithTimeIntervalSince1970(Number(argv[1]) / 1000);
+  const events = store.eventsMatchingPredicate(store.predicateForEventsWithStartDateEndDateCalendars(from, to, $()));
+  const out = [];
+  const text = v => (v && !v.isNil()) ? ObjC.unwrap(v) : undefined;
+  for (let i = 0; i < Number(events.count); i++) {
+    const e = events.objectAtIndex(i);
+    if (Number(e.status) === 3) continue;
+    let declined = false;
+    const people = e.attendees;
+    if (people && !people.isNil()) for (let j = 0; j < Number(people.count); j++) { const p = people.objectAtIndex(j); if (p.isCurrentUser && Number(p.participantStatus) === 3) declined = true; }
+    if (declined) continue;
+    out.push({ id: text(e.eventIdentifier), title: text(e.title), start: Number(e.startDate.timeIntervalSince1970) * 1000, end: Number(e.endDate.timeIntervalSince1970) * 1000,
+      allDay: Boolean(e.allDay), location: text(e.location), calendar: text(e.calendar.title), url: e.URL && !e.URL.isNil() ? text(e.URL.absoluteString) : undefined });
+  }
+  return JSON.stringify({ status: 3, events: out });
+}`;
+export interface MacEvent { id: string; title?: string; start: number; end: number; allDay: boolean; location?: string; calendar?: string; url?: string }
+export async function macCalendar(fromMs: number, toMs: number, ask = true): Promise<MacEvent[]> {
+  if (!isMac()) throw new HttpError(409, 'Apple Calendar on this Mac works only when Taurus runs on a Mac.');
+  if (runner === real && underTest()) throw new HttpError(409, 'Not in tests.');
+  const out = JSON.parse(await runner('osascript', ['-l', 'JavaScript', '-e', CALENDAR, String(fromMs), String(toMs), ask ? 'ask' : 'check']) || '{}') as { status?: number | string; events?: MacEvent[] };
+  out.status = Number(out.status);
+  if (out.status !== 3) throw new HttpError(409, out.status === 0 ? 'macOS hasn’t asked yet. Turn Apple Calendar off and on to see its question.' : 'macOS isn’t letting Taurus see your calendars. Allow Taurus in System Settings, Privacy & Security, Calendars (Full Access).');
+  return out.events ?? [];
+}
