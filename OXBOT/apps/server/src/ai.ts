@@ -3,7 +3,7 @@ import { askClaude, claudeReady } from './claude.ts';
 import { askChatGPT, chatgptReady } from './chatgpt.ts';
 import type { Field } from './connectors/kit.ts';
 import { begin } from './activity.ts';
-import { askPlan, cliFound, countUsage, usage, type CliId } from './subscriptions.ts';
+import { askPlan, cliFound, countUsage, knownSignedOut, planStatus, usage, type CliId } from './subscriptions.ts';
 import { toggleField } from './connectors/kit.ts';
 import { api, HttpError, store } from './store.ts';
 import { postStream } from './stream.ts';
@@ -83,7 +83,7 @@ export function ready(id: string) {
   if (!p) return false;
   if (p.id === 'claude') return claudeReady();
   if (p.id === 'chatgpt') return chatgptReady();
-  if (p.kind === 'cli') return store.secret(toggleField(p.id).key) === '1' && cliFound(p.id as CliId);
+  if (p.kind === 'cli') return store.secret(toggleField(p.id).key) === '1' && cliFound(p.id as CliId) && !knownSignedOut(p.id);
   if (p.id === 'ollama') return Boolean(store.secret(p.model));
   if (p.id === 'custom-ai') return Boolean(store.secret('CUSTOM_AI_URL') && store.secret(p.model));
   return Boolean(store.secret(p.key!));
@@ -299,6 +299,8 @@ export async function openRouterFinish(state: string, code: string) {
 }
 
 export async function aiInfo(): Promise<AiInfo> {
+  // Know which plan apps are signed in before saying which AI writes; a slow status check doesn't hold the page up.
+  await Promise.race([Promise.all((['claude-plan', 'chatgpt-plan'] as const).filter(cliFound).map(id => planStatus(id).catch(() => undefined))), new Promise(r => setTimeout(r, 2500))]);
   const using = current();
   return {
     using: using ? { id: using.id, name: using.name, model: await modelFor(using, using.key ? store.secret(using.key) : undefined).catch(() => using.fallback) } : null,

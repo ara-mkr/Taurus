@@ -183,6 +183,27 @@ export async function planStatus(id: CliId, fresh = false): Promise<PlanStatus> 
   statusCache.set(id, { at: Date.now(), s });
   return s;
 }
+// A plan whose app says it isn't signed in never gets asks: they'd only fail (owner, November 19, 2026: "chatgpt comes
+// preinstalled but like it doesnt do anything").
+export const knownSignedOut = (id: string) => statusCache.get(id as CliId)?.s.signedIn === false;
+
+// Sign in with the plan app's own browser sign-in (owner, November 19, 2026: "make it just open up to ur browser"):
+// `claude auth login` and `codex login` open the company's login page themselves. A fixed program with fixed arguments.
+// Gemini CLI has no sign-in command of its own; it signs in the first time it runs in Terminal.
+const logins: Partial<Record<CliId, string[]>> = { 'claude-plan': ['auth', 'login'], 'chatgpt-plan': ['login'] };
+const loggingIn = new Map<CliId, ReturnType<typeof spawn>>();
+export function startPlanLogin(id: CliId): void {
+  const file = binary(id), args = logins[id];
+  if (!file) throw new Error(`${id === 'claude-plan' ? 'Claude Code' : id === 'chatgpt-plan' ? 'Codex' : 'Gemini CLI'} isn’t on this Mac yet.`);
+  if (!args) throw new Error('Gemini CLI signs in the first time you open it in Terminal.');
+  loggingIn.get(id)?.kill();
+  const child = spawn(file, args, { cwd: work(), stdio: 'ignore', env: { ...process.env, BROWSER: '' } });
+  loggingIn.set(id, child);
+  const stop = setTimeout(() => child.kill(), 10 * 60_000);
+  child.on('exit', () => { clearTimeout(stop); if (loggingIn.get(id) === child) loggingIn.delete(id); statusCache.delete(id); });
+  child.on('error', () => undefined);
+  statusCache.delete(id);
+}
 
 async function askGeminiCli(file: string, system: string, turns: Turn[]): Promise<string> {
   const prompt = `${system}\n\n---\n\n${transcript(turns)}\n\nOx:`;

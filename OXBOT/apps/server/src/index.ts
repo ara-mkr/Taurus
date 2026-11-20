@@ -17,7 +17,7 @@ import { voice, voiceUrl } from './voice.ts';
 import { composioApps, composioCatalog, readers as composioReaders } from './connectors/composio.ts';
 import { aiCard, board, generateBoard, prefs, savePrefs } from './boards.ts';
 import { aiInfo, providerForBrand, ask as askAi, openRouterFinish, openRouterSignIn, providers as aiProviders, warmAi, type Turn } from './ai.ts';
-import { planStatus } from './subscriptions.ts';
+import { planStatus, startPlanLogin } from './subscriptions.ts';
 import { saveRoute, type Brand } from './route.ts';
 import { feed, removeScan, runScan, saveScan, scans as scanList, scanSources, startScans } from './scans.ts';
 import { MESSAGES_SWITCH, messagesStatus } from './messages.ts';
@@ -332,6 +332,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (method === 'GET' && path === '/api/ai/plans') {
     const fresh = url.searchParams.has('fresh');
     return send(res, 200, { plans: await Promise.all((['claude-plan', 'chatgpt-plan'] as const).map(id => planStatus(id, fresh))) });
+  }
+  if (method === 'POST' && path === '/api/ai/plans/login') {
+    if (!isLoopback(req)) return send(res, 403, { error: 'Sign in on your Mac.' });
+    const { id } = await json<{ id?: string }>(req);
+    if (id !== 'claude-plan' && id !== 'chatgpt-plan' && id !== 'gemini-plan') return send(res, 400, { error: 'No such plan.' });
+    try { startPlanLogin(id); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: (e as Error).message }); }
   }
   if (method === 'POST' && path === '/api/ai/test') {
     const { provider } = await json<{ provider?: string }>(req);

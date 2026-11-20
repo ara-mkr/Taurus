@@ -10,18 +10,20 @@ const free = [
   { id: 'google/gemma-4-31b-it:free', name: 'Google: Gemma 4 31B', context: 262_144 },
 ];
 const providers = [
-  ['openrouter', 'OXBOT', 'OpenRouter', true], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
+  ['openrouter', 'OXBOT', 'OpenRouter', true], ['chatgpt-plan', 'ChatGPT plan', 'OpenAI'], ['claude', 'Claude', 'Anthropic'], ['chatgpt', 'ChatGPT', 'OpenAI'], ['gemini', 'Gemini', 'Google'],
   ['grok', 'Grok', 'xAI'], ['mistral', 'Mistral', 'Mistral AI'], ['deepseek', 'DeepSeek', 'DeepSeek'], ['ollama', 'Ollama', 'on this Mac'],
 ] as const;
 const info = (signedIn: boolean, chosen = '') => ({
   using: signedIn ? { id: 'openrouter', name: 'OXBOT', model: free[0].id } : null, chosen,
-  providers: providers.map(([id, name, maker, isFree]) => ({ id, name, maker, note: '', keyUrl: 'https://example.com', free: Boolean(isFree), local: id === 'ollama', connected: signedIn && (id === 'openrouter' || id === 'mistral') })),
+  providers: providers.map(([id, name, maker, isFree]) => ({ id, name, maker, note: '', keyUrl: 'https://example.com', free: Boolean(isFree), local: id === 'ollama', connected: signedIn && (id === 'openrouter' || id === 'mistral'),
+    ...(id === 'chatgpt-plan' ? { plan: true, installed: true } : {}) })),
   free, freeModel: '',
 });
-const aiConnectors = providers.filter(([id]) => id !== 'openrouter').map(([id, name, maker]) => ({
-  id, name: name === maker ? name : `${name} (${maker})`, group: 'AI', reads: 'Nothing. Writes your brief and answers questions with the facts on your dashboard, sent when you ask.', auth: 'fields', mockOnly: false,
+const aiConnectors = providers.map(([id, name, maker]) => ({
+  id, name: name === maker ? name : `${name} (${maker})`, group: 'AI', reads: 'Nothing. Writes your brief and answers questions with the facts on your dashboard, sent when you ask.', auth: id === 'chatgpt-plan' ? 'switch' : 'fields', mockOnly: false,
   connected: false, ready: false, missing: ['key'], oneClick: false, setup: 'Create a key, paste it here.', setupUrl: 'https://example.com',
-  fields: [{ key: `${id.toUpperCase()}_API_KEY`, label: `${maker} key`, secret: true, appKey: false, set: false }, { key: `${id.toUpperCase()}_MODEL`, label: 'Model', secret: false, appKey: false, set: false, placeholder: 'default' }],
+  fields: id === 'chatgpt-plan' ? [{ key: 'CHATGPT_PLAN_ON', label: 'On', secret: false, appKey: false, set: false }, { key: 'CHATGPT_PLAN_MODEL', label: 'Model', secret: false, appKey: false, set: false }]
+    : [{ key: `${id.toUpperCase()}_API_KEY`, label: `${maker} key`, secret: true, appKey: false, set: false }, { key: `${id.toUpperCase()}_MODEL`, label: 'Model', secret: false, appKey: false, set: false, placeholder: 'default' }],
 }));
 
 async function open(page: Page, signedIn: boolean) {
@@ -32,37 +34,67 @@ async function open(page: Page, signedIn: boolean) {
     if (r.request().method() === 'POST') { const body = r.request().postDataJSON(); posts.push(body); current = { ...current, ...(body.provider !== undefined ? { chosen: body.provider } : {}), ...(body.freeModel ? { freeModel: body.freeModel } : {}) }; }
     return r.fulfill({ json: current });
   });
+  await page.route('**/api/ai/plans*', r => r.fulfill({ json: { plans: [{ id: 'chatgpt-plan', installed: true, signedIn: false }] } }));
+  await page.route('**/api/ai/plans/login', r => { posts.push({ login: r.request().postDataJSON().id }); return r.fulfill({ json: { ok: true } }); });
+  await page.route('**/api/connectors/*/fields', r => { posts.push({ fields: r.request().url().split('/').at(-2), values: r.request().postDataJSON().values }); return r.fulfill({ json: { connectors: aiConnectors } }); });
   await page.route('**/api/connectors', r => r.fulfill({ json: { connectors: aiConnectors, redirectUri: '', home: '~/.oxbot' } }));
   await page.goto('/#ai');
   await expect(page.getByRole('heading', { name: 'AI', exact: true })).toBeVisible();
   return posts;
 }
 
-test('with nothing connected, OXBOT offers one-click sign-in and says what free models may keep', async ({ page }) => {
+// November 19, 2026: cards with each lab's logo on three tabs, Plans, API keys and Who answers; each card opens a sheet
+// where you sign in or paste the key right there.
+test('with nothing connected: tabs of logo cards, an OpenRouter key pasted right on its card, and ChatGPT signs in through the browser', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('oxbot-appearance', 'light'));
-  await open(page, false);
-  await expect(page.getByText('No AI is connected')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sign in with OpenRouter' })).toHaveAttribute('href', '/api/ai/openrouter/start');
-  await expect(page.getByText(/may keep what you send/)).toBeVisible();
-  for (const name of ['Claude (Anthropic)', 'ChatGPT (OpenAI)', 'Gemini (Google)', 'Grok (xAI)', 'Mistral (Mistral AI)', 'DeepSeek', 'Ollama (on this Mac)']) await expect(page.locator('.connector-name', { hasText: name })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'AI', exact: true })).toHaveAttribute('aria-current', 'page');
+  const posts = await open(page, false);
+  await expect(page.getByText('Nothing connected yet')).toBeVisible();
+  const tabs = page.getByRole('tablist', { name: 'AI' });
+  for (const name of ['Plans', 'API keys', 'Who answers']) await expect(tabs.getByRole('tab', { name })).toBeVisible();
+  await expect(tabs.getByRole('tab', { name: 'Plans' })).toHaveAttribute('aria-selected', 'true');
+  // ChatGPT's plan app is on this Mac but not signed in: one button opens OpenAI's own sign-in, no Terminal.
+  const chatgpt = page.getByRole('tabpanel').getByRole('button', { name: /ChatGPT/ });
+  await expect(chatgpt).toContainText('Not signed in');
+  await chatgpt.click();
+  await page.getByRole('dialog', { name: 'ChatGPT' }).getByRole('button', { name: 'Sign in with ChatGPT' }).click();
+  await expect(page.getByRole('dialog', { name: 'ChatGPT' })).toContainText('Finish signing in with ChatGPT in your browser');
+  await page.getByRole('dialog', { name: 'ChatGPT' }).getByRole('button', { name: 'Done' }).click();
+
+  await tabs.getByRole('tab', { name: 'API keys' }).click();
+  const grid = page.getByRole('tabpanel');
+  for (const name of ['OpenRouter', 'Claude', 'ChatGPT', 'Gemini', 'Grok', 'Mistral', 'DeepSeek', 'Ollama']) await expect(grid.locator('.app-name', { hasText: new RegExp(`^${name}$`) })).toBeVisible();
+  await expect(grid.locator('.app-logo')).toHaveCount(providers.length - 1);
   expect((await new AxeBuilder({ page }).analyze()).violations.map(v => v.id)).toEqual([]);
   const small = await page.evaluate(() => [...document.querySelectorAll('main *')].filter(el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent!.trim()) && (el as HTMLElement).offsetParent && parseFloat(getComputedStyle(el).fontSize) < 13).map(el => el.textContent!.slice(0, 40)));
   expect(small).toEqual([]);
   await page.screenshot({ path: `${shots}/ai/ai-light-1440.png`, fullPage: true });
+
+  await grid.getByRole('button', { name: /OpenRouter/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'OpenRouter' });
+  await expect(sheet.getByRole('link', { name: 'Sign in with OpenRouter' })).toHaveAttribute('href', '/api/ai/openrouter/start');
+  await expect(sheet.getByText(/may keep what you send/)).toBeVisible();
+  await sheet.getByLabel('Or paste an OpenRouter key').fill('sk-or-v1-example');
+  await sheet.getByRole('button', { name: 'Save' }).click();
+  await expect.poll(() => posts).toEqual([{ login: 'chatgpt-plan' }, { fields: 'openrouter', values: { OPENROUTER_API_KEY: 'sk-or-v1-example' } }]);
+  await expect(page.getByRole('link', { name: 'AI', exact: true })).toHaveAttribute('aria-current', 'page');
 });
 
-test('signed in: pick the free model, and choose which connected AI writes', async ({ page }) => {
+test('signed in: pick the free model on OpenRouter\'s card, and choose which AI writes under Who answers', async ({ page }) => {
   const posts = await open(page, true);
-  await expect(page.getByText(/Writing with/)).toContainText('OXBOT');
-  const model = page.getByLabel('Free model');
+  await expect(page.locator('.ai-using')).toContainText('OXBOT');
+  await expect(page.getByRole('tab', { name: 'API keys' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tabpanel').getByRole('button', { name: /OpenRouter/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'OpenRouter' });
+  const model = sheet.getByLabel('Model');
   // November 17, 2026: by default OXBOT picks the fastest free model for each ask.
   await expect(model).toHaveValue('');
   await model.selectOption('google/gemma-4-31b-it:free');
+  await expect(sheet.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('tab', { name: 'Who answers' }).click();
   await page.getByRole('radio', { name: 'Mistral (Mistral AI)' }).check();
   await expect.poll(() => posts).toEqual([{ freeModel: 'google/gemma-4-31b-it:free' }, { provider: 'mistral' }]);
   await expect(page.getByRole('radio', { name: 'Mistral (Mistral AI)' })).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
 });
 
 test('phone home-screen app: the chat bar stays put while the page scrolls, and the tabs slide in from the left', async ({ page }) => {

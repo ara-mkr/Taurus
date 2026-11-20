@@ -101,6 +101,7 @@ export const api = {
   warm: () => request<{ ai: string }>('/api/ask/warm', { method: 'POST' }),
   aiRoute: (body: { preset?: string; route?: Record<string, string> }) => request<AiInfo>('/api/ai/route', { method: 'POST', body }),
   aiPlans: (fresh = false) => request<{ plans: PlanStatus[] }>(`/api/ai/plans${fresh ? '?fresh' : ''}`),
+  aiPlanLogin: (id: string) => request<{ ok: boolean }>('/api/ai/plans/login', { method: 'POST', body: { id } }),
   aiTest: (provider: string) => request<{ ok: boolean; text?: string; error?: string; ms: number }>('/api/ai/test', { method: 'POST', body: { provider } }),
   scans: () => request<ScansInfo>('/api/scans'),
   saveScan: (s: Partial<Scan>) => request<ScansInfo>('/api/scans', { method: 'POST', body: s }),

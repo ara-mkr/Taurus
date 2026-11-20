@@ -22,7 +22,7 @@ export const marks: Record<string, Mark> = {
   strava: icon(siStrava), 'google-health': icon(siFitbit), openrouter: icon(siOpenrouter, '6467F2'), claude: icon(siClaude), chatgpt: draw('openai'),
   gemini: icon(siGooglegemini), grok: letters('xAI', '111111'), mistral: icon(siMistralai), deepseek: icon(siDeepseek), groq: letters('G', 'F55036'),
   cerebras: letters('C', 'F05A28'), together: letters('T', '0F6FFF'), perplexity: icon(siPerplexity), cohere: letters('co', '39594D'), kimi: icon(siKimi),
-  qwen: icon(siAlibabacloud), ollama: icon(siOllama), 'custom-ai': letters('API', '4F4E49'), twilio: draw('twilio'), ntfy: icon(siNtfy),
+  qwen: icon(siAlibabacloud), glm: letters('GLM', '1F3BFF'), ollama: icon(siOllama), 'custom-ai': letters('API', '4F4E49'), twilio: draw('twilio'), ntfy: icon(siNtfy),
   fastmail: letters('F', '0067B9'), calendly: icon(siCalendly), zoom: icon(siZoom), discord: icon(siDiscord), telegram: icon(siTelegram),
   teams: draw('teams'), todoist: icon(siTodoist), asana: icon(siAsana), trello: icon(siTrello), jira: icon(siJira), monday: letters('m', 'FF3D57'),
   'google-tasks': icon(siGoogletasks), 'microsoft-todo': draw('todo'), gitlab: icon(siGitlab), sentry: icon(siSentry), pagerduty: icon(siPagerduty),
