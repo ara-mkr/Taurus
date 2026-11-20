@@ -47,6 +47,22 @@ Added to the plain-text tool protocol in `agent.ts` (works with every AI choice)
 - `brain_read {note, file?}`: the whole note, or the words of one file on it (PDF or text).
 - `brain_suggest {fact, note}`: an "Add to Brain?" suggestion, never a direct write.
 
+### Core memory and recall (November 20, 2026, Luke's Day 2)
+
+Luke's Day 2, "Build your AI agent's brain": an agent that gets every saved fact with every question answers worse and costs more. Before this change Taurus did exactly that, sending the last 60 memories with every question. Now the memory part of Taurus's instructions has two layers (`apps/server/src/recall.ts`):
+
+- **Core memory**, `~/.taurus/core-memory.json`: a few facts and "do this every time" rules the owner pins, inside a 3,000 character budget (Hermes's size, which Luke quotes). It goes with every question, so a rule is never the one that recall misses. Pinning past the budget is refused with what's used, so the owner chooses what to drop. A pin starting "always", "never", "don't" or "every time" is a rule; anything else is a fact.
+- **Recall**: every memory, every line of every Brain note (with its note and heading), and the words of text and PDF files on notes form one pool. For each question Taurus ranks the pool against the owner's last two messages with BM25 over word stems, counting the note and heading a line sits under, with newer memories slightly ahead. It sends at most 8 facts and 1,600 characters, and only those scoring within 30% of the best. A general question ("what is the capital of France") recalls nothing. When nothing fits, Taurus is told how many facts it has and to use `brain_search` before saying it doesn't know.
+- **Counts**, `~/.taurus/recall-stats.json`: questions asked, facts and characters sent against the whole pool, and what the last question sent. The Brain page shows them, and so does voice.
+
+Luke does the second layer with Supermemory, a cloud service his agent signs up for, and a second AI that picks the facts. Taurus does it on this Mac with no second AI call, so there is no extra cost, wait, account or company holding the owner's facts. What gets sent is still only part of a question to the AI the owner chose, under the November 16 Brain rule. Luke's reason for Supermemory, that memory survives switching from Claude to ChatGPT, is already true of Taurus: the memory lives in `~/.taurus` whichever AI answers. For the owner's other apps, "Copy for other AIs" puts core memory and every memory on the clipboard to paste into Claude's or ChatGPT's custom instructions or a Claude Project. Nothing is sent anywhere by Taurus.
+
+**The Memory panel** (`apps/web/src/components/BrainMemory.tsx`, under the graph on `#brain`): core memory with its budget as a meter, Pin and Unpin; "What Taurus sends": facts saved, tokens not sent so far, the last question and the facts it took (a note's fact opens that note); "Try a question" to see what would be sent; and Copy for other AIs.
+
+**By voice** (`brainCommand` in `recall.ts`, called from `instant.ts`, no AI): "always sign my emails as Akhil", "never book meetings before 10", "pin that I'm vegetarian", "unpin the meetings rule", "what's in your core memory", "how much memory are you using", "what do you know about my sister", "share my memory with Claude". "Never mind", questions starting "always is …", and "what do you know about" a general topic are not commands and go to the AI as before.
+
+**Limits, said plainly:** recall matches words, not meaning, so "sibling" doesn't find "sister" unless one of them is in the note title or text. PDF words join the pool from the question after they are first read. A fact that is phrased unlike the question can be missed, which is what core memory is for.
+
 ## ProFinder
 
 ### Profile, kept in the Brain under Career

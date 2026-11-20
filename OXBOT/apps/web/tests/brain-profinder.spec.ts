@@ -41,7 +41,31 @@ async function mockBrain(page: Page) {
   await page.route('**/api/brain/note?**', r => { const t = new URL(r.request().url()).searchParams.get('title')!; return r.fulfill({ json: { note: notes[t] ?? note(t, graph.nodes.find(n => n.id === t)?.up, `Notes about ${t}.\n`) } }); });
   await page.route('**/api/brain/file?**', r => { posted.push({ url: r.request().url(), body: r.request().method() }); return r.fulfill({ json: { note: { ...notes.Resume, files: [...notes.Resume.files, 'cover.txt'] }, file: 'cover.txt', graph } }); });
   await page.route('**/api/brain/suggestions/*', r => { posted.push({ url: r.request().url(), body: r.request().postDataJSON() }); return r.fulfill({ json: { suggestions: [], graph } }); });
+  await mockMemory(page, posted);
   return posted;
+}
+
+// Core memory and recall (Luke's Day 2, November 20, 2026). A pretend vault of 48 facts; nothing is real.
+const recalled = [
+  { id: 'Grades#0', text: 'GPA 3.8. Dean’s list twice.', from: 'note', where: 'Grades' },
+  { id: 'transcript.pdf#2', text: 'Data Structures: A. Algorithms: A-.', from: 'file', where: 'transcript.pdf on Grades' },
+];
+async function mockMemory(page: Page, posted: { url: string; body: unknown }[]) {
+  let core = [{ id: 'c-0a1b2c3d', text: 'Always sign emails as Alex', kind: 'rule', at: iso(-90) }, { id: 'c-1a2b3c4d', text: 'Studies computer science at Example State', kind: 'fact', at: iso(-80) }];
+  const memory = () => ({
+    core, used: core.reduce((n, c) => n + c.text.length + 3, 0), budget: 3000, facts: 48, chars: 6210,
+    report: '', stats: { questions: 12, factsSent: 30, charsSent: 2400, charsAll: 74520, last: { at: iso(-2), asked: 'what was my gpa last semester', facts: recalled, pool: 48, poolChars: 6210, sentChars: 64 } },
+  });
+  await page.route('**/api/brain/memory', r => r.fulfill({ json: memory() }));
+  await page.route('**/api/brain/core**', r => {
+    const req = r.request();
+    posted.push({ url: req.url(), body: req.method() === 'POST' ? req.postDataJSON() : req.method() });
+    if (req.method() === 'POST') core = [...core, { id: 'c-2b3c4d5e', text: String(req.postDataJSON().text), kind: /^always|^never/i.test(req.postDataJSON().text) ? 'rule' : 'fact', at: iso(0) }];
+    else core = core.filter(c => c.id !== new URL(req.url()).searchParams.get('id'));
+    return r.fulfill({ json: memory() });
+  });
+  await page.route('**/api/brain/recall?**', r => r.fulfill({ json: { facts: [{ id: 'Maya Example#1', text: 'Birthday: June 4', from: 'note', where: 'Maya Example, Basics' }], pool: 48, poolChars: 6210, sentChars: 16 } }));
+  await page.route('**/api/brain/export', r => r.fulfill({ json: { text: 'About me (from Taurus, my assistant):\n- Studies computer science at Example State' } }));
 }
 
 test('the Brain draws every note as a dot, opens a note with its files, finds, adds and takes a file', async ({ page }) => {
@@ -105,6 +129,43 @@ test('the Brain on a phone stacks the graph over the note', async ({ page }) => 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${shots}/brain-390-dark.png`, fullPage: true });
+});
+
+test('Memory: core memory against its budget, what the last question sent, try a question, copy for other AIs', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await mock(page);
+  const posted = await mockBrain(page);
+  await page.goto('/#brain');
+  const panel = page.getByRole('region', { name: 'Memory' });
+  await expect(panel.getByText('Taurus sends core memory with every question, and only the saved facts that fit it.', { exact: false })).toBeVisible();
+  await expect(panel.getByText('73 of 3,000 characters')).toBeVisible();
+  await expect(panel.getByRole('meter')).toHaveAttribute('value', '73');
+  await expect(panel.getByText('Always sign emails as Alex')).toBeVisible();
+  await expect(panel.getByText('48 facts saved, 6,210 characters. Across 12 questions, about 18,030 tokens not sent.')).toBeVisible();
+  await expect(panel.getByText('Last question, “what was my gpa last semester”: 2 of 48 facts, 64 characters instead of 6,210.')).toBeVisible();
+  await expect(panel.getByText('GPA 3.8. Dean’s list twice.')).toBeVisible();
+
+  await panel.getByLabel('Pin a rule or fact').fill('Never book meetings before 10am');
+  await panel.getByRole('button', { name: 'Pin', exact: true }).click();
+  await expect(panel.getByText('Never book meetings before 10am')).toBeVisible();
+  expect(posted.at(-1)).toEqual({ url: expect.stringContaining('/api/brain/core'), body: { text: 'Never book meetings before 10am' } });
+  await panel.getByRole('button', { name: 'Unpin Always sign emails as Alex' }).click();
+  await expect(panel.getByText('Always sign emails as Alex')).toHaveCount(0);
+
+  await panel.getByLabel('Try a question').fill('when is maya birthday');
+  await panel.getByRole('button', { name: 'Try', exact: true }).click();
+  await expect(panel.getByText('For “when is maya birthday”, Taurus would send 1 of 48 facts, 16 characters.')).toBeVisible();
+  await panel.getByRole('button', { name: 'Maya Example, Basics' }).click();
+  await expect(page.getByRole('complementary', { name: 'Note' }).getByRole('heading', { name: 'Maya Example', level: 2 })).toBeVisible();
+
+  await panel.getByRole('button', { name: 'Copy for other AIs' }).click();
+  await expect(panel.getByRole('status')).toHaveText(/Copied\. Paste it into Claude’s or ChatGPT’s custom instructions/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Studies computer science at Example State');
+
+  await panel.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${shots}/brain-memory-1440-dark.png`, fullPage: true });
+  const axe = await new AxeBuilder({ page }).include('.brain-memory').analyze();
+  expect(axe.violations).toEqual([]);
 });
 
 // ---------- ProFinder ----------

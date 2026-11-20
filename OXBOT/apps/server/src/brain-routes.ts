@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { attach, decide, detach, fileText, filePath, fileType, getNote, graph, removeNote, saveNote, search, suggestions, syncMemories } from './brain.ts';
 import { ANSWER_KEYS, pipeline, prepare, proposeBatch, readAnswers, readPrefs, resume, runSearch, saveAnswers, savePrefs, setStage, submissions, summary, type Prefs, type Stage } from './profinder.ts';
 import { addSchedule, removeSchedule, schedules } from './schedule.ts';
+import { core, coreChars, CORE_BUDGET, exportText, memoryReport, pin, pool, recall, RECALL_LIMIT, recallStats, unpin, warmFile } from './recall.ts';
 import { HttpError } from './store.ts';
 
 // The Brain's and ProFinder's routes (November 16, 2026), kept out of index.ts. Same walls as every other route:
@@ -14,6 +15,11 @@ interface Kit {
   bytes: (req: IncomingMessage, limit: number) => Promise<Buffer>;
 }
 export const PROFINDER_TASK = 'Run ProFinder';
+// What the Brain page's Memory panel shows: core memory against its budget, the pool, and what recall sent.
+function memoryPage() {
+  const all = pool();
+  return { core: core(), used: coreChars(), budget: CORE_BUDGET, facts: all.length, chars: all.reduce((n, f) => n + f.text.length, 0), stats: recallStats(), report: memoryReport() };
+}
 const scheduled = () => schedules().find(s => s.task === PROFINDER_TASK);
 
 // The jobs as the page shows them: the posting's text cut short, the plan's file paths left on the server.
@@ -43,7 +49,7 @@ export async function brainRoute(req: IncomingMessage, res: ServerResponse, url:
     }
     if (path === '/api/brain/search' && method === 'GET') { send(res, 200, { results: search(q('q'), 12) }); return true; }
     if (path === '/api/brain/file') {
-      if (method === 'POST') { const r = attach(q('note'), q('name'), await bytes(req, 40_000_000)); send(res, 200, { note: r.note, file: r.file, graph: graph() }); return true; }
+      if (method === 'POST') { const r = attach(q('note'), q('name'), await bytes(req, 40_000_000)); warmFile(r.file); send(res, 200, { note: r.note, file: r.file, graph: graph() }); return true; }
       if (method === 'DELETE') { send(res, 200, { note: detach(q('note'), q('name')), graph: graph() }); return true; }
       if (method === 'GET') {
         const file = filePath(q('name'));
@@ -54,6 +60,14 @@ export async function brainRoute(req: IncomingMessage, res: ServerResponse, url:
         return true;
       }
     }
+    // Core memory and recall (Luke's Day 2, November 20, 2026).
+    if (path === '/api/brain/memory' && method === 'GET') { send(res, 200, memoryPage()); return true; }
+    if (path === '/api/brain/core') {
+      if (method === 'POST') { const b = await json<{ text?: string; kind?: string }>(req); pin(String(b.text ?? ''), b.kind === 'rule' || b.kind === 'fact' ? b.kind : undefined); send(res, 200, memoryPage()); return true; }
+      if (method === 'DELETE') { if (!unpin(q('id'))) throw new HttpError(404, 'That’s no longer in core memory.'); send(res, 200, memoryPage()); return true; }
+    }
+    if (path === '/api/brain/recall' && method === 'GET') { send(res, 200, recall(q('q'), { limit: RECALL_LIMIT })); return true; }
+    if (path === '/api/brain/export' && method === 'GET') { send(res, 200, { text: exportText() }); return true; }
     if (path === '/api/brain/file/text' && method === 'GET') { send(res, 200, { name: q('name'), text: await fileText(q('name')) }); return true; }
     const sm = path.match(/^\/api\/brain\/suggestions\/(s-[a-f0-9]{8})$/);
     if (sm && method === 'POST') { const b = await json<{ add?: boolean; note?: string }>(req); decide(sm[1], b.add === true, b.note); send(res, 200, { suggestions: suggestions(), graph: graph() }); return true; }

@@ -167,6 +167,12 @@ export const api = {
   brainSearch: (q: string) => request<{ results: BrainHit[] }>(`/api/brain/search?q=${encodeURIComponent(q)}`),
   detachFile: (note: string, name: string) => request<{ note: BrainNote; graph: BrainGraph }>(`/api/brain/file?note=${encodeURIComponent(note)}&name=${encodeURIComponent(name)}`, { method: 'DELETE' }),
   fileText: (name: string) => request<{ name: string; text: string }>(`/api/brain/file/text?name=${encodeURIComponent(name)}`),
+  // Core memory and recall (Luke's Day 2, November 20, 2026).
+  brainMemory: () => request<BrainMemory>('/api/brain/memory'),
+  pinCore: (text: string) => request<BrainMemory>('/api/brain/core', { method: 'POST', body: { text } }),
+  unpinCore: (id: string) => request<BrainMemory>(`/api/brain/core?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  recallPreview: (q: string) => request<{ facts: RecallFact[]; pool: number; poolChars: number; sentChars: number }>(`/api/brain/recall?q=${encodeURIComponent(q)}`),
+  memoryExport: () => request<{ text: string }>('/api/brain/export'),
   decideSuggestion: (id: string, add: boolean) => request<{ suggestions: BrainSuggestion[]; graph: BrainGraph }>(`/api/brain/suggestions/${id}`, { method: 'POST', body: { add } }),
   attachFile: async (note: string, file: File) => {
     let response: Response;
@@ -192,6 +198,13 @@ export interface BrainNode { id: string; title: string; kind: 'hub' | 'note' | '
 export interface BrainGraph { nodes: BrainNode[]; links: { source: string; target: string }[] }
 export interface BrainNote { title: string; path: string; hub: boolean; up?: string; tags: string[]; updated: string; body: string; links: string[]; files: string[] }
 export interface BrainSuggestion { id: string; fact: string; note: string; at: string; why?: string }
+// Core memory and recall (shapes from apps/server/src/recall.ts).
+export interface CoreItem { id: string; text: string; kind: 'rule' | 'fact'; at: string }
+export interface RecallFact { id: string; text: string; from: 'memory' | 'note' | 'file'; where?: string; at?: string }
+export interface BrainMemory {
+  core: CoreItem[]; used: number; budget: number; facts: number; chars: number; report: string;
+  stats: { questions: number; factsSent: number; charsSent: number; charsAll: number; last?: { at: string; asked: string; facts: RecallFact[]; pool: number; poolChars: number; sentChars: number } };
+}
 export interface BrainHit { title: string; up?: string; snippet: string; files: string[]; score: number }
 // ProFinder (shapes from apps/server/src/profinder.ts).
 export type JobStage = 'found' | 'shortlisted' | 'ready' | 'needs-you' | 'applied' | 'response' | 'skipped';

@@ -48,7 +48,9 @@ When one is due: a red window with Done, In 10 minutes and In an hour, a chime, 
 
 ## Memory
 
-"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.taurus/memory.json` and sent to your chosen AI with every question, so answers use it. "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
+"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.taurus/memory.json`. Since November 20, 2026 (Luke's Day 2) only the memories that fit a question go with it; see `docs/23-brain-and-profinder.md`, "Core memory and recall". "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
+
+Core memory, the few things sent with every question: "always sign my emails as Akhil", "never book meetings before 10am", "pin that I'm vegetarian", "unpin the meetings rule", "what's in your core memory" (it lists them and opens the Brain page). "how much memory are you using" gives the counts; "what do you know about my sister" reads back the saved facts that fit; "share my memory with Claude" opens the Brain page at Copy for other AIs.
 
 ## Opening apps
 

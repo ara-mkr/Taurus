@@ -4,6 +4,7 @@ import { prefs } from './boards.ts';
 import { greeting } from './greetings.ts';
 import { go } from './go.ts';
 import { emailRoutine } from './routines.ts';
+import { brainCommand } from './recall.ts';
 import { homeCommand } from './home.ts';
 import { appearance, findApp, findShortcut, macAllowed, isMac, openApp, runningApps, runShortcut, sleepDisplay, trustedShortcut, volume } from './mac.ts';
 import { forget, remember, showMemory } from './memory.ts';
@@ -167,6 +168,10 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
     const r = await (await import('./profinder.ts')).runSearch();
     return { text: `ProFinder: ${r.added ? `${r.added} new match${r.added === 1 ? '' : 'es'}` : 'no new matches'}${r.shortlisted ? `, ${r.shortlisted} shortlisted` : ''}.` };
   }
+  // Core memory and recall (Luke's Day 2, November 20, 2026): "always sign my emails as Akhil", "unpin the email
+  // thing", "what's in your core memory", "how much memory are you using", "what do you know about my sister".
+  const brain = brainCommand(said, original(heard, said), via);
+  if (brain) return brain;
   const keep = said.match(/^(?:remember|note|don'?t forget|keep in mind|make a note)(?: that| this:?)?\s+(.{3,})$/);
   if (keep && !/^(?:when|what|who|how|me to)\b/.test(keep[1])) { remember(original(heard, keep[1]), heard); return { text: 'Got it. I’ll remember that.' }; }
   const drop = said.match(/^(?:forget|stop remembering|delete the memory)(?: about| that| the)?\s+(.{3,})$/);
