@@ -50,13 +50,18 @@ test('every connector is a tile with its mark, name and one line, in plain group
   expect((await new AxeBuilder({ page }).analyze()).violations.map(v => v.id)).toEqual([]);
   await page.screenshot({ path: `${out}/connections-light-1440.png`, fullPage: true });
 
-  // A sign-in connector opens as a sheet: plain steps, an honest note, and no sign-in until keys exist.
+  // A sign-in connector opens as a sheet: one Sign in button, which says plainly when OXBOT's app isn't ready yet.
+  // Developer keys only appear behind "Use your own developer app" (owner, November 19, 2026: no "bs auth").
   await page.locator('.app-tile', { has: page.locator('.app-name', { hasText: /^Todoist$/ }) }).click();
   const sheet = page.getByRole('dialog', { name: 'Todoist' });
   await expect(page).toHaveURL(/#connections\/todoist$/);
   await expect(sheet.getByText('Not yet tried with a real account.')).toBeVisible();
-  await expect(sheet.getByText('Todoist App Management Console')).toBeVisible();
   await expect(sheet.getByText('Sign in with Todoist')).toHaveAttribute('aria-disabled', 'true');
+  await expect(sheet.getByText('Signing in with Todoist isn’t ready yet.')).toBeVisible();
+  await expect(sheet.getByLabel('Todoist client secret')).toBeHidden();
+  await expect(sheet.getByText('Todoist App Management Console')).toBeHidden();
+  await sheet.getByText('Use your own developer app').click();
+  await expect(sheet.getByText('Todoist App Management Console')).toBeVisible();
   await expect(sheet.getByLabel('Todoist client secret')).toHaveAttribute('type', 'password');
   expect((await new AxeBuilder({ page }).analyze()).violations.map(v => v.id)).toEqual([]);
   const small = await page.evaluate(() => [...document.querySelectorAll('main *')].filter(el => el.childNodes.length && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent!.trim()) && (el as HTMLElement).offsetParent && parseFloat(getComputedStyle(el).fontSize) < 13).map(el => el.textContent!.slice(0, 40)));

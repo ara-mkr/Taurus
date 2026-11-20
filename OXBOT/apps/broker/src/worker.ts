@@ -1,7 +1,7 @@
 // OXBOT sign-in service. Holds OXBOT's own app keys so anyone can click "Sign in with WHOOP"
 // (or Google, Microsoft, Strava, Oura) without registering a developer app. It stores nothing:
 // state is an encrypted blob, and tokens are encrypted to a key that only the user's Mac holds.
-import { apps, readScopes, tokenRequest, type AppName } from '../../server/src/providers.ts';
+import { apps, authorizeUrl, readScopes, tokenRequest, type AppName } from '../../server/src/providers.ts';
 import { openState, randomToken, sealFor, sealState, sha256 } from '../../server/src/handoff.ts';
 import { home, privacy, terms } from './pages.ts';
 
@@ -39,7 +39,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     const q = url.searchParams;
     const provider = q.get('provider') as AppName;
     if (!(provider in apps)) return reply(400, 'Unknown provider.');
-    if (!configured(env, provider)) return reply(501, `OXBOT's ${apps[provider].name} app is not set up yet. Use your own app keys on the Connections page.`);
+    if (!configured(env, provider)) return reply(501, `Signing in with ${apps[provider].name} isn’t ready yet. Try again soon.`);
     const scopes = (q.get('scopes') ?? '').split(' ').filter(Boolean);
     if (!allowed(provider, scopes)) return reply(400, 'OXBOT only asks for read-only access.');
     let back: URL;
@@ -49,9 +49,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     if (nonce.length < 16 || key.length < 40) return reply(400, 'Missing handoff key.');
     const app = apps[provider], verifier = randomToken(48);
     const state = await sealState(env.STATE_SECRET, { provider, scopes, back: back.href, nonce, key, verifier, exp: Date.now() + 600_000 } satisfies State);
-    const params = new URLSearchParams({ client_id: env[app.id]!, redirect_uri: `${origin}/callback`, response_type: 'code', scope: scopes.join(app.sep), state, ...app.extra });
-    if (app.pkce) { params.set('code_challenge', await sha256(verifier)); params.set('code_challenge_method', 'S256'); }
-    return redirect(`${app.authorize}?${params}`);
+    return redirect(authorizeUrl(app, env[app.id]!, `${origin}/callback`, scopes, state, app.pkce ? await sha256(verifier) : undefined));
   }
 
   if (request.method === 'GET' && url.pathname === '/callback') {

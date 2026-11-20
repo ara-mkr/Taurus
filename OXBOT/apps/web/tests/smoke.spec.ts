@@ -77,13 +77,15 @@ test('connections and phone pages render', async ({ page }) => {
   await expect(page.getByText('1 of 2 connected')).toBeVisible();
   await page.screenshot({ path: `${shots}/connections-light-1440.png`, fullPage: true });
   await page.locator('.app-tile', { hasText: 'Gmail' }).click();
+  // The redirect URL is for your own developer app, so it waits behind that link.
+  await page.getByRole('dialog', { name: 'Gmail' }).getByText('Use your own developer app').click();
   await expect(page.getByRole('dialog', { name: 'Gmail' }).getByText('http://localhost:8787/api/oauth/callback')).toBeVisible();
   await page.getByRole('dialog', { name: 'Gmail' }).getByRole('button', { name: 'Done' }).click();
   await page.locator('.app-tile', { hasText: 'WHOOP' }).click();
   const body = page.getByRole('dialog', { name: 'WHOOP' });
   await expect(body.getByRole('link', { name: 'Sign in with WHOOP' })).toHaveAttribute('href', '/api/oauth/start/whoop');
   await expect(body.getByLabel('WHOOP client secret')).toBeHidden();
-  await body.getByText('Use your own app keys instead').click();
+  await body.getByText('Use your own developer app').click();
   await expect(body.getByLabel('WHOOP client secret')).toBeVisible();
   await body.getByRole('button', { name: 'Done' }).click();
   await page.goto('/#phone');

@@ -4,8 +4,10 @@ import type { Body, CalendarEvent, Group, InboxCount, Metric, Need, Update } fro
 // What a connector contributes to the dashboard. Every field is optional.
 export interface Pull { needs?: Need[]; schedule?: CalendarEvent[]; inbox?: InboxCount[]; body?: Omit<Body, 'sources'>; numbers?: Metric[]; updates?: Update[] }
 
-export interface Field { key: string; label: string; secret?: boolean; optional?: boolean; appKey?: boolean; placeholder?: string }
-export interface Ctx { token: () => Promise<string>; field: (key: string) => string | undefined }
+// instead: a personal key that can stand in for signing in, kept out of sight unless asked for (November 19, 2026).
+export interface Field { key: string; label: string; secret?: boolean; optional?: boolean; appKey?: boolean; instead?: boolean; placeholder?: string }
+// token(): the sign-in's access token, or the personal key when there was no sign-in. signedIn says which.
+export interface Ctx { token: () => Promise<string>; field: (key: string) => string | undefined; signedIn?: boolean }
 export interface Def {
   id: string; name: string; group: Group; reads: string;
   oauth?: { app: AppName; scopes: string[] };

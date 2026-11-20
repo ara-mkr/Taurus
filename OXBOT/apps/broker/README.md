@@ -1,6 +1,6 @@
 # OXBOT sign-in service
 
-Lets anyone click "Sign in with WHOOP" (or Google, Microsoft, Strava, Oura) in their own OXBOT without registering developer apps.
+Lets anyone click "Sign in with Google" (or Microsoft, Slack, GitHub, Notion, Linear, Spotify and the rest in `apps/server/src/providers.ts`) in their own OXBOT and land on that company's own sign-in page, without registering developer apps.
 
 What it does, and nothing more:
 
@@ -41,6 +41,11 @@ Any Node host works too: `PORT=8790 STATE_SECRET=… BROKER_URL=https://… node
 | Microsoft | entra.microsoft.com | Multi-tenant + personal accounts. Publisher verification recommended. |
 | Strava | strava.com/settings/api | New apps start limited to 1 athlete; request a capacity increase. |
 | Oura | cloud.ouraring.com/oauth/applications | |
+| Slack | api.slack.com/apps | User token scope `search:read` only. Turn on public distribution so other workspaces can sign in. |
+| GitHub | github.com/settings/developers (OAuth app) | OXBOT asks only for `notifications read:user`: review requests come from notifications, never code. |
+| Notion | notion.so/profile/integrations (public integration) | No scopes: Notion's own screen asks which pages to share. Needs a privacy policy and terms URL. |
+| Linear | linear.app/settings/api (OAuth application) | Scope `read`. |
+| Spotify, Zoom, Todoist, Asana, Atlassian, monday.com, Dropbox, Box, Xero, Withings | each one's developer console | Same redirect URL; scopes are listed in `readScopes`. Spotify's development mode allows 25 allow-listed users. |
 
 ## Test
 

@@ -3,6 +3,7 @@ import { api, type ComposioInfo, type ConnectorInfo, type Group, type PhoneInfo 
 import { drawn } from './brandmarks';
 import { connectorsFor, markFor, siteName, websitesIn } from './logos';
 import { Qr } from './Qr';
+import { inDesktop } from './Voice';
 
 // In the order a day goes: what reaches you, what you owe, what you know, how you are, then OXBOT's own plumbing.
 const groups: [Group, string][] = [
@@ -72,14 +73,14 @@ function ComposioApps({ connected }: { connected: boolean }) {
 function status(c: ConnectorInfo, allow: boolean) {
   if (c.lastError) return 'Error';
   if (c.connected) return allow ? 'Allowed' : 'Connected';
-  if (c.auth === 'oauth' && c.ready) return allow ? 'Ready to allow' : 'Ready to sign in';
+  if (c.auth === 'oauth' && c.ready) return allow ? 'Ready to allow' : 'Sign in';
   return allow ? 'Not allowed' : 'Not connected';
 }
 
 // What it takes to connect, in words, for a tile that isn't connected yet.
 function how(c: ConnectorInfo) {
   if (c.auth === 'switch') return 'No account needed';
-  if (c.auth === 'oauth') return c.oneClick ? 'One-click sign-in' : c.ready ? 'Ready to sign in' : 'Sign in';
+  if (c.auth === 'oauth') return c.oneClick || c.ready ? 'Sign in' : c.fields.some(f => f.instead) ? 'Paste a key' : 'Sign-in coming soon';
   return c.fields.some(f => f.secret) ? 'Paste a key' : 'Add an address';
 }
 
@@ -124,8 +125,11 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
   }
 
   const name = short(c);
+  // In the desktop app the company's sign-in page opens in your default browser, where you're already signed in; it
+  // ends on a page you can close, and this window catches up when you come back to it.
+  const desktop = inDesktop();
   const signIn = c.auth === 'oauth' && (onThisMac()
-    ? <a className={`button ${c.ready ? 'primary' : 'disabled'}`} aria-disabled={!c.ready} href={c.ready ? `/api/oauth/start/${c.id}` : undefined}>{allow ? (c.connected ? 'Allow again' : `Allow ${name}`) : c.connected ? 'Sign in again' : `Sign in with ${name}`}</a>
+    ? <a className={`button ${c.ready ? 'primary' : 'disabled'}`} aria-disabled={!c.ready} href={c.ready ? `/api/oauth/start/${c.id}${desktop ? '?outside' : ''}` : undefined} target={desktop ? '_blank' : undefined} rel={desktop ? 'noreferrer' : undefined}>{allow ? (c.connected ? 'Allow again' : `Allow ${name}`) : c.connected ? 'Sign in again' : `Sign in with ${name}`}</a>
     : <span className="muted">Then tap Sign in with {name} on your Mac. {name} sends you back to the Mac’s own address, so that last step can’t finish on a phone.</span>);
   const fieldForm = (fields: ConnectorInfo['fields'], withSignIn: boolean) => <form onSubmit={save} className="fields">
     {fields.map(f => <label key={f.key}>
@@ -146,7 +150,7 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
       <span>Load the JSON file Google gave you</span>
       <input type="file" accept="application/json,.json" disabled={busy} onChange={e => { void loadGoogleFile(e.target.files?.[0]); e.target.value = ''; }} />
     </label>}
-    {c.fields.length > 0 && fieldForm(c.oneClick ? c.fields.filter(f => f.appKey) : c.fields, !c.oneClick)}
+    {c.fields.length > 0 && fieldForm(c.auth === 'oauth' && !allow ? c.fields.filter(f => f.appKey) : c.fields, !(c.auth === 'oauth' && !allow))}
   </>;
 
   return <>
@@ -157,10 +161,16 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
       <button type="button" className={c.connected ? '' : 'primary'} onClick={() => toggle(!c.connected)} disabled={busy}>{c.connected ? 'Turn off' : allow ? 'Allow' : 'Turn on'}</button>
       <a href={c.setupUrl} target="_blank" rel="noreferrer">{allow ? 'Setup page' : 'About this source'}</a>
       {message && <span role="status" className="muted">{message}</span>}
-    </div> : c.oneClick ? <>
-      {fieldForm(c.fields.filter(f => !f.appKey), true)}
+    </div> : c.auth === 'oauth' && !allow ? <>
+      {/* One button to the company's own sign-in page; keys only if you open the links under it (November 19, 2026). */}
+      {fieldForm(c.fields.filter(f => !f.appKey && !f.instead), true)}
+      {!c.ready && !c.connected && <p className="muted">Signing in with {name} isn’t ready yet.{c.fields.some(f => f.instead) ? ' You can use a personal key for now.' : ''}</p>}
+      {c.fields.some(f => f.instead) && <details className="own-keys" open={c.fields.some(f => f.instead && f.set)}>
+        <summary>Use a personal key instead</summary>
+        {fieldForm(c.fields.filter(f => f.instead), false)}
+      </details>}
       <details className="own-keys">
-        <summary>Use your own app keys instead</summary>
+        <summary>Use your own developer app</summary>
         {ownKeys}
       </details>
     </> : ownKeys}

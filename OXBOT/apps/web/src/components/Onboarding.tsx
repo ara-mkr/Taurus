@@ -3,6 +3,7 @@ import { api, type Bundle, type ConnectorInfo, type Prefs, type Profile } from '
 import { say, stopSpeaking, unlockAudio, useSpeaking } from '../speech';
 import { Ox, type Mood } from './Ox';
 import { AppSheet, Connector, FindAccounts, type Found } from './Connections';
+import { inDesktop } from './Voice';
 import '../styles/onboarding.css';
 
 // Onboarding (owner, November 17, 2026): "right as u download it very simple ox shows up gives u a voice guided every
@@ -97,7 +98,8 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
   const suggested = useMemo(() => {
     if (!list) return [];
     const wanted = new Set(['Mail', 'Calendar', 'Chat', 'Tasks', 'Body']);
-    const picks = list.filter(c => wanted.has(c.group) && (c.auth === 'oauth' || c.oneClick));
+    // Only apps you can sign in to with one click right now: nothing that would ask for a key.
+    const picks = list.filter(c => wanted.has(c.group) && c.auth === 'oauth' && (c.oneClick || c.ready || c.connected));
     const score = (c: ConnectorInfo) => (c.connected ? 10 : 0) + (found?.ids.includes(c.id) ? -5 : 0);
     return [...picks].sort((a, b) => score(a) - score(b)).slice(0, 6);
   }, [list, found]);
@@ -148,7 +150,7 @@ export function Onboarding({ prefs, setPrefs, onDone }: { prefs: Prefs; setPrefs
           <h3>Start with your main account</h3>
           <div className="ob-account-row">{bundles.filter(b => b.ready || b.connected).map(b => b.connected
             ? <span key={b.provider} className="ob-account on" aria-label={`${b.name} connected`}>{b.name} connected</span>
-            : <a key={b.provider} className="button primary ob-account" href={`/api/oauth/start-bundle/${b.provider}`}>Connect {b.name}</a>)}</div>
+            : <a key={b.provider} className="button primary ob-account" href={`/api/oauth/start-bundle/${b.provider}${inDesktop() ? '?outside' : ''}`} target={inDesktop() ? '_blank' : undefined} rel="noreferrer">Continue with {b.name}</a>)}</div>
         </section>}
         <div className="ob-connect-tools">
           <button type="button" className="primary" onClick={() => setFinding(true)} disabled={!list}>Find the apps I already use</button>

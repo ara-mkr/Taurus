@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { aiFields, providers as aiProviders } from './ai.ts';
 import { newHandoffKey, openSealed } from './handoff.ts';
-import { apps, tokenRequest as exchange, writeScopes, type App, type AppName, type TokenSet } from './providers.ts';
+import { apps, authorizeUrl, tokenRequest as exchange, writeScopes, type App, type AppName, type TokenSet } from './providers.ts';
 import { begin } from './activity.ts';
 import { api, store } from './store.ts';
 import type { CalendarEvent, ConnectorInfo, Grant, Group } from './types.ts';
@@ -130,10 +130,11 @@ const coreDefs: Def[] = [
   },
   {
     id: 'slack', name: 'Slack', group: 'Chat', reads: 'Messages that mention you, newest first.',
-    fields: [{ key: 'SLACK_USER_TOKEN', label: 'User OAuth token (xoxp-…)', secret: true }],
-    setup: 'Create a Slack app, add user scope search:read, install it to your workspace, copy the User OAuth Token.', setupUrl: 'https://api.slack.com/apps',
-    async pull({ field }) {
-      const token = field('SLACK_USER_TOKEN')!;
+    oauth: { app: 'slack', scopes: ['search:read'] },
+    fields: [...appFields('slack'), { key: 'SLACK_USER_TOKEN', label: 'User OAuth token (xoxp-…)', secret: true, instead: true }],
+    setup: 'Create a Slack app with user scope search:read and redirect URL below, or install it and copy its User OAuth Token.', setupUrl: 'https://api.slack.com/apps',
+    async pull(ctx) {
+      const token = await ctx.token();
       const me = await api<any>('https://slack.com/api/auth.test', { token, method: 'POST' });
       if (!me.ok) throw new Error(`Slack: ${me.error}`);
       const found = await api<any>(`https://slack.com/api/search.messages?query=${encodeURIComponent(`<@${me.user_id}>`)}&sort=timestamp&count=15`, { token });
@@ -151,10 +152,23 @@ const coreDefs: Def[] = [
   },
   {
     id: 'github', name: 'GitHub', group: 'Code', reads: 'Open pull requests waiting on your review.',
-    fields: [{ key: 'GITHUB_TOKEN', label: 'Fine-grained personal access token', secret: true }],
-    setup: 'Create a fine-grained token with read access to pull requests on the repos you care about.', setupUrl: 'https://github.com/settings/personal-access-tokens/new',
-    async pull({ field }) {
-      const data = await api<any>(`https://api.github.com/search/issues?q=${encodeURIComponent('is:open is:pr review-requested:@me archived:false')}&sort=updated&per_page=10`, { token: field('GITHUB_TOKEN'), headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+    // Signed in, OXBOT reads only your notifications (review requests), never code: GitHub's sign-in has no
+    // read-only access to private repositories, so it asks for none. A personal token reads the same through search.
+    oauth: { app: 'github', scopes: ['notifications', 'read:user'] },
+    fields: [...appFields('github'), { key: 'GITHUB_TOKEN', label: 'Fine-grained personal access token', secret: true, instead: true }],
+    setup: 'Register an OAuth app with the redirect URL below, or create a fine-grained token with read access to pull requests.', setupUrl: 'https://github.com/settings/developers',
+    async pull({ token, signedIn }) {
+      const t = await token();
+      const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+      if (signedIn) {
+        const list = await api<any[]>('https://api.github.com/notifications?participating=true&per_page=50', { token: t, headers });
+        const web = (url?: string) => url ? url.replace('https://api.github.com/repos/', 'https://github.com/').replace('/pulls/', '/pull/') : 'https://github.com/notifications';
+        return {
+          needs: (list ?? []).filter(n => n.reason === 'review_requested' && n.subject?.type === 'PullRequest').slice(0, 10)
+            .map(n => ({ id: `gh:n:${n.id}`, title: n.subject.title, detail: `Review requested · ${n.repository?.full_name ?? ''}`, source: 'GitHub', at: n.updated_at, url: web(n.subject.url) })),
+        };
+      }
+      const data = await api<any>(`https://api.github.com/search/issues?q=${encodeURIComponent('is:open is:pr review-requested:@me archived:false')}&sort=updated&per_page=10`, { token: t, headers });
       return {
         needs: (data.items ?? []).map((pr: any) => ({ id: `gh:${pr.id}`, title: pr.title, who: pr.user?.login, detail: `Review requested · ${pr.repository_url.split('/').slice(-2).join('/')}`, source: 'GitHub', at: pr.updated_at, url: pr.html_url })),
       };
@@ -162,11 +176,13 @@ const coreDefs: Def[] = [
   },
   {
     id: 'linear', name: 'Linear', group: 'Tasks', reads: 'Urgent and high-priority issues assigned to you that are not done.',
-    fields: [{ key: 'LINEAR_API_KEY', label: 'Personal API key', secret: true }],
-    setup: 'Settings → Account → Security & access → New API key.', setupUrl: 'https://linear.app/settings/account/security',
-    async pull({ field }) {
+    oauth: { app: 'linear', scopes: ['read'] },
+    fields: [...appFields('linear'), { key: 'LINEAR_API_KEY', label: 'Personal API key', secret: true, instead: true }],
+    setup: 'Create an OAuth app with the redirect URL below, or a personal API key in Settings → Account → Security & access.', setupUrl: 'https://linear.app/settings/api',
+    async pull({ token, signedIn }) {
+      const t = await token();
       const query = '{ viewer { assignedIssues(first: 10, filter: { priority: { gte: 1, lte: 2 }, state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority updatedAt state { name } } } } }';
-      const data = await api<any>('https://api.linear.app/graphql', { method: 'POST', headers: { Authorization: field('LINEAR_API_KEY')!, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+      const data = await api<any>('https://api.linear.app/graphql', { method: 'POST', headers: { Authorization: signedIn ? `Bearer ${t}` : t, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
       if (data.errors) throw new Error(`Linear: ${data.errors[0]?.message}`);
       return {
         needs: data.data.viewer.assignedIssues.nodes.map((i: any) => ({ id: `linear:${i.id}`, title: `${i.identifier} ${i.title}`, detail: `${i.priority === 1 ? 'Urgent' : 'High'} · ${i.state.name}`, source: 'Linear', at: i.updatedAt, url: i.url })),
@@ -175,11 +191,21 @@ const coreDefs: Def[] = [
   },
   {
     id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose.',
-    fields: [{ key: 'NOTION_TOKEN', label: 'Internal integration secret', secret: true }, { key: 'NOTION_DATABASE_ID', label: 'Task database ID' }],
-    setup: 'Create an internal integration, then share your task database with it (••• → Connections).', setupUrl: 'https://www.notion.so/profile/integrations',
-    async pull({ field }) {
-      const data = await api<any>(`https://api.notion.com/v1/databases/${field('NOTION_DATABASE_ID')}/query`, {
-        method: 'POST', token: field('NOTION_TOKEN'), headers: { 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
+    // Notion's own sign-in screen asks which pages OXBOT may see; with no database named, it reads the first one shared.
+    oauth: { app: 'notion', scopes: ['pages'] },
+    fields: [...appFields('notion'), { key: 'NOTION_TOKEN', label: 'Internal integration secret', secret: true, instead: true }, { key: 'NOTION_DATABASE_ID', label: 'Task database ID', optional: true, placeholder: 'The first database you share' }],
+    setup: 'Create a public integration with the redirect URL below, or an internal one and share your task database with it (••• → Connections).', setupUrl: 'https://www.notion.so/profile/integrations',
+    async pull({ token, field }) {
+      const t = await token();
+      const headers = { 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' };
+      let database = field('NOTION_DATABASE_ID');
+      if (!database) {
+        const found = await api<any>('https://api.notion.com/v1/search', { method: 'POST', token: t, headers, body: JSON.stringify({ filter: { property: 'object', value: 'database' }, page_size: 1 }) });
+        database = found.results?.[0]?.id;
+        if (!database) return {};
+      }
+      const data = await api<any>(`https://api.notion.com/v1/databases/${database}/query`, {
+        method: 'POST', token: t, headers,
         body: JSON.stringify({ page_size: 25, sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }] }),
       });
       const done = /^(done|complete|completed|shipped|archived|cancel)/i;
@@ -493,7 +519,9 @@ export async function checkBroker() {
   catch (error) { console.warn('sign-in service:', error instanceof Error ? error.message : error); }
 }
 // A sign-in in flight. `ids` is set when one sign-in connects several connectors at once (a provider bundle, below).
-const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey; ids?: string[] }>();
+// outside: started from the desktop app, so it finishes in the default browser, which then only needs closing.
+const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey; ids?: string[]; outside?: boolean }>();
+export const startedOutside = (key: string) => Boolean(pending.get(key)?.outside);
 const errors = new Map<string, string>();
 
 const byId = (id: string) => {
@@ -504,15 +532,20 @@ const byId = (id: string) => {
 const ownKeys = (app: App) => Boolean(store.secret(app.id) && store.secret(app.secret));
 // Write grants never go through the sign-in service: it only ever asks providers for read access.
 const oneClick = (def: Def) => Boolean(!def.write && def.oauth && !ownKeys(apps[def.oauth.app]) && brokerUrl() && brokerApps[def.oauth.app]);
-const requiredFields = (def: Def) => (def.fields ?? []).filter(f => !f.optional && !(f.appKey && oneClick(def)));
+const requiredFields = (def: Def) => (def.fields ?? []).filter(f => !f.optional && !f.instead && !(f.appKey && oneClick(def)));
 const missing = (def: Def) => requiredFields(def).filter(f => !store.secret(f.key)).map(f => f.label);
-export const isConnected = (id: string) => { const def = byId(id); return def.oauth ? Boolean(store.tokens(id)) && missing(def).length === 0 : missing(def).length === 0; };
+// Connected with a personal key instead of signing in: every key it needs, plus the rest of its own fields.
+const keyed = (def: Def) => {
+  const keys = (def.fields ?? []).filter(f => f.instead && !f.optional);
+  return keys.length > 0 && keys.every(f => store.secret(f.key)) && requiredFields(def).filter(f => !f.appKey).every(f => store.secret(f.key));
+};
+export const isConnected = (id: string) => { const def = byId(id); return def.oauth ? (Boolean(store.tokens(id)) && missing(def).length === 0) || keyed(def) : missing(def).length === 0; };
 
 export function connectorInfo(): ConnectorInfo[] {
   return defs.map(def => ({
     id: def.id, name: def.name, group: def.group, reads: def.reads, auth: def.oauth ? 'oauth' : def.toggle ? 'switch' : 'fields', mockOnly: Boolean(def.mockOnly),
     connected: isConnected(def.id), ready: missing(def).length === 0, missing: missing(def), oneClick: oneClick(def),
-    fields: (def.fields ?? []).map(f => ({ key: f.key, label: f.label, secret: Boolean(f.secret), appKey: Boolean(f.appKey), set: Boolean(store.secret(f.key)), value: f.secret ? undefined : store.secret(f.key), placeholder: f.placeholder })),
+    fields: (def.fields ?? []).map(f => ({ key: f.key, label: f.label, secret: Boolean(f.secret), appKey: Boolean(f.appKey), instead: f.instead || undefined, set: Boolean(store.secret(f.key)), value: f.secret ? undefined : store.secret(f.key), placeholder: f.placeholder })),
     setup: def.setup, setupUrl: def.setupUrl, redirectUri: def.oauth ? redirectUri() : undefined, lastError: errors.get(def.id),
   }));
 }
@@ -537,34 +570,34 @@ export function disconnect(id: string) {
   const def = byId(id);
   store.removeTokens(id);
   if (!def.oauth) store.setSecrets(Object.fromEntries(requiredFields(def).map(f => [f.key, ''])));
+  const keys = (def.fields ?? []).filter(f => f.instead);
+  if (keys.length) store.setSecrets(Object.fromEntries(keys.map(f => [f.key, ''])));
   errors.delete(id);
 }
 
-function remember(id: string, entry: { verifier: string; handoff?: CryptoKey; ids?: string[] }) {
+function remember(id: string, entry: { verifier: string; handoff?: CryptoKey; ids?: string[]; outside?: boolean }) {
   for (const [key, value] of pending) if (Date.now() - value.created > 600_000) pending.delete(key);
   const state = randomBytes(24).toString('base64url');
   pending.set(state, { id, created: Date.now(), ...entry });
   return state;
 }
 
-export async function startOAuth(id: string): Promise<string> {
+export async function startOAuth(id: string, outside = false): Promise<string> {
   const def = byId(id);
   if (!def.oauth) throw new Error(`${def.name} uses a token, not sign-in`);
   const app = apps[def.oauth.app];
   // One click: OXBOT's sign-in service holds the app keys and returns tokens encrypted to this Mac.
   if (oneClick(def)) {
     const handoff = await newHandoffKey();
-    const nonce = remember(id, { verifier: '', handoff: handoff.privateKey });
+    const nonce = remember(id, { verifier: '', handoff: handoff.privateKey, outside });
     const params = new URLSearchParams({ provider: def.oauth.app, scopes: def.oauth.scopes.join(' '), return_to: `${publicUrl}/api/oauth/handoff`, nonce, key: handoff.publicKey });
     return `${brokerUrl()}/start?${params}`;
   }
   const clientId = store.secret(app.id);
   if (!clientId || !store.secret(app.secret)) throw new Error(`Add the ${app.name} client ID and secret first`);
   const verifier = randomBytes(48).toString('base64url');
-  const state = remember(id, { verifier });
-  const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri(), response_type: 'code', scope: def.oauth.scopes.join(app.sep), state, ...app.extra });
-  if (app.pkce) { params.set('code_challenge', createHash('sha256').update(verifier).digest('base64url')); params.set('code_challenge_method', 'S256'); }
-  return `${app.authorize}?${params}`;
+  const state = remember(id, { verifier, outside });
+  return authorizeUrl(app, clientId, redirectUri(), def.oauth.scopes, state, createHash('sha256').update(verifier).digest('base64url'));
 }
 
 // One sign-in, your whole account (owner, November 17, 2026: "a lot of things r sign in with gmail or apple account").
@@ -590,7 +623,7 @@ export function bundleInfo() {
   });
 }
 
-export async function startOAuthBundle(provider: string): Promise<string> {
+export async function startOAuthBundle(provider: string, outside = false): Promise<string> {
   const bundle = providerBundles.find(b => b.provider === provider);
   if (!bundle) throw new Error(`No one-tap sign-in for ${provider}`);
   const app = apps[bundle.provider];
@@ -602,17 +635,15 @@ export async function startOAuthBundle(provider: string): Promise<string> {
   // One click through OXBOT's sign-in service, exactly like a single connector, but with the combined scopes and id list.
   if (!ownKeys(app) && brokerUrl() && brokerApps[bundle.provider]) {
     const handoff = await newHandoffKey();
-    const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids });
+    const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids, outside });
     const params = new URLSearchParams({ provider: bundle.provider, scopes: scopes.join(' '), return_to: `${publicUrl}/api/oauth/handoff`, nonce, key: handoff.publicKey });
     return `${brokerUrl()}/start?${params}`;
   }
   const clientId = store.secret(app.id);
   if (!clientId || !store.secret(app.secret)) throw new Error(`Add the ${app.name} client ID and secret first`);
   const verifier = randomBytes(48).toString('base64url');
-  const state = remember(primary, { verifier, ids });
-  const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri(), response_type: 'code', scope: scopes.join(app.sep), state, ...app.extra });
-  if (app.pkce) { params.set('code_challenge', createHash('sha256').update(verifier).digest('base64url')); params.set('code_challenge_method', 'S256'); }
-  return `${app.authorize}?${params}`;
+  const state = remember(primary, { verifier, ids, outside });
+  return authorizeUrl(app, clientId, redirectUri(), scopes, state, createHash('sha256').update(verifier).digest('base64url'));
 }
 
 const ownKeyExchange = (app: App, body: Record<string, string>) => exchange(app, store.secret(app.id)!, store.secret(app.secret)!, body);
@@ -669,7 +700,10 @@ export async function pullAll(only?: (def: Def) => boolean): Promise<PullResult[
   const step = live.length ? begin('read', `Checking ${names.length > 3 ? `${names.slice(0, 2).join(', ')} and ${names.length - 2} more` : names.join(', ')}`) : undefined;
   const results = await Promise.all(live.map(async def => {
     try {
-      const pull = await def.pull!({ token: () => accessToken(def), field: key => store.secret(key) });
+      const signedIn = Boolean(def.oauth && store.tokens(def.id));
+      const key = (def.fields ?? []).find(f => f.instead && store.secret(f.key));
+      const token = () => signedIn || !key ? accessToken(def) : Promise.resolve(store.secret(key.key)!);
+      const pull = await def.pull!({ token, field: k => store.secret(k), signedIn });
       errors.delete(def.id);
       return { id: def.id, name: def.name, group: def.group, pull };
     } catch (error) {

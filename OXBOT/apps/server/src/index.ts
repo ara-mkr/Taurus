@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { hostname, networkInterfaces } from 'node:os';
 import { extname, join, normalize, sep } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
-import { bundleInfo, checkBroker, connectorInfo, disconnect, finishHandoff, finishOAuth, grantInfo, saveFields, setPublicUrl, startOAuth, startOAuthBundle } from './connectors.ts';
+import { bundleInfo, checkBroker, connectorInfo, disconnect, finishHandoff, finishOAuth, grantInfo, saveFields, setPublicUrl, startedOutside, startOAuth, startOAuthBundle } from './connectors.ts';
 import { approve, decline, log as actionLog, pending as pendingActions, propose as proposeAction } from './actions/index.ts';
 import { converse } from './agent.ts';
 import { stream as activityStream, recent as recentActivity } from './activity.ts';
@@ -123,7 +123,9 @@ async function streamAsk(res: ServerResponse, asked: Turn[], spoken: boolean, sa
   res.end();
 }
 
-const page = (title: string, text: string) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="font:16px/1.5 -apple-system,system-ui,sans-serif;margin:15vh auto;max-width:28rem;padding:0 1rem"><h1 style="font-size:20px">${title}</h1><p>${text}</p><p><a href="/#connections">Back to OXBOT</a></p>`;
+const page = (title: string, text: string, back = true) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="font:16px/1.5 -apple-system,system-ui,sans-serif;margin:15vh auto;max-width:28rem;padding:0 1rem"><h1 style="font-size:20px">${title}</h1><p>${text}</p>${back ? '<p><a href="/#connections">Back to OXBOT</a></p>' : ''}`;
+// A sign-in started in the desktop app ends here, in the default browser: OXBOT's window updates on its own.
+const closeTab = (name: string, verb = 'connected') => page('Connected', `${name.replace(/[<>&]/g, '')} is ${verb}. You can close this tab and go back to OXBOT.`, false);
 
 const pairPage = (wrong: boolean) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#07080A"><title>Pair OXBOT</title><body style="font:17px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:18vh 28px;background:#07080A;color:#ECEBE6"><h1 style="font-size:28px;margin:0 0 12px">Pair this phone</h1><p style="color:#A3A29B">${wrong ? 'That key didn’t match. ' : ''}On your Mac, open OXBOT → Settings → Phone and type the key shown there.</p><form method="get" action="/"><label style="display:block;margin:20px 0 8px">Key</label><input name="key" autocomplete="off" autocapitalize="off" spellcheck="false" style="box-sizing:border-box;width:100%;font:17px ui-monospace,monospace;padding:12px;border-radius:10px;border:1px solid #2C2B28;background:#1A1A18;color:#ECEBE6"><button style="margin-top:16px;font:600 17px -apple-system,system-ui,sans-serif;padding:12px 20px;border-radius:12px;border:0;background:#ECEBE6;color:#07080A">Pair</button></form>`;
 
@@ -229,13 +231,13 @@ async function route(req: IncomingMessage, res: ServerResponse) {
 
   m = path.match(/^\/api\/oauth\/start\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuth(m[1]) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuth(m[1], url.searchParams.has('outside')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   // One tap connects a whole provider (Google mail+calendar, Microsoft mail+calendar) in a single sign-in.
   m = path.match(/^\/api\/oauth\/start-bundle\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuthBundle(m[1]) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuthBundle(m[1], url.searchParams.has('outside')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   if (method === 'GET' && path === '/api/oauth/callback') {
@@ -243,8 +245,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const providerError = url.searchParams.get('error');
     if (providerError) return res.end(page('Not connected', `The provider said: ${providerError.replace(/[<>&]/g, '')}`));
     try {
+      const outside = startedOutside(url.searchParams.get('state') ?? '');
       const { name, page: back } = await finishOAuth(url.searchParams.get('state') ?? '', url.searchParams.get('code') ?? '');
       await dashboard(true);
+      if (outside) return res.end(closeTab(name, back === 'actions' ? 'allowed' : 'connected'));
       res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#${back}"><title>Connected</title>${name} ${back === 'actions' ? 'allowed' : 'connected'}.`);
     } catch (error) { res.end(page('Not connected', (error as Error).message.replace(/[<>&]/g, ''))); }
     return;
@@ -256,8 +260,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const providerError = url.searchParams.get('error');
     if (providerError) return res.end(page('Not connected', `The sign-in said: ${providerError.replace(/[<>&]/g, '')}`));
     try {
+      const outside = startedOutside(url.searchParams.get('nonce') ?? '');
       const name = await finishHandoff(url.searchParams.get('nonce') ?? '', url.searchParams.get('payload') ?? '');
       await dashboard(true);
+      if (outside) return res.end(closeTab(name));
       res.end(`<!doctype html><meta http-equiv="refresh" content="0;url=${appUrl}/#connections"><title>Connected</title>${name} connected.`);
     } catch (error) { res.end(page('Not connected', (error as Error).message.replace(/[<>&]/g, ''))); }
     return;

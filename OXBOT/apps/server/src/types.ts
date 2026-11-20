@@ -64,7 +64,7 @@ export interface Dashboard {
   sections: Record<Section, SectionState>;
 }
 
-export interface FieldInfo { key: string; label: string; secret: boolean; appKey: boolean; set: boolean; value?: string; placeholder?: string }
+export interface FieldInfo { key: string; label: string; secret: boolean; appKey: boolean; instead?: boolean; set: boolean; value?: string; placeholder?: string }
 
 export interface ConnectorInfo {
   id: string;
