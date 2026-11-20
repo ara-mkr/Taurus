@@ -1,6 +1,6 @@
 {
   "name": "oxbot-server",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "OXBOT local server: connectors, dashboard, ask, and phone ringing. Runs on your machine only.",
