@@ -173,6 +173,8 @@ export const api = {
   unpinCore: (id: string) => request<BrainMemory>(`/api/brain/core?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
   recallPreview: (q: string) => request<{ facts: RecallFact[]; pool: number; poolChars: number; sentChars: number }>(`/api/brain/recall?q=${encodeURIComponent(q)}`),
   memoryExport: () => request<{ text: string }>('/api/brain/export'),
+  setMemorySharing: (on: boolean) => request<BrainMemory>('/api/brain/sharing', { method: 'POST', body: { on } }),
+  setRecallPicker: (on: boolean) => request<BrainMemory>('/api/brain/picker', { method: 'POST', body: { on } }),
   decideSuggestion: (id: string, add: boolean) => request<{ suggestions: BrainSuggestion[]; graph: BrainGraph }>(`/api/brain/suggestions/${id}`, { method: 'POST', body: { add } }),
   attachFile: async (note: string, file: File) => {
     let response: Response;
@@ -202,7 +204,8 @@ export interface BrainSuggestion { id: string; fact: string; note: string; at: s
 export interface CoreItem { id: string; text: string; kind: 'rule' | 'fact'; at: string }
 export interface RecallFact { id: string; text: string; from: 'memory' | 'note' | 'file'; where?: string; at?: string }
 export interface BrainMemory {
-  core: CoreItem[]; used: number; budget: number; facts: number; chars: number; report: string;
+  core: CoreItem[]; used: number; budget: number; facts: number; chars: number; report: string; picker: boolean;
+  sharing: { on: boolean; url: string; key?: string; uses: number; lastUse?: { at: string; app: string; tool: string } };
   stats: { questions: number; factsSent: number; charsSent: number; charsAll: number; last?: { at: string; asked: string; facts: RecallFact[]; pool: number; poolChars: number; sentChars: number } };
 }
 export interface BrainHit { title: string; up?: string; snippet: string; files: string[]; score: number }

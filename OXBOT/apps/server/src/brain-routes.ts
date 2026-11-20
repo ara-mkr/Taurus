@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { attach, decide, detach, fileText, filePath, fileType, getNote, graph, removeNote, saveNote, search, suggestions, syncMemories } from './brain.ts';
 import { ANSWER_KEYS, pipeline, prepare, proposeBatch, readAnswers, readPrefs, resume, runSearch, saveAnswers, savePrefs, setStage, submissions, summary, type Prefs, type Stage } from './profinder.ts';
 import { addSchedule, removeSchedule, schedules } from './schedule.ts';
-import { core, coreChars, CORE_BUDGET, exportText, memoryReport, pin, pool, recall, RECALL_LIMIT, recallStats, unpin, warmFile } from './recall.ts';
+import { setSharing, sharing } from './memory-share.ts';
+import { core, coreChars, CORE_BUDGET, exportText, memoryReport, pin, pool, recall, RECALL_LIMIT, recallSettings, recallStats, setPicker, unpin, warmFile } from './recall.ts';
 import { HttpError } from './store.ts';
 
 // The Brain's and ProFinder's routes (November 16, 2026), kept out of index.ts. Same walls as every other route:
@@ -18,7 +19,13 @@ export const PROFINDER_TASK = 'Run ProFinder';
 // What the Brain page's Memory panel shows: core memory against its budget, the pool, and what recall sent.
 function memoryPage() {
   const all = pool();
-  return { core: core(), used: coreChars(), budget: CORE_BUDGET, facts: all.length, chars: all.reduce((n, f) => n + f.text.length, 0), stats: recallStats(), report: memoryReport() };
+  const sh = sharing();
+  const url = `http://127.0.0.1:${Number(process.env.TAURUS_PORT || 8787)}/mcp`;
+  return {
+    core: core(), used: coreChars(), budget: CORE_BUDGET, facts: all.length, chars: all.reduce((n, f) => n + f.text.length, 0), stats: recallStats(), report: memoryReport(),
+    picker: recallSettings().picker,
+    sharing: sh.on ? { on: true, url, key: sh.key, uses: sh.uses.length, lastUse: sh.uses.at(-1) } : { on: false, url, uses: sh.uses.length },
+  };
 }
 const scheduled = () => schedules().find(s => s.task === PROFINDER_TASK);
 
@@ -66,6 +73,8 @@ export async function brainRoute(req: IncomingMessage, res: ServerResponse, url:
       if (method === 'POST') { const b = await json<{ text?: string; kind?: string }>(req); pin(String(b.text ?? ''), b.kind === 'rule' || b.kind === 'fact' ? b.kind : undefined); send(res, 200, memoryPage()); return true; }
       if (method === 'DELETE') { if (!unpin(q('id'))) throw new HttpError(404, 'That’s no longer in core memory.'); send(res, 200, memoryPage()); return true; }
     }
+    if (path === '/api/brain/sharing' && method === 'POST') { const b = await json<{ on?: boolean }>(req); setSharing(b.on === true); send(res, 200, memoryPage()); return true; }
+    if (path === '/api/brain/picker' && method === 'POST') { const b = await json<{ on?: boolean }>(req); setPicker(b.on === true); send(res, 200, memoryPage()); return true; }
     if (path === '/api/brain/recall' && method === 'GET') { send(res, 200, recall(q('q'), { limit: RECALL_LIMIT })); return true; }
     if (path === '/api/brain/export' && method === 'GET') { send(res, 200, { text: exportText() }); return true; }
     if (path === '/api/brain/file/text' && method === 'GET') { send(res, 200, { name: q('name'), text: await fileText(q('name')) }); return true; }

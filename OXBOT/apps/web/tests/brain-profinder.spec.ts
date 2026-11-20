@@ -52,7 +52,10 @@ const recalled = [
 ];
 async function mockMemory(page: Page, posted: { url: string; body: unknown }[]) {
   let core = [{ id: 'c-0a1b2c3d', text: 'Always sign emails as Alex', kind: 'rule', at: iso(-90) }, { id: 'c-1a2b3c4d', text: 'Studies computer science at Example State', kind: 'fact', at: iso(-80) }];
+  let picker = true, sharingOn = false;
+  const KEY = '0123456789abcdef'.repeat(3);
   const memory = () => ({
+    picker, sharing: sharingOn ? { on: true, url: 'http://127.0.0.1:8787/mcp', key: KEY, uses: 2, lastUse: { at: iso(-1), app: 'claude-code', tool: 'memory_search' } } : { on: false, url: 'http://127.0.0.1:8787/mcp', uses: 0 },
     core, used: core.reduce((n, c) => n + c.text.length + 3, 0), budget: 3000, facts: 48, chars: 6210,
     report: '', stats: { questions: 12, factsSent: 30, charsSent: 2400, charsAll: 74520, last: { at: iso(-2), asked: 'what was my gpa last semester', facts: recalled, pool: 48, poolChars: 6210, sentChars: 64 } },
   });
@@ -65,6 +68,8 @@ async function mockMemory(page: Page, posted: { url: string; body: unknown }[]) 
     return r.fulfill({ json: memory() });
   });
   await page.route('**/api/brain/recall?**', r => r.fulfill({ json: { facts: [{ id: 'Maya Example#1', text: 'Birthday: June 4', from: 'note', where: 'Maya Example, Basics' }], pool: 48, poolChars: 6210, sentChars: 16 } }));
+  await page.route('**/api/brain/sharing', r => { sharingOn = r.request().postDataJSON().on; posted.push({ url: r.request().url(), body: r.request().postDataJSON() }); return r.fulfill({ json: memory() }); });
+  await page.route('**/api/brain/picker', r => { picker = r.request().postDataJSON().on; posted.push({ url: r.request().url(), body: r.request().postDataJSON() }); return r.fulfill({ json: memory() }); });
   await page.route('**/api/brain/export', r => r.fulfill({ json: { text: 'About me (from Taurus, my assistant):\n- Studies computer science at Example State' } }));
 }
 
@@ -161,6 +166,22 @@ test('Memory: core memory against its budget, what the last question sent, try a
   await panel.getByRole('button', { name: 'Copy for other AIs' }).click();
   await expect(panel.getByRole('status')).toHaveText(/Copied\. Paste it into Claude’s or ChatGPT’s custom instructions/);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Studies computer science at Example State');
+
+  // Sharper recall can be switched off; memory sharing turns on with an address, a hidden key and the Claude Code command.
+  await panel.getByRole('switch', { name: /Sharper recall/ }).click();
+  await expect(panel.getByRole('switch', { name: /Sharper recall/ })).not.toBeChecked();
+  expect(posted.at(-1)).toEqual({ url: expect.stringContaining('/api/brain/picker'), body: { on: false } });
+  const share = panel.getByRole('switch', { name: /Use this memory in your other AI apps/ });
+  await expect(share).not.toBeChecked();
+  await share.click();
+  await expect(panel.getByText('http://127.0.0.1:8787/mcp')).toBeVisible();
+  await expect(share).toBeChecked();
+  expect(posted.at(-1)).toEqual({ url: expect.stringContaining('/api/brain/sharing'), body: { on: true } });
+  await expect(panel.getByText('012345…')).toBeVisible();
+  await expect(panel.getByText('0123456789abcdef0123456789abcdef0123456789abcdef')).toHaveCount(0);
+  await expect(panel.getByText('2 times, last by claude-code')).toBeVisible();
+  await panel.getByRole('button', { name: 'Copy the command' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('claude mcp add --transport http taurus-memory http://127.0.0.1:8787/mcp --header "Authorization: Bearer 0123456789abcdef0123456789abcdef0123456789abcdef"');
 
   await panel.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${shots}/brain-memory-1440-dark.png`, fullPage: true });

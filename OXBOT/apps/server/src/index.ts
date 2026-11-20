@@ -40,6 +40,8 @@ import { addServer, mcpServers, refreshServer, removeServer } from './mcp.ts';
 import { addSchedule, nextLine, removeSchedule, runNow, schedules, setScheduleOn } from './schedule.ts';
 import { removeSkill, saveSkill, skills } from './skills.ts';
 import { brainRoute } from './brain-routes.ts';
+import { shareRoute } from './memory-share.ts';
+import { warmBrain } from './recall.ts';
 import type { AskTurn, MarketRange, PhoneSettings, Prefs } from './types.ts';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -167,6 +169,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
 
   // DNS-rebinding guard: only answer to names this machine actually goes by.
   if (!allowedHosts().has(requestHost)) return send(res, 421, { error: 'Unknown host' });
+
+  // Your memory for your other AI apps (November 20, 2026, Luke's Day 2): MCP at /mcp, this Mac only, with its own key
+  // instead of the x-taurus header, and off until the owner turns it on (memory-share.ts).
+  if (path === '/mcp') return shareRoute(req, res, isLoopback(req) && !(req.socket as TLSSocket).encrypted, () => raw(req, 64_000));
 
   // Taurus's certificate authority, public by nature: the phone installs it once so it can trust this Mac over HTTPS.
   // Compare its SHA-256 fingerprint with the one on the Mac's Phone page before trusting it.
@@ -597,6 +603,8 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
 createServer(handle).listen(port, host, () => {
   console.log(`Taurus on ${publicUrl}  (bound to ${host}, data in ${store.dir})`);
+  // The words of files on Brain notes, read once now so a PDF counts from the first question (recall.ts).
+  setTimeout(warmBrain, 2000).unref();
   if (host !== '127.0.0.1') {
     // The certificate covers the Wi-Fi addresses this Mac has now; a new network gets a new one at the next start.
     try {

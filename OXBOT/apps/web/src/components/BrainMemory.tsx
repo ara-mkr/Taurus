@@ -25,6 +25,7 @@ export function BrainMemory({ open }: { open: (title: string) => void }) {
   const [tried, setTried] = useState<{ q: string; facts: RecallFact[]; pool: number; sentChars: number; poolChars: number } | null>(null);
   const [said, setSaid] = useState('');
   const [problem, setProblem] = useState('');
+  const [showKey, setShowKey] = useState(false);
 
   const load = useCallback(() => { api.brainMemory().then(setM).catch(e => setProblem((e as Error).message)); }, []);
   useEffect(() => {
@@ -51,6 +52,16 @@ export function BrainMemory({ open }: { open: (title: string) => void }) {
     try { const { text: block } = await api.memoryExport(); await navigator.clipboard.writeText(block); setSaid('Copied. Paste it into Claude’s or ChatGPT’s custom instructions, or a Claude Project.'); }
     catch (e) { setProblem((e as Error).message || 'Copying didn’t work here.'); }
   }
+
+  async function toggle(what: 'picker' | 'sharing', on: boolean) {
+    setProblem('');
+    try { setM(await (what === 'picker' ? api.setRecallPicker(on) : api.setMemorySharing(on))); } catch (e) { setProblem((e as Error).message); }
+  }
+  async function copyText(text: string, done: string) {
+    try { await navigator.clipboard.writeText(text); setSaid(done); } catch { setProblem('Copying didn’t work here. Select the text and copy it.'); }
+  }
+  const sh = m?.sharing;
+  const claudeCommand = sh?.key ? `claude mcp add --transport http taurus-memory ${sh.url} --header "Authorization: Bearer ${sh.key}"` : '';
 
   const last = m?.stats.last;
   const saved = m && m.stats.charsAll > m.stats.charsSent ? m.stats.charsAll - m.stats.charsSent : 0;
@@ -95,11 +106,27 @@ export function BrainMemory({ open }: { open: (title: string) => void }) {
           <p className="muted">{tried.facts.length ? `For “${tried.q}”, Taurus would send ${tried.facts.length} of ${fmt(tried.pool)} facts, ${fmt(tried.sentChars)} characters.` : `Nothing saved fits “${tried.q}”. Only core memory would go.`}</p>
           {tried.facts.length > 0 && <Facts facts={tried.facts} open={open} />}
         </div>}
+        {m && <label className="brain-mem-switch switch-label">
+          <span><strong>Sharper recall</strong><span className="muted">When lots of saved facts fit, your fastest AI picks the few that help. Say “turn off sharper recall” to stop.</span></span>
+          <input type="checkbox" role="switch" checked={m.picker} onChange={e => void toggle('picker', e.target.checked)} />
+        </label>}
         <div className="brain-actions">
           <button type="button" className="glass-button" onClick={() => void copy()}>Copy for other AIs</button>
           {said && <span className="muted" role="status">{said}</span>}
         </div>
       </div>
     </div>
+    {sh && <div className="brain-mem-share">
+      <label className="brain-mem-switch switch-label">
+        <span><strong>Use this memory in your other AI apps</strong><span className="muted">Claude Code, Claude Desktop, Cursor and other apps on this Mac can search it and suggest additions, which wait for your Add. Nothing on your network or the internet can reach it. Or say “let Claude use my memory”.</span></span>
+        <input type="checkbox" role="switch" checked={sh.on} onChange={e => void toggle('sharing', e.target.checked)} />
+      </label>
+      {sh.on && sh.key && <dl className="brain-mem-conn">
+        <dt>Address</dt><dd><code>{sh.url}</code></dd>
+        <dt>Key</dt><dd><code>{showKey ? sh.key : `${sh.key.slice(0, 6)}…`}</code> <button type="button" className="text-button" onClick={() => setShowKey(!showKey)}>{showKey ? 'Hide' : 'Show'}</button></dd>
+        <dt>Claude Code</dt><dd><button type="button" className="glass-button" onClick={() => void copyText(claudeCommand, 'Copied. Paste it in Terminal; Claude Code then has your memory in every chat.')}>Copy the command</button></dd>
+        <dt>Used</dt><dd>{sh.uses ? `${fmt(sh.uses)} time${sh.uses === 1 ? '' : 's'}${sh.lastUse ? `, last by ${sh.lastUse.app}` : ''}` : 'Not yet'}</dd>
+      </dl>}
+    </div>}
   </section>;
 }

@@ -151,3 +151,13 @@ main.brain .page-head, main.profinder .page-head { align-items: center; border-b
 .brain-mem-add input { flex: 1; min-width: 0; margin: 0; }
 .brain-mem-say { font-size: 13px; }
 @media (max-width: 800px) { .brain-mem-cols { grid-template-columns: 1fr; } }
+.brain-mem-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--rule); cursor: pointer; }
+.brain-mem-switch > span { display: grid; gap: 2px; }
+.brain-mem-switch .muted { font-size: 13px; }
+.brain-mem-switch input { flex: none; }
+.brain-mem-share { margin-top: 16px; }
+.brain-mem-conn { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; align-items: baseline; margin: 6px 0 0; }
+.brain-mem-conn dt { color: var(--ink-2); font-size: 13px; }
+.brain-mem-conn dd { margin: 0; overflow-wrap: anywhere; }
+.brain-mem-conn code { font-size: 13px; }
+.brain-mem-conn .text-button { padding: 0; font-size: 14px; }
