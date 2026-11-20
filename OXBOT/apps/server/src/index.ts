@@ -331,7 +331,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (method === 'POST' && path === '/api/ai/route') {
     const { route, preset } = await json<{ route?: Record<string, string>; preset?: string }>(req);
     if (preset) {
-      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'] };
+      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'], 'deepseek-claude': ['deepseek', 'deepseek', 'claude'] };
       if (!brands[preset]) return send(res, 400, { error: 'No such preset.' });
       const picked = brands[preset].map(b => providerForBrand(b));
       const failed = picked.find(p => 'error' in p);

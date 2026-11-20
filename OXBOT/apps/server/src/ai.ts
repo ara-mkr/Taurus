@@ -52,7 +52,10 @@ export const providers: Provider[] = [
     keyUrl: 'https://aistudio.google.com/apikey', note: 'Google AI Studio has a free tier with daily limits.' },
   { id: 'grok', name: 'Grok', maker: 'xAI', kind: 'chat', base: 'https://api.x.ai/v1', key: 'XAI_API_KEY', model: 'XAI_MODEL', fallback: 'grok-4', prefer: /^grok-\d+(\.\d+)?$/, keyUrl: 'https://console.x.ai/', note: 'Billed per use by xAI.' },
   { id: 'mistral', name: 'Mistral', maker: 'Mistral AI', kind: 'chat', base: 'https://api.mistral.ai/v1', key: 'MISTRAL_API_KEY', model: 'MISTRAL_MODEL', fallback: 'mistral-large-latest', keyUrl: 'https://console.mistral.ai/api-keys', note: 'Has a free experiment plan.' },
-  { id: 'deepseek', name: 'DeepSeek', maker: 'DeepSeek', kind: 'chat', base: 'https://api.deepseek.com', key: 'DEEPSEEK_API_KEY', model: 'DEEPSEEK_MODEL', fallback: 'deepseek-chat', keyUrl: 'https://platform.deepseek.com/api_keys', note: 'Billed per use by DeepSeek.' },
+  // DeepSeek V4 Flash (owner, November 20, 2026: "i wil just be using deepseek v4 flash cus its cheap ash and fast and
+  // good enough"). DeepSeek's own name for it is now deepseek-flash (V4.1 Flash, about $0.15 in and $0.60 out per million
+  // tokens off-peak, DeepSeek's pricing page, November 20, 2026); deepseek-v4-flash still works there too.
+  { id: 'deepseek', name: 'DeepSeek', maker: 'DeepSeek', kind: 'chat', base: 'https://api.deepseek.com', key: 'DEEPSEEK_API_KEY', model: 'DEEPSEEK_MODEL', fallback: 'deepseek-flash', keyUrl: 'https://platform.deepseek.com/api_keys', note: 'V4 Flash: cheap and fast, billed per use by DeepSeek.' },
   { id: 'groq', name: 'Groq', maker: 'Groq', kind: 'chat', base: 'https://api.groq.com/openai/v1', key: 'GROQ_API_KEY', model: 'GROQ_MODEL', fallback: 'llama-3.3-70b-versatile', keyUrl: 'https://console.groq.com/keys', note: 'Very fast open models. Has a free tier.' },
   { id: 'cerebras', name: 'Cerebras', maker: 'Cerebras', kind: 'chat', base: 'https://api.cerebras.ai/v1', key: 'CEREBRAS_API_KEY', model: 'CEREBRAS_MODEL', fallback: 'llama-3.3-70b', keyUrl: 'https://cloud.cerebras.ai/', note: 'Very fast open models. Has a free tier.' },
   { id: 'together', name: 'Together AI', maker: 'Together AI', kind: 'chat', base: 'https://api.together.xyz/v1', key: 'TOGETHER_API_KEY', model: 'TOGETHER_MODEL', fallback: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', keyUrl: 'https://api.together.ai/settings/api-keys', note: 'Open models, billed per use.' },
@@ -120,6 +123,9 @@ async function modelFor(p: Provider, key?: string): Promise<string> {
 
 interface ChatReply { choices?: { message?: { content?: string | { type: string; text?: string }[] } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } }
 const chatBase = (p: Provider) => ((p.urlField && store.secret(p.urlField)) || p.base || '').replace(/\/$/, '').replace(/\/chat\/completions$/, '');
+// DeepSeek thinks before every answer unless told not to, which is most of the wait. Quick and everyday asks skip it;
+// big jobs keep it (DeepSeek's thinking-mode guide: {"thinking": {"type": "enabled" | "disabled"}}).
+export const deepseekThinking = (p: Provider, tier: Tier) => p.id === 'deepseek' ? { thinking: { type: tier === 'hard' ? 'enabled' : 'disabled' } } : {};
 async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta: string) => void, tier: Tier = 'medium'): Promise<{ text: string; model: string }> {
   const key = p.key ? store.secret(p.key) : undefined;
   const base = chatBase(p);
@@ -146,7 +152,7 @@ async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta:
     const started = performance.now();
     const attempt = (think: unknown) => postStream(`${base}/chat/completions`, {
       token: key, headers, timeoutMs: 120_000,
-      body: { model, stream: true, ...(think ? { reasoning: think } : {}), ...(p.plan ? { stream_options: { include_usage: true } } : {}), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] },
+      body: { model, stream: true, ...(think ? { reasoning: think } : {}), ...deepseekThinking(p, tier), ...(p.plan ? { stream_options: { include_usage: true } } : {}), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] },
     }, event => {
       if (event.error) throw new Error(`${p.name}: ${String(event.error.message ?? event.error).slice(0, 200)}`);
       const delta = event.choices?.[0]?.delta?.content;
@@ -235,6 +241,7 @@ export function providerForBrand(brand: Brand): { id: string; name: string } | {
     return { error: `${label} isn’t connected yet. Connect it in Settings, AI, then say it again.` };
   };
   if (brand === 'free') return ready('openrouter') ? { id: 'free', name: 'Taurus' } : { error: 'Taurus’s free models need a free OpenRouter sign-in first: Settings, AI.' };
+  if (brand === 'deepseek') return ready('deepseek') ? { id: 'deepseek', name: 'DeepSeek' } : { error: 'Add your DeepSeek key first: Settings, AI, API keys, DeepSeek. Then say it again.' };
   if (brand === 'claude') return pick('claude-plan', 'claude', 'Claude');
   if (brand === 'chatgpt') return pick('chatgpt-plan', 'chatgpt', 'ChatGPT');
   return pick('gemini-plan', 'gemini', 'Gemini');

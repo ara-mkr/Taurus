@@ -18,11 +18,11 @@ export function saveRoute(next: Route) {
 
 // ---------- Saying it ----------
 
-export type Brand = 'free' | 'claude' | 'chatgpt' | 'gemini';
+export type Brand = 'free' | 'claude' | 'chatgpt' | 'gemini' | 'deepseek';
 export interface SettingsCommand { route?: { brand: Brand; tiers: Tier[] }[]; scans?: { on?: boolean; every?: number } }
 
 const brandOf = (s: string): Brand | undefined =>
-  /\b(claude|anthropic)\b/i.test(s) ? 'claude' : /\b(chat ?gpt|gpt|openai|codex)\b/i.test(s) ? 'chatgpt' : /\bgemini\b/i.test(s) ? 'gemini' : /\b(taurus|free|the free (one|ones|models?))\b/i.test(s) ? 'free' : undefined;
+  /\b(deep ?seek|deepseek v4(?: flash)?|v4 flash)\b/i.test(s) ? 'deepseek' : /\b(claude|anthropic)\b/i.test(s) ? 'claude' : /\b(chat ?gpt|gpt|openai|codex)\b/i.test(s) ? 'chatgpt' : /\bgemini\b/i.test(s) ? 'gemini' : /\b(taurus|free|the free (one|ones|models?))\b/i.test(s) ? 'free' : undefined;
 // The kind of ask must follow "for" ("for big jobs", "for everything"), so "use Claude for this long email" is a request,
 // not a settings change.
 const FOR = String.raw`\bfor (?:the |all (?:the )?|my |any )?`;
@@ -50,7 +50,7 @@ export function settingsCommand(raw: string): SettingsCommand | null {
   if (every) return { scans: { every: Number(every[1]) } };
   if (!/\b(use|switch|set|change|make|put|go|move)\b/.test(said)) return null;
   // "switch to Claude", "change the AI to ChatGPT", "make it all free".
-  const whole = said.match(/^(?:please )?(?:switch|change|set|go|move)(?: (?:the )?(?:ai|model|brain))? (?:over )?to ([a-z ]+?)(?: for everything| for all)?$/);
+  const whole = said.match(/^(?:please )?(?:switch|change|set|go|move)(?: (?:the )?(?:ai|model|brain))? (?:over )?to ([a-z0-9. ]+?)(?: for everything| for all)?$/);
   if (whole) { const brand = brandOf(whole[1]); return brand ? { route: [{ brand, tiers: [...tiers] }] } : null; }
   const parts: { brand: Brand; tiers: Tier[] }[] = [];
   for (const clause of said.split(/,|;|\band\b|\bbut\b/)) {

@@ -275,12 +275,14 @@ function Route({ info, onChange }: { info: AiInfo; onChange: (next: AiInfo) => v
   const presets: [string, string][] = [
     ...(free ? [['all-free', 'All Taurus (free)']] as [string, string][] : []),
     ...(has(/^claude/) ? [['all-claude', 'All Claude'], ...(free ? [['mixed-claude', 'Taurus for quick, Claude for big jobs']] as [string, string][] : [])] as [string, string][] : []),
+    // The owner's own setup (November 20, 2026): DeepSeek V4 Flash for everyday, his Claude app for big jobs.
+    ...(info.providers.some(p => p.id === 'deepseek' && p.connected) && has(/^claude/) ? [['deepseek-claude', 'DeepSeek, Claude for big jobs']] as [string, string][] : []),
     ...(has(/^chatgpt/) ? [['all-chatgpt', 'All ChatGPT'], ...(free ? [['mixed-chatgpt', 'Taurus for quick, ChatGPT for big jobs']] as [string, string][] : [])] as [string, string][] : []),
   ];
   const fastest = (info.speeds ?? []).filter(s => /\//.test(s.model) && !s.busy).slice(0, 3);
   return <section aria-labelledby="route-h">
     <h2 id="route-h">Who answers what</h2>
-    <p className="muted">Pick one for everything, or a different AI for each kind of ask. You can also just tell Taurus: “use Claude for big jobs”, “make it all free”.</p>
+    <p className="muted">Pick one for everything, or a different AI for each kind of ask. You can also just tell Taurus: “use DeepSeek for everything and Claude for big jobs”, “make it all free”.</p>
     {error && <p className="problem" role="alert">{error}</p>}
     {presets.length > 0 && <div className="actions route-presets">{presets.map(([id, label]) => <button key={id} type="button" disabled={busy} onClick={() => void go({ preset: id })}>{label}</button>)}</div>}
     <div className="route-rows">{tierKeys.map(t => <label key={t} className="route-row">

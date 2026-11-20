@@ -387,3 +387,10 @@ Shown the list of what was left out of Day 2, the owner said: "no add all the st
 - **Skipped as close enough:** a Supermemory or Honcho account. With the two above, Taurus does what they do without a cloud account, and an agent signing up and reading verification codes stays not authorized.
 - **Consequences:** a question with many fitting facts costs one small extra call to the fastest model, which counts against a free OpenRouter allowance; the switch turns it off. ChatGPT can't reach a server on this Mac, so it keeps Copy for other AIs. Tests: `apps/server/test/memory-share.test.ts`, and the Memory test in `apps/web/tests/brain-profinder.spec.ts`.
 
+## November 20, 2026: DeepSeek V4 Flash every day, the Claude app for big jobs
+
+The owner: "fuck the extramoney for openrouter i wil just be using deepseek v4 flash cus its cheap ash and fast and good enough and for any other big work it can just tap into my claude app".
+
+- **Built:** DeepSeek's default model is now `deepseek-flash`, DeepSeek's current name for V4 Flash (V4.1 Flash; `deepseek-v4-flash` still works there). DeepSeek's pricing page, read November 20, 2026, gives about $0.15 per million tokens in and $0.60 out off-peak, double at peak. Quick and everyday asks send `thinking: disabled`, so it answers without thinking first; big jobs keep thinking. A route preset "DeepSeek, Claude for big jobs" was added, and by voice "use DeepSeek for everything and Claude for big jobs", "switch to DeepSeek V4 Flash" or "use deep seek for quick stuff". "Claude" already means the owner's Claude app (Claude Code on his plan) before a Claude key.
+- **Consequences:** sharper recall's extra call goes to the quick-ask AI, so with this setup it's a fraction of a cent on DeepSeek rather than one of OpenRouter's 50 free daily asks. Nothing changes until the owner adds his DeepSeek key (Settings, AI, API keys) and says the line or taps the preset. Tests: `apps/server/test/deepseek.test.ts`.
+
