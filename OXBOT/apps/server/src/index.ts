@@ -230,20 +230,20 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   let m = path.match(/^\/api\/connectors\/([a-z-]+)\/(fields|disconnect)$/);
   if (method === 'POST' && m) {
     if (m[2] === 'fields') saveFields(m[1], (await json<{ values: Record<string, string> }>(req)).values ?? {});
-    else disconnect(m[1]);
+    else disconnect(m[1], url.searchParams.get('account') ?? undefined);
     await dashboard(true);
     return send(res, 200, { connectors: connectorInfo() });
   }
 
   m = path.match(/^\/api\/oauth\/start\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuth(m[1], url.searchParams.has('outside')) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuth(m[1], url.searchParams.has('outside'), url.searchParams.has('add')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   // One tap connects a whole provider (Google mail+calendar, Microsoft mail+calendar) in a single sign-in.
   m = path.match(/^\/api\/oauth\/start-bundle\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuthBundle(m[1], url.searchParams.has('outside')) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuthBundle(m[1], url.searchParams.has('outside'), url.searchParams.has('add')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   if (method === 'GET' && path === '/api/oauth/callback') {

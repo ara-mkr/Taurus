@@ -1,4 +1,4 @@
-import { isConnected, pullAll, tokenFor } from './connectors.ts';
+import { accounts, isConnected, pullAll, tokenFor } from './connectors.ts';
 import { bodyPriority, feeders } from './dashboard.ts';
 import { api } from './store.ts';
 import type { Section } from './types.ts';
@@ -73,15 +73,16 @@ export async function searchMail(query: string) {
   const found: { id: string; from: string; subject: string; preview: string; at: string; source: string }[] = [];
   const errors: string[] = [];
   await Promise.all([
-    isConnected('gmail') && (async () => {
-      const token = await tokenFor('gmail');
+    // Every Gmail signed in (November 20, 2026), each result marked with its account.
+    ...(isConnected('gmail') ? accounts('gmail') : []).map(a => (async () => {
+      const token = await tokenFor('gmail', a.key);
       const list = await api<any>(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=8&q=${encodeURIComponent(q)}`, { token });
       const messages = await Promise.all((list.messages ?? []).map((m: any) => api<any>(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`, { token })));
       for (const m of messages) {
         const h = Object.fromEntries((m.payload?.headers ?? []).map((x: any) => [x.name, x.value]));
-        found.push({ id: `gmail:${m.id}`, from: h.From ?? '', subject: h.Subject ?? '', preview: String(m.snippet ?? '').slice(0, 160), at: new Date(Number(m.internalDate)).toISOString(), source: 'Gmail' });
+        found.push({ id: a.primary ? `gmail:${m.id}` : `gmail@${a.account}:${m.id}`, from: h.From ?? '', subject: h.Subject ?? '', preview: String(m.snippet ?? '').slice(0, 160), at: new Date(Number(m.internalDate)).toISOString(), source: a.account && accounts('gmail').length > 1 ? `Gmail · ${a.account}` : 'Gmail' });
       }
-    })().catch(e => { errors.push(`Gmail: ${(e as Error).message}`); }),
+    })().catch(e => { errors.push(`Gmail${a.account ? ` (${a.account})` : ''}: ${(e as Error).message}`); })),
     isConnected('outlook-mail') && (async () => {
       const data = await api<any>(`https://graph.microsoft.com/v1.0/me/messages?$search=${encodeURIComponent(`"${q.replace(/"/g, '')}"`)}&$top=8&$select=id,subject,from,receivedDateTime,bodyPreview`, { token: await tokenFor('outlook-mail') });
       for (const m of data.value ?? []) found.push({ id: `outlook:${m.id}`, from: `${m.from?.emailAddress?.name ?? ''} <${m.from?.emailAddress?.address ?? ''}>`, subject: m.subject ?? '', preview: String(m.bodyPreview ?? '').slice(0, 160), at: m.receivedDateTime, source: 'Outlook' });

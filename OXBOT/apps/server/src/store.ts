@@ -38,6 +38,7 @@ const defaults: PhoneSettings = {
 export const store = {
   dir,
   tokens(id: string): Tokens | undefined { return read<Record<string, Tokens>>('tokens.json', {})[id]; },
+  allTokens(): Record<string, Tokens> { return read<Record<string, Tokens>>('tokens.json', {}); },
   setTokens(id: string, tokens: Tokens) { write('tokens.json', { ...read('tokens.json', {}), [id]: tokens }); },
   removeTokens(id: string) { const all = read<Record<string, Tokens>>('tokens.json', {}); delete all[id]; write('tokens.json', all); },
   // Environment variables win over values saved from the Connections page.

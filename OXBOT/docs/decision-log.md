@@ -406,3 +406,15 @@ The owner: "its still super laggy right as i open it my computer heats up signif
   - By default (Backdrop "While working", formerly "Slow"), the rings, sweep, orb sway and status dot hold still while Taurus is idle and move while he listens, thinks or talks. "Always" (formerly "Fast") keeps them moving, and the menu says it warms the Mac.
 - **Result,** same build and screen: about 3% while idle with the mouse moving, down from about 30%. Not measured: the owner's own data (more panels, scans, voice models), and the first-run welcome, which still animates fully.
 
+## November 20, 2026: several Gmail (and other) accounts, and why Google said no
+
+The owner: "make it so u can connect multiple gmails or multiple accounts", and "signing in on gmail is so annoying it says it doesnt owkr i have multipe emails".
+
+- **Why it failed:** Taurus's own Google sign-in app (project oxbot-513223, used by the sign-in service) is still in Google's Testing mode; verification was paused on October 31. In Testing, Google blocks every address that isn't listed as a test user. The fix is the owner's: add each address under Test users (Google Cloud, Google Auth Platform, Audience). The Connections page now says so on Google's sheets. While in Testing, Google also ends sign-ins after 7 days.
+- **Built:**
+  - Google sign-ins ask which account every time (`prompt=select_account consent`), and Microsoft's ask too (`prompt=select_account`). Taurus's own developer-app sign-in has this now; the sign-in service gets it when the owner redeploys `apps/broker`.
+  - Any OAuth app can hold several accounts: "Add another account" on its sheet, or by voice ("add another Gmail account"). The first stays under the connector's id; each further account is saved as `<id>@@<email>` in `~/.taurus/tokens.json`, named by asking the provider who signed in (Gmail profile, primary calendar, Microsoft /me). Signing in again as an account already here refreshes it.
+  - Every account is read and the results merged, each item marked "Gmail · address", with Gmail links opening that account. Mail search covers all of them.
+  - Remove takes away one account; removing the first lets the next take its place.
+- **Not built:** sending from more than one Gmail. Sending stays the one Gmail allowed in Actions; a reply to an email in another account says to reply from that account for now. Tests: `apps/server/test/accounts.test.ts`.
+

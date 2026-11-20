@@ -88,7 +88,7 @@ export const api = {
   composio: () => request<ComposioInfo>('/api/composio'),
   connectors: () => request<{ connectors: ConnectorInfo[]; bundles?: Bundle[]; redirectUri: string; home: string }>('/api/connectors'),
   saveFields: (id: string, values: Record<string, string>) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/fields`, { method: 'POST', body: { values } }),
-  disconnect: (id: string) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/disconnect`, { method: 'POST' }),
+  disconnect: (id: string, account?: string) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/disconnect${account ? `?account=${encodeURIComponent(account)}` : ''}`, { method: 'POST' }),
   ask: (turns: AskTurn[], options: { image?: string; files?: { name: string; text: string }[]; via?: 'ask' | 'talk' } = {}) => request<Answer>('/api/ask', { method: 'POST', body: { turns: turns.map(({ role, text }) => ({ role, text })), ...options } }),
   approvals: () => request<{ pending: Proposal[] }>('/api/approvals'),
   skills: () => request<{ skills: Skill[]; mcp: McpServer[] }>('/api/skills'),

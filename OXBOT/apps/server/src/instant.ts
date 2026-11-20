@@ -3,6 +3,7 @@ import { note } from './activity.ts';
 import { prefs } from './boards.ts';
 import { greeting } from './greetings.ts';
 import { go } from './go.ts';
+import { send } from './ring.ts';
 import { emailRoutine } from './routines.ts';
 import { brainCommand } from './recall.ts';
 import { homeCommand } from './home.ts';
@@ -148,6 +149,14 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
   if (page) return page;
   const routine = emailRoutine(said);
   if (routine) return routine;
+  // Another account (November 20, 2026: "make it so u can connect multiple gmails or multiple accounts"). The sign-in
+  // itself happens in the company's own window, so this opens Connections and says what to tap.
+  const another = said.match(/^(?:add|connect|link|sign (?:me )?in(?: to| with)?)(?: (?:another|a second|one more|my other|another one of my))(?: (gmail|google|email|e-mail|mail|outlook|calendar|google calendar))?(?: (?:account|address|inbox))?s?$/);
+  if (another) {
+    const what = /outlook/.test(another[1] ?? '') ? 'Outlook Mail' : /calendar/.test(another[1] ?? '') ? 'Google Calendar' : 'Gmail';
+    if (via !== 'phone') send('go', { hash: '#connections', name: 'Connections', via });
+    return { text: `Tap ${what}, then Add another ${what.split(' ')[0]} account, and pick the account in its sign-in window. Every account is read together after that.` };
+  }
   // Opening an app on this Mac comes first (owner, November 6, 2026: "hey taurus open up my notes app and it wil literally
   // open in like half a second"). Nothing else is checked before it: no smart-home hubs, no Shortcuts list, no AI.
   const appWanted = said.match(OPEN_APP);
