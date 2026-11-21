@@ -2,7 +2,7 @@
    profile at the top right, a chat bar pinned to the bottom, Taurus's browser and activity in a panel on the right,
    and any background you like. On the phone the tabs slide in from the left and the panel covers the screen. */
 
-:root { --rail-w: 232px; --dock-w: min(520px, 36vw); --bar-bottom: max(16px, env(safe-area-inset-bottom));
+:root { --rail-w: 168px; /* Thinner, to fit its words (owner, November 20, 2026: "its way to wide for how wide the text is") */ --dock-w: min(520px, 36vw); --bar-bottom: max(16px, env(safe-area-inset-bottom));
   /* One corner and one gap for every floating panel: the rail, Hud's panels, the dock, the chat bar, Taurus's windows. */
   --r-panel: 22px; --gap: 12px; }
 
@@ -213,7 +213,7 @@ main.board { width: 100%; max-width: 1480px; margin: 0; padding: 4px 20px 24px; 
 
 /* Tablet: the panel floats over the board instead of taking a column. */
 @media (max-width: 1180px) {
-  :root { --rail-w: 200px; }
+  :root { --rail-w: 156px; }
   .shell.with-dock { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
   .shell.with-dock + .chatbar { right: 20px; }
   .dock { position: fixed; top: 12px; right: 12px; bottom: 12px; z-index: 45; width: min(480px, calc(100vw - 24px)); height: auto; margin: 0; }

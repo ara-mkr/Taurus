@@ -45,8 +45,10 @@ test('navigation audit: Settings, Ask and House keep home\'s sky; Home follows t
   await page.goto('/#look');
   await expect(page.locator('.sky')).toHaveCount(1);
   await expect(page.locator('.backdrop')).toHaveCount(0);
-  await rail.getByRole('button', { name: 'Browser' }).click();
-  await expect(page.locator('.sky')).toHaveCount(1);
+  // Ask Taurus, Browser and Activity left the rail (owner, November 20, 2026).
+  await expect(rail.getByRole('link', { name: 'Ask Taurus' })).toHaveCount(0);
+  await expect(rail.getByRole('button', { name: 'Browser' })).toHaveCount(0);
+  await expect(rail.getByRole('button', { name: 'Activity' })).toHaveCount(0);
   // Home is Hud: going Home never turns it off (owner, November 19, 2026).
   await expect(rail.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '#hud');
   await expect(rail.getByRole('switch')).toHaveCount(0);

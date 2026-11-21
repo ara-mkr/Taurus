@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api, type Background, type Board, type Prefs, type Profile, type Tint, type Tone, type WidgetSize, type WidgetType } from '../api';
+import { api, type Background, type Board, type Prefs, type Profile, type Tone, type WidgetSize, type WidgetType } from '../api';
 import { Catalog, newWidget, Sheet, sizeNames, WidgetSettings } from './Board';
 import { canListen, inDesktop, type VoiceSettings } from './Voice';
 import { TaurusVoice } from './TaurusVoice';
@@ -15,7 +15,6 @@ export function SettingsNav({ page }: { page: string }) {
   </nav>;
 }
 
-const tintNames: Record<Tint, string> = { graphite: 'Graphite', ember: 'Ember', ocean: 'Ocean', moss: 'Moss', dusk: 'Dusk', aurora: 'Aurora', sunset: 'Sunset', rose: 'Rose', midnight: 'Midnight' };
 
 // A photo for your profile, cropped square and shrunk on this device before it is saved.
 export async function shrink(file: File, size = 192): Promise<string> {
@@ -64,14 +63,12 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
       {(Object.keys(tones) as Tone[]).map(t => <label key={t} className="check"><input type="radio" name="tone" checked={profile.tone === t} onChange={() => setProfile({ tone: t })} /><span><strong>{tones[t][0]}</strong> <span className="muted">{tones[t][1]}</span></span></label>)}
     </fieldset>
 
-    <fieldset className="choice">
+    {/* The colour themes are gone and Background shows only for Tiles (owner, November 20, 2026: "personalize have
+        color themes remov that they dont do shit for the app"): the dashboard draws its own HUD sky and ignores both. */}
+    {(prefs.hud?.start ?? 'hud') === 'hud' ? <p className="muted">The dashboard has its own sky. Its motion is under Customize on Home.</p> : <fieldset className="choice">
       <legend>Background</legend>
       <div className="bg-kinds">{(Object.keys(kinds) as Background['kind'][]).map(k => <label key={k} className="check"><input type="radio" name="bg-kind" checked={bg.kind === k}
         onChange={() => { if (k === 'image' && !bg.file) document.getElementById('bg-file')?.click(); else if (k === 'link' && !bg.url) document.getElementById('bg-link')?.focus(); else setBg({ kind: k }); }} />{kinds[k]}</label>)}</div>
-      {bg.kind === 'field' && <div className="tints">{(Object.keys(tintNames) as Tint[]).map(t => <label key={t} className={`tint-option tint-${t}`}>
-        <input type="radio" name="tint" checked={prefs.tint === t} onChange={() => setPrefs(p => ({ ...p, tint: t }))} />
-        <span className="swatch" aria-hidden="true" /><span>{tintNames[t]}</span>
-      </label>)}</div>}
       {bg.kind === 'color' && <label className="inline-field">Colour<input type="color" value={bg.color} onChange={e => setBg({ color: e.target.value })} /></label>}
       <div className="actions">
         <label className="button file-button">{bg.file ? 'Choose another photo or video' : 'Choose a photo or video'}<input id="bg-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime" onChange={e => void upload(e.target.files?.[0])} /></label>
@@ -85,7 +82,7 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, voice, setVoi
       <label className="range">Dim the background <span className="muted">{bg.dim}%</span><input type="range" min={0} max={85} value={bg.dim} onChange={e => setBg({ dim: Number(e.target.value) })} /></label>
       {(bg.kind === 'image' || bg.kind === 'link') && <label className="range">Soften it <span className="muted">{bg.blur} px</span><input type="range" min={0} max={40} value={bg.blur} onChange={e => setBg({ blur: Number(e.target.value) })} /></label>}
       <label className="check"><input type="checkbox" checked={bg.daylight} onChange={e => setBg({ daylight: e.target.checked })} />Light follows the time of day: warm at dawn and dusk, cool at night</label>
-    </fieldset>
+    </fieldset>}
 
     <fieldset className="choice">
       <legend>Appearance</legend>

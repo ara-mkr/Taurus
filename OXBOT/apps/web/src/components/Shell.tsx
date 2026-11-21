@@ -59,8 +59,10 @@ export function nowDoing({ entries, browser, wins, now, setDock, music }: { entr
   return out;
 }
 
-export function Rail({ boards, current, page, dock, setDock, open, onClose, home, homeIsHud, onCustomize, doing, brand }: RailProps) {
-  const toggle = (t: DockTab) => { setDock(dock === t ? null : t); onClose(); };
+// Ask Taurus, Browser and Activity left the rail (owner, November 20, 2026: "remove the ask taurus", "remove browser",
+// "remove activity"): chat opens by voice ("open chat"), and the browser and activity panels show under "what Taurus is
+// doing now" while they're in use.
+export function Rail({ boards, current, page, open, onClose, home, homeIsHud, onCustomize, doing, brand }: RailProps) {
   return <>
     {open && <div className="scrim" onClick={onClose} aria-hidden="true" />}
     <nav className={`rail ${open ? 'open' : ''}`} aria-label="Main" id="rail">
@@ -71,12 +73,9 @@ export function Rail({ boards, current, page, dock, setDock, open, onClose, home
           {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}>{b.name}</a></li>)}
         </ul>
         <ul className="rail-list rail-taurus" aria-label="Taurus">
-          <li><a href="#ask" aria-current={page === 'ask' ? 'page' : undefined} onClick={onClose}>Ask Taurus</a></li>
           <li><a href="#house" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}>House</a></li>
           <li><a href="#brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}>Brain</a></li>
           <li><a href="#profinder" aria-current={page === 'profinder' ? 'page' : undefined} onClick={onClose}>ProFinder</a></li>
-          <li><button type="button" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}>Browser</button></li>
-          <li><button type="button" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}>Activity</button></li>
         </ul>
         {doing.length > 0 && <ul className="rail-list rail-now" aria-label="What Taurus is doing now">
           {doing.map(d => <li key={d.id} className="rail-doing">

@@ -129,18 +129,21 @@ test('phone home-screen app: the chat bar stays put while the page scrolls, and 
   await expect(tabs).toBeHidden();
 });
 
-test('nine backgrounds to choose from, and picking one changes the page', async ({ page }) => {
+// The colour themes are gone (owner, November 20, 2026: "personalize have color themes remov that they dont do shit for
+// the app"). With the dashboard as Home, Background isn't offered, since the dashboard draws its own sky; with Tiles it
+// is, without the themes.
+test('Personalize offers Background only for Tiles, and no colour themes', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'dark'));
   await mock(page);
   await page.goto('/#look');
+  // The test owner's Home is Tiles: Background is there, without the themes.
   await expect(page.getByRole('radio', { name: 'Moving light' })).toBeChecked();
-  const options = page.locator('.tint-option');
-  await expect(options).toHaveCount(9);
-  await expect(options).toHaveText(['Graphite', 'Ember', 'Ocean', 'Moss', 'Dusk', 'Aurora', 'Sunset', 'Rose', 'Midnight']);
-  await page.getByRole('radio', { name: 'Sunset' }).check();
-  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.tint)).toBe('sunset');
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--glow-a').trim())).toBe('#B4502A');
-  await page.locator('.tints').screenshot({ path: `${shots}/look/backgrounds.png` });
+  await expect(page.locator('.tint-option')).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: 'Sunset' })).toHaveCount(0);
+  // The dashboard as Home: no Background, and a line saying why.
+  await page.getByRole('group', { name: 'Home' }).getByLabel(/Dashboard/).check();
+  await expect(page.getByText('The dashboard has its own sky.')).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Moving light' })).toHaveCount(0);
 });
 
 test('with Twilio connected, Call me now places a test call and shows what happened', async ({ page }) => {
