@@ -289,7 +289,7 @@ export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLa
           {widget && <span id="deck-widget-name" className="sr-only">{centerLabel(widget)}</span>}
         </div>
         </BotRing>
-        <h1 className="deck-headline" id="taurus-says" aria-live="polite">{headline}</h1>
+        <h1 className="deck-headline" id="taurus-says" aria-live="polite" data-kind={phase === 'idle' && running ? 'doing' : undefined}>{headline}</h1>
         {(phase === 'answer' || phase === 'error') && <button type="button" className="deck-chip" onClick={voice.view.dismiss}>Done</button>}
         {widget ? <CenterLine center={widget} data={data} live={live} back={() => onBack(widget.key)} closeWin={closeWin} />
           : phase === 'idle' && !running && facts.length > 0 && <p className="deck-facts">{facts.join('  ·  ')}</p>}

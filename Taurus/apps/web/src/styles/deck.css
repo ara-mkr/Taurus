@@ -384,3 +384,11 @@ a.deck-chip { display: inline-flex; align-items: center; text-decoration: none; 
 .fn-talk.on .meter-icon rect:nth-child(5) { animation-delay: -.6s; }
 @keyframes meter { 50% { transform: scaleY(.35); } }
 @media (prefers-reduced-motion: reduce) { .fn-talk.on .meter-icon rect { animation: none; } }
+
+/* What Taurus is doing reads smaller than the greeting, so a long task never pushes Status under the chat bar. */
+.deck-headline[data-kind="doing"] { max-width: 30ch; font-size: clamp(22px, 2.4vw, 32px); line-height: 1.2; letter-spacing: -.02em; -webkit-line-clamp: 2; }
+/* The rail's "now doing" lines end in an ellipsis inside the rail instead of running past its edge. */
+:root:not([data-look="old"]) .rail-list { grid-template-columns: minmax(0, 1fr); }
+:root:not([data-look="old"]) .rail-doing, :root:not([data-look="old"]) .rail-doing > button:first-child { min-width: 0; max-width: 100%; }
+/* On Bots there are no boxes for the helpers' cursors to point into, so they stay off this page. */
+.shell:has(.bots) ~ .swarm-layer { display: none; }

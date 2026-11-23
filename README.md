@@ -1,13 +1,15 @@
 # Taurus
 
-**Your local Jarvis-style assistant.** Keep the particle-orb HUD open, or close it and let Taurus work from the Mac menu bar. Coloured cursors show browser helpers working in parallel; one cursor accompanies native Mac actions. One screen with what needs you, your day, your body and your numbers, pulled live from the apps you already use. Ask it anything by typing or talking. When something truly can't wait, it rings every screen like an alarm, then calls your phone.
+**A Jarvis-style assistant that lives on your Mac.** Taurus sits in the middle of one clean screen with the bots working for you around him, your day on the right, and a type bar at the bottom. Talk or type, and he reads your real mail, calendar, messages, health and numbers to answer, sends helpers out to the web in parallel, moves your windows, plays your music, and rings every screen (then calls your phone) when something truly can't wait.
 
-The app and server run on your own computer; configured AI providers receive your questions and relevant context. Your keys and sign-ins stay in `~/.taurus`, and Taurus never sends, posts or buys anything until you approve that exact action.
+Everything runs on your own computer. Your keys and sign-ins stay in `~/.taurus`, the AI you pick only sees what a question needs, and Taurus never sends, posts or buys anything until you approve that exact action.
 
-![Taurus's Taurus home: priorities, the day, health and the house around Taurus](Taurus/docs/readme/taurus.jpg)
+![Taurus on Home: Taurus in his window over a pixel sky, five bots in boxes around him, the agents window and your calendar on the right](Taurus/docs/readme/home.jpg)
 
 <p align="center">
   <a href="https://github.com/ara-mkr/OXBOT/releases/latest"><b>Download for Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="#whats-new-in-030">What's new</a>
   &nbsp;·&nbsp;
   <a href="#run-it-from-source">Run from source</a>
   &nbsp;·&nbsp;
@@ -18,37 +20,47 @@ The app and server run on your own computer; configured AI providers receive you
 
 ## Download
 
-1. Open the [latest release](https://github.com/ara-mkr/OXBOT/releases/latest) and check the release name before installing. New local builds are named **Taurus**; older downloads may still carry the previous product name.
+1. Open the [latest release](https://github.com/ara-mkr/OXBOT/releases/latest) and download **Taurus-0.3.0-arm64.dmg** (Apple silicon) or **Taurus-0.3.0.dmg** (Intel).
 2. Open the DMG and drag **Taurus** into **Applications**.
 3. The first time you open it, macOS says it can't check the app, because it isn't signed with a paid Apple Developer ID. Go to **System Settings → Privacy & Security**, scroll to the message about Taurus and choose **Open Anyway**. You only do this once.
-4. Taurus shows up in the menu bar as the horns mark. Closing the window keeps it there so it can still ring you. **Quit Taurus** in that menu stops it.
+4. Taurus shows up in the menu bar as the horns mark. Closing the window keeps him there so he can still ring you and work in the background. **Quit Taurus** in that menu stops him.
 
 The first launch walks you through it out loud: your name, which apps to connect, and a quick tour. Until you connect something, every section shows clearly labelled **Sample** data.
 
-> Windows and Linux builds come out of the same code (`pnpm desktop:build`); see [the install notes](Taurus/docs/13-desktop-and-install.md).
+## What's new in 0.3.0
+
+- **A new Home.** Taurus in his own window over a dithered pixel sky, with what he's doing right now as the headline and a live status log under him. Your pick of calendar, inbox, what needs you, health, news or stocks on the right, and the chat bar at the bottom. Light or dark.
+- **Bots around Taurus.** Every bot working for you, his browser and each helper of a swarm, gets a small box bubbled around his window (up to 15, smaller as more join), each with its own little Taurus (different horns and eyes) and a light that pulses while it works. Click one and the **Agents** window shows its screen and its thoughts; **Expand** opens it in the new **Bots** tab, a full chat with each bot: every step it took, what it found, and a box to ask Taurus about it.
+- **Legal.** Your resume, contracts, company papers, taxes and IDs in one place, kept as notes in your Brain on this Mac so Taurus can read them when you ask. (ProFinder is gone.)
+- **Colours.** Slate, Black, White, Pink and blue, or Crimson, in light and dark, with hard square windows throughout. Settings now lists its pages down the side.
+- **Faster and smarter memory.** Core memory goes with every question; recall picks the few facts that fit it, from your memories, Brain notes and the words inside your files (a PDF is read once, then remembered). Other AI apps on your Mac can use Taurus's memory through an optional MCP server.
+- **More from your apps.** Apple Calendar and Notion Calendar, several Gmail accounts at once, Spotify and Apple Music controls with nothing connected, and DeepSeek for everyday questions with Claude for big jobs.
+- **Real voices.** The natural Kokoro voices now ship inside the app, so every voice in Personalize sounds like itself. Talk is a little level meter that dances while Taurus listens.
+- **On your Mac.** Close the window and Taurus keeps working from the menu bar: a cursor comes out of the menu bar for Mac work ("move Notes to the right side of my screen"), and helpers fly in their own colours.
+- **Cooler.** Home idles at about 3% CPU instead of about 30%.
 
 ## What it does
 
 <table>
 <tr>
-<td width="50%"><img src="Taurus/docs/readme/board.jpg" alt="The board: what needs you, today, health"><br><b>Your day on one board.</b> Mail, chat, calendar, tasks, health and markets, live from the apps you connect. Rearrange it, add widgets, or just tell it "build me a board for investor week".</td>
-<td width="50%"><img src="Taurus/docs/readme/ask.jpg" alt="Ask Taurus"><br><b>Ask Taurus.</b> Type, talk, attach a file or share your screen. Taurus reads your real data while it answers ("what's my recovery today?") and drafts the reply, the calendar entry or the order for you to approve.</td>
+<td width="50%"><img src="Taurus/docs/readme/bots.jpg" alt="The Bots tab: every bot on the left, one bot's whole chat on the right"><br><b>Bots.</b> Send a swarm of helpers to compare prices or research something, and watch each one in its own chat: every page it read, what it found, and how long it worked.</td>
+<td width="50%"><img src="Taurus/docs/readme/home-dark.jpg" alt="Home in dark, fifteen bots around Taurus"><br><b>Up to fifteen at once.</b> The boxes shrink as more bots join, and each one's light tells you whether it's still working, done, or stopped.</td>
 </tr>
 <tr>
-<td><img src="Taurus/docs/readme/phone.jpg" alt="Phone settings"><br><b>It rings when it matters.</b> A meeting about to start or mail from a VIP takes over every open screen like an alarm. Don't answer, and it pushes to your phone, then <i>calls</i> it.</td>
-<td><img src="Taurus/docs/readme/brain.jpg" alt="Brain map"><br><b>Brain.</b> What Taurus knows about you, as plain notes on your Mac you can read, edit or delete. It learns only what you tell it to remember.</td>
+<td><img src="Taurus/docs/readme/legal.jpg" alt="Legal: resume, contracts, company papers, taxes, IDs"><br><b>Legal.</b> Drop in your resume, offer letters, leases, incorporation papers and tax forms. They stay on your Mac, and Taurus can answer "when does my lease end?" from them.</td>
+<td><img src="Taurus/docs/readme/settings.jpg" alt="Personalize with the five colour choices"><br><b>Make it yours.</b> Five colour sets, light or dark, how Taurus talks to you (witty, brief, warm or direct), and his voice.</td>
 </tr>
 <tr>
 <td><img src="Taurus/docs/readme/connections.jpg" alt="Connections"><br><b>194 connections.</b> Gmail, Outlook, Google and Apple Calendar, Slack, GitHub, Linear, Notion, Stripe, HubSpot, WHOOP, Oura, Strava, Spotify and many more. Reading is the default; acting needs its own switch.</td>
-<td><img src="Taurus/docs/readme/house.jpg" alt="House"><br><b>House.</b> Lights, blinds and scenes through Home Assistant, Hue, LIFX and Apple Home. "Movie time" or "goodnight" from anywhere. Locks and garage doors always ask first.</td>
+<td><img src="Taurus/docs/readme/brain.jpg" alt="Brain map"><br><b>Brain.</b> What Taurus knows about you, as plain notes on your Mac you can read, edit or delete, with a memory panel that shows exactly what each question sent.</td>
 </tr>
 <tr>
-<td><img src="Taurus/docs/readme/connect-sheet.jpg" alt="Connecting an app"><br><b>Connecting is one sheet.</b> Sign in, or paste a key from the app's own settings. Keys stay on this Mac and go only to the service they belong to.</td>
+<td><img src="Taurus/docs/readme/phone.jpg" alt="Phone settings"><br><b>It rings when it matters.</b> A meeting about to start or mail from a VIP takes over every open screen like an alarm. Don't answer, and it pushes to your phone, then <i>calls</i> it.</td>
 <td align="center"><img src="Taurus/docs/readme/mobile.jpg" alt="Taurus on a phone" width="46%"><br><b>On your phone too.</b> Open it on your phone over Wi-Fi and add it to the home screen; it rings there as well.</td>
 </tr>
 </table>
 
-Also inside: a voice that runs entirely on your Mac (Kokoro, no account needed), "Hey Taurus" and double-clap to start talking, Taurus in the notch and over any app, scheduled tasks, scans that read new mail and messages for you, skills, MCP servers, and a swarm of helpers for research and price comparisons.
+Also inside: "Hey Taurus" and double-clap to start talking, Taurus in the notch and over any app, House controls for lights and scenes, scheduled tasks, scans that read new mail and messages for you, skills, and MCP servers.
 
 ## Make it call your phone
 
@@ -101,7 +113,7 @@ Developer notes: [`Taurus/README.md`](Taurus/README.md). Design and decisions: [
 | Path | What |
 |---|---|
 | `Taurus/apps/server` | Node server: connectors, dashboard, Ask, actions, ringing, voice |
-| `Taurus/apps/web` | React app: Home, Taurus, Ask, Brain, House, Settings |
+| `Taurus/apps/web` | React app: Home (the Deck), Bots, Brain, Legal, House, Settings |
 | `Taurus/apps/desktop` | Electron app: menu bar, notch, Taurus over any app, packaging |
 | `Taurus/apps/broker` | The one-click sign-in service for Google, Microsoft and others |
 | `Taurus/apps/site` | The product website |
