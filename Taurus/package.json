@@ -1,0 +1,19 @@
+{
+  "name": "taurus",
+  "private": true,
+  "type": "module",
+  "description": "Taurus: your local Jarvis-style assistant, with a HUD dashboard, menu bar presence and visible working helpers.",
+  "scripts": {
+    "setup": "pnpm --dir apps/server install && pnpm --dir apps/web install && pnpm --dir apps/desktop install",
+    "dev": "node scripts/dev.mjs",
+    "start": "pnpm --dir apps/web build && pnpm --dir apps/server start",
+    "check": "pnpm --dir apps/server typecheck && pnpm --dir apps/server test && pnpm --dir apps/web typecheck && pnpm --dir apps/web lint && pnpm --dir apps/web build && pnpm --dir apps/desktop typecheck && pnpm --dir apps/desktop lint",
+    "desktop": "pnpm --dir apps/web build && pnpm --dir apps/desktop start",
+    "desktop:build": "pnpm --dir apps/web build && pnpm --dir apps/desktop dist",
+    "voice-tunnel": "node scripts/voice-tunnel.mjs"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@11.21.0"
+}

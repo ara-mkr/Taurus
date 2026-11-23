@@ -1,0 +1,16 @@
+{
+  "name": "taurus-signin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Taurus sign-in service: holds Taurus's OAuth app keys, stores nothing, hands tokens to the user's own Mac encrypted.",
+  "scripts": {
+    "start": "node src/node.ts",
+    "test": "node test/flow.test.ts",
+    "deploy": "wrangler deploy",
+    "use-my-keys": "node scripts/use-my-keys.mjs"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

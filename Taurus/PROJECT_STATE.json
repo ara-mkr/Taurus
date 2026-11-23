@@ -1,0 +1,206 @@
+{
+  "product": "Taurus",
+  "rename_decision": {
+    "date": "2026-11-19",
+    "owner": "Akhil",
+    "approval": "Rename OXBOT to Taurus everywhere; rebuild the dashboard as a Jarvis HUD with a particle orb that rests as the owner's horns-and-eyes logo; every page by voice; Luke's Day 1 (one workflow, interview me, twice-daily email drafts, learning from edits). Sending on its own stays locked.",
+    "evidence": "docs/decision-log.md"
+  },
+  "owner": "Akhil",
+  "plan_date": "2026-10-20",
+  "active_phase": "P4-local",
+  "allowed_work_envelope": [
+    "P0",
+    "P1",
+    "P2",
+    "P3",
+    "P4-local",
+    "P5-actions-with-owner-approval"
+  ],
+  "locked_phases": [
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11"
+  ],
+  "scope": "Local server, read-only connectors, Claude/ChatGPT, dashboard, Ask, ringing (screens, ntfy, Twilio), the Electron desktop app, and the home-screen phone app plus a sideloaded Android APK.",
+  "data_mode": "live_read_only_with_labelled_sample_fallback",
+  "backend_implementation_authorized": true,
+  "real_integrations_authorized": true,
+  "external_actions_authorized": "only_after_owner_approves_each_action",
+  "native_capture_authorized": false,
+  "owner_approval_required_for_phase_change": true,
+  "company_name": null,
+  "product_name_cleared": false,
+  "public_code_license_selected": false,
+  "remote_repo_created_by_this_pack": false,
+  "owner_decision": {
+    "date": "2026-10-30",
+    "owner": "Akhil",
+    "approval": "Rename to Taurus, remove AI-slop design, build a clean dashboard, connect Strava, Gmail, Slack, Sheets, Claude, ChatGPT, calendars, WHOOP, Google Health, Outlook and other CEO tools, and plan the phone app that rings like an alarm.",
+    "evidence": "docs/decision-log.md"
+  },
+  "notes": "Connectors read by default. Since November 1, 2026 Taurus may act (email, Slack, texts, calls, GitHub, Linear, Composio tools, food) only after the owner approves each exact action. Moving money, money movement, screen capture beyond the November 5 computer-use rules (docs/19-computer-use.md), speech models other than local Kokoro (Nov 5), cloud deployment, Tailscale and the native iPhone build stay locked until the owner decides. The stateless sign-in service (apps/broker) is authorized; deploying it is the owner's step. Microphone through the browser's speech recognition is authorized (Oct 31) for push-to-talk and the opt-in wake word. Desktop (Electron, tray) and phone (home-screen web app + Android APK, Wi-Fi only) authorized Oct 31; unsigned personal builds, never published.",
+  "ringing_authorized": true,
+  "desktop_app_authorized": true,
+  "phone_app_authorized": true,
+  "signin_service_authorized": true,
+  "microphone_authorized": true,
+  "microphone_decision": {
+    "date": "2026-10-31",
+    "owner": "Akhil",
+    "approval": "Browser speech recognition (Google in Chrome, Apple in Safari) for push-to-talk and an opt-in wake word, off by default, only while the tab is visible. Nothing recorded or stored.",
+    "evidence": "docs/decision-log.md"
+  },
+  "app_decision": {
+    "date": "2026-10-31",
+    "owner": "Akhil",
+    "approval": "Electron desktop app that keeps running in the tray (start at login off); home-screen web app plus a sideloaded Android debug APK; phone reaches the Mac over Wi-Fi only (plain http). Native iPhone app not chosen.",
+    "evidence": "docs/decision-log.md"
+  },
+  "phone_link": "wifi_http",
+  "ios_native_app_authorized": false,
+  "android_apk_authorized": true,
+  "more_connectors_authorized": true,
+  "connectors_decision": {
+    "date": "2026-10-31",
+    "owner": "Akhil",
+    "approval": "Many more read-only connectors (Notion, Todoist, Trello, Asana, Jira, GitLab, Discord, Telegram, Teams, Zoom, Dropbox, Box, OneDrive, Google Drive, Airtable, Salesforce, QuickBooks, Spotify, Garmin, Fitbit, Apple Health export, RSS, weather and similar). Read-only scopes only, secrets in ~/.taurus or .env, mocked tests, shown as Not connected.",
+    "evidence": "docs/decision-log.md"
+  },
+  "ai_providers_authorized": true,
+  "ai_decision": {
+    "date": "2026-10-31",
+    "free_plan": "OpenRouter free models on the owner's own free account, OAuth PKCE to localhost, default nvidia/nemotron-3-ultra-550b-a55b:free",
+    "paid": "Claude, ChatGPT, Gemini, Grok, Mistral, DeepSeek, Groq, Cerebras, Together, Perplexity, Cohere, Kimi, Qwen, Ollama, any OpenAI-compatible endpoint, each with the owner's own key",
+    "tested": "mocked responses only, except the public OpenRouter model list"
+  },
+  "ring_takeover": "desktop app fills the whole screen above every app and Space while ringing; the iPhone home-screen app cannot (needs a phone call or a native app)",
+  "composio_authorized": true,
+  "composio_decision": {
+    "date": "2026-11-01",
+    "owner": "Akhil",
+    "approval": "Composio connector for hundreds more apps, like OpenMausBot and Grok Bot. Taurus stores only the Composio API key, lists connected accounts and reads through Composio's proxy with GET only; never runs Composio tools or creates connections. Composio holds the app sign-ins in its cloud and its managed sign-ins may carry more than read scopes.",
+    "evidence": "docs/decision-log.md",
+    "tested": "mocked responses only"
+  },
+  "actions_authorized": true,
+  "camera_authorized": true,
+  "actions_decision": {
+    "date": "2026-11-01",
+    "owner": "Akhil",
+    "quote": "work on getting more connections that r not just read only it should be able to execute on stuff like emailing people, calling people, replying to messages and slack things, approving of things with ur approval, all that kinda stuff, u should also be able to call it thorugh ur phone to tell it what to do ... i need so many more plug ins and connections like canva and stuff like that, u actually need to execute on what i say i need atleast 500 app connections from u and stuff and a way for it to look at ur camera and also reference immediate stuff as ur talking to it like if u say whats my heart rate right now and it checks the whoop stats or whatever r whateve health app or u say order me some food or somehting it will find something good and aks if u want it like it doesnt js give u a huge questionaire it finds something that will probably be good and js asks for ur approval to remove all the thinking stress of choosing what to eat off the person, like also for the app start giving the ai some physcology stuff that every ceo would need in their personal assistant like calming them down, making stuff easy, not disturving them, what to say in certain times, not just asking them dumb questions that take up their time like how jenson huang only wears the same thing everydya to remove that thinking capacity off his shoulders",
+    "approval": "Email send and reply (Gmail, Outlook), Slack reply/post/react, Twilio texts and outgoing calls, GitHub reviews, Linear updates, Composio tool execution, phoning Taurus with instructions, live reads while talking, an on-demand camera frame to the chosen AI, and finding food to order. Every action only after the owner approves that exact action; approvals expire; everything is logged in ~/.taurus. Write scopes only for action connectors, as a separate sign-in step; the sign-in service stays read-only.",
+    "invariant": "Nothing is sent, posted, called, bought or changed without the owner explicitly approving that exact action.",
+    "still_needs_owner": "Anything deployed to the cloud, including a public address for inbound calls (tunnel or relay).",
+    "evidence": "docs/decision-log.md"
+  },
+  "voice_tunnel_authorized": true,
+  "voice_tunnel_decision": {
+    "date": "2026-11-01",
+    "owner": "Akhil",
+    "question": "Should the app session set up the Cloudflare tunnel for calling Taurus from your phone?",
+    "quote": "Yes, set it up",
+    "confirmed_in_app_session": true,
+    "approval": "Cloudflare Tunnel on the owner's own Cloudflare account pointed at localhost:8787, reaching only /api/voice/* (tunnel ingress rule plus the server's proxy wall), with Twilio signature, owner's caller ID and keypad PIN.",
+    "owner_steps": "Cloudflare sign-in, hostname, PIN, Twilio webhook. Agents never type those credentials, buy a domain or change other account settings.",
+    "evidence": "docs/decision-log.md"
+  },
+  "speech_output_authorized": true,
+  "home_control_authorized": true,
+  "mac_control_authorized": true,
+  "browser_submit_authorized": true,
+  "voice_house_mac_decision": {
+    "date": "2026-11-05",
+    "owner": "Akhil",
+    "quote": "find an opensource text to speech for when it talks to u ... find a good voice tho no money ... make it so it can do agentic actions on like all ur apps and like ur browser and make it so u can even connect it to like smart lights or curtains to make it like a smart home controlled by taurus",
+    "question": "Should I record these new permissions in AGENTS.md and PROJECT_STATE.json?",
+    "answer": "Yes, record them",
+    "approval": "Kokoro-82M speech output on the Mac's CPU (off until turned on; one-time model download from Hugging Face to ~/.taurus/models). Home Assistant, Philips Hue, LIFX and Apple Home scenes through a Shortcuts folder named Home: lights, plugs, curtains, fans, thermostat and scenes change on request; locks, garage doors and gates only through an approval card. Control this Mac switch, off by default: fixed programs (open, osascript, shortcuts, pmset) with argv only, no shell; quitting apps, iMessages, Notes and other Shortcuts need an approval card. Taurus's browser may type (never passwords) and send one form to one site for twelve seconds after an approval card.",
+    "still_not_authorized": "Screen capture and screenshot-and-click computer use; cloud speech models.",
+    "tested": "mocked hubs, a fake macOS runner and a fake speech engine; real Kokoro audio on a scratch server",
+    "evidence": "docs/decision-log.md, docs/16-voice-house-mac.md"
+  },
+  "spotify_playback_authorized": true,
+  "instant_commands_decision": {
+    "date": "2026-11-04",
+    "recorded": "2026-11-05",
+    "owner": "Akhil",
+    "quote": "make it so when u say or talk to taurus like hey taurus play juice wrld on spotifty it will pull up a simple loquid glass window up on the main dashboard with spotify playing so it shows that it did it",
+    "answer": "yes to the should i record the nov 4",
+    "approval": "Instant commands (music, timers, reminders, focus, memory, opening apps) without the AI; Spotify playback on request without an approval card through the separate spotify-play grant with playback scopes; CSP frame-src https://open.spotify.com only.",
+    "tested": "mocked Spotify responses only",
+    "evidence": "docs/decision-log.md, docs/15-instant-commands.md"
+  },
+  "screen_capture_authorized": true,
+  "computer_use_authorized": true,
+  "computer_use_decision": {
+    "date": "2026-11-05",
+    "owner": "Akhil",
+    "question": "Should Taurus be allowed Screen Recording and Accessibility so helpers can act in other apps?",
+    "answer": "Yes, plan it",
+    "then": "just do everything in sequential order",
+    "recorded": "Asked 'Should I update AGENTS.md and PROJECT_STATE.json, if you allow it?', the owner answered 'Yes, allow it'.",
+    "approval": "Desktop app only, after the owner switches each permission on himself. Screen Recording: one picture when asked, password managers excluded, sent to the chosen AI, noted in Activity, never stored. Accessibility: fixed-verb taurus-hands helper in apps on the owner's allow list (first: Canva and Notes may act, Chrome may look), one helper at a time, Esc or mouse takeover stops it; password managers, Keychain Access, System Settings, Terminal and banking/payment apps never. Approval cards unchanged for send/post/share/buy/delete/invite/sign in. A separate Taurus Chrome profile for helpers, read-only.",
+    "evidence": "docs/decision-log.md, docs/19-computer-use.md"
+  },
+  "local_files_authorized": true,
+  "plan_apps_authorized": true,
+  "mcp_servers_authorized": true,
+  "screen_share_authorized": true,
+  "scheduled_tasks_authorized": true,
+  "clap_wake_decision": {
+    "date": "2026-11-06",
+    "owner": "Akhil",
+    "quote": "make it so taurus recognizes and enables voice mode and starts listening when i double clap or double snap or say like yo taurus, hi taurus, TAURUS, taurus",
+    "question": "Record the double clap/snap microphone use in AGENTS.md?",
+    "answer": "Yes, record it",
+    "approval": "Double clap or snap to start Talk: off by default, switched on in Settings, Voice; only while the tab is visible; the browser measures microphone loudness above speech pitch locally; no sound or words recorded, kept or sent. More wake phrases (Yo Taurus, Hi Taurus, Hello Taurus, Taurus, Taurus) under the October 31 wake-word rule. The notch hears only listening or idle from the web app.",
+    "still_not_authorized": "Recording or sending microphone audio beyond the browser's own speech recognition; listening while the tab is hidden; clap detection in the desktop app's window.",
+    "tested": "synthetic loudness sequences (apps/web/tests/clap.spec.ts) and a fake SpeechRecognition (apps/web/tests/taurus.spec.ts); no real microphone",
+    "evidence": "docs/decision-log.md"
+  },
+  "files_plans_mcp_schedule_decision": {
+    "date": "2026-11-06",
+    "owner": "Akhil",
+    "quote": "make it so u can add skills for the ai not just plugins and also mcp servers ... say like look at this logo in my downloads and u can describe it and it will find it, also u should beable to use taurus browser and it can just see what ur doing ... allow schedhuled tasks for taurus to do ... directly use ur existing claude, openai, or gemini, kimi, glm subscription with this not just api key and if u do that u can see how much of ur usage u have",
+    "question": "Record the new file, plan-app, MCP, screen-share and schedule permissions in AGENTS.md?",
+    "answer": "Yes, record them",
+    "approval": "Search file names in Downloads, Desktop, Documents and Pictures and open one picture or text file (up to 5 MB) when the owner asks about a file; no hidden, linked-out or password-like files; nothing written. Claude, ChatGPT and Gemini plans through Claude Code (tools off), Codex (read-only sandbox) and Gemini CLI (plan mode) as fixed programs with fixed arguments, prompt on stdin, no shell; Kimi and GLM plans by plan key; usage counted in ~/.taurus. MCP servers by https or localhost address over Streamable HTTP: read-only tools run, all others need an approval card; Taurus never starts a server program. Screen sharing through the browser's own picker, one frame per question while shared, nothing stored. Scheduled tasks run at their time and show the answer; they never approve anything.",
+    "still_not_authorized": "Reading files outside the four folders; writing, moving or deleting files; starting MCP server programs; screen capture beyond the November 5 and 6 rules.",
+    "tested": "temp folders, a fake MCP server, fake plan apps and mocked hubs (apps/server/test/nov6.test.ts); 125 more read-only connectors against mocked responses (test/more-fixtures.ts)",
+    "evidence": "docs/decision-log.md (November 6, 2026), AGENTS.md"
+  },
+  "local_hearing_decision": {
+    "date": "2026-11-07",
+    "owner_words": "i said hey taurus nothing happened ... when i say hey taurus it dont work or the clapping or snapping then also when i clcik the big taurus circle",
+    "answer": "Yes, allow it",
+    "allowed": "Desktop app only: Talk, Hey Taurus and double clap hear through Moonshine tiny (MIT) on this Mac via POST /api/voice/hear (loopback). Microphone-only requests from Taurus's own page open without a tap; the camera still needs one.",
+    "not_allowed": "Storing or logging audio, sending audio anywhere but the local server, cloud speech models.",
+    "tests": "apps/server/test/hearing.test.ts (real model with TAURUS_TEST_EARS=1), apps/web/tests/hearing.spec.ts (Chromium fake microphone playing a phrase from macOS say), apps/desktop/tests/desktop.spec.ts"
+  },
+  "brain_authorized": true,
+  "profinder_authorized": true,
+  "brain_profinder_decision": {
+    "date": "2026-11-16",
+    "owner": "Akhil",
+    "quote": "make it have a profinder mode where its constantly searching for internships and jobs and applies for u, based on ur resume and a bunch of info given, and make it have a mindmap like obsidian of everything it remembers about u",
+    "question": "Record ProFinder's new apply permission in AGENTS.md so it can submit for real?",
+    "answer": "Yes, record it",
+    "submit_mode": "One tap per batch",
+    "approval": "The Brain: an Obsidian-style markdown vault with attachments in ~/.taurus/brain; remembered facts copied in, anything else Taurus learns waits for the owner's Add; Taurus may search and read it (PDF text included) to answer the owner. ProFinder search: GET-only reads of the Greenhouse, Lever and Ashby public board APIs for companies the owner lists, the SimplifyJobs lists on GitHub, and Adzuna with the owner's key, on demand or daily; optional scoring by OpenRouter free models with the owner's key, resume sent without email, phone or links. ProFinder applying: Taurus's own browser fills application forms with the owner's answers and the Brain's resume and presses each form's submit button only after the owner approves one batch card listing every job, link, field and value, with per-job uncheck; every attempt logged in ~/.taurus.",
+    "still_not_authorized": "Typing passwords, signing in to job sites, creating job-site accounts, answering CAPTCHAs, pressing submit again on an unconfirmed application, applying through the Taurus Chrome profile.",
+    "tested": "mocked job boards, a mocked free model and a fake form filler (apps/server/test/brain.test.ts, apps/server/test/profinder.test.ts, apps/web/tests/brain-profinder.spec.ts); no real application sent",
+    "evidence": "docs/23-brain-and-profinder.md, AGENTS.md"
+  },
+  "desktop_cursor_decision": {
+    "date": "2026-11-22",
+    "owner": "Akhil",
+    "approval": "Taurus is the product name. Keep the Jarvis dashboard; preserve menu bar presence when closed; show a cursor emerging from the menu bar for native work and coloured cursors for parallel helpers. Review and reuse suitable MIT-licensed Nus code.",
+    "implementation": "Existing app allow lists, owner-enabled Accessibility, per-action approvals and serialized native input remain in force. Fixed left/right/maximize window placement checks its actual result. Nus bounded transcription queue adapted with attribution.",
+    "evidence": "docs/24-nus-review.md"
+  }
+}

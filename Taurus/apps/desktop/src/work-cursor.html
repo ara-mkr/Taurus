@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+<title>Taurus working</title>
+<style>
+html,body{margin:0;overflow:hidden;background:transparent;font:500 13px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;pointer-events:none}
+#cursor{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity;filter:drop-shadow(0 2px 4px #0009)}
+svg{display:block;width:27px;height:32px;fill:var(--colour,#a9d6ff);stroke:#fff;stroke-width:1.5;stroke-linejoin:round}
+#label{position:absolute;left:22px;top:24px;display:flex;gap:7px;align-items:center;padding:5px 10px;max-width:300px;background:#101216f2;border:1px solid var(--colour,#a9d6ff);border-radius:7px;color:#f5f5f7;white-space:nowrap}
+#status{color:#b7beca;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+</style></head><body>
+<div id="cursor" role="status" aria-live="polite"><svg viewBox="0 0 27 32" aria-hidden="true"><path d="M3 2L23 17L14 19L10 28Z"/></svg><span id="label"><b id="name">Taurus</b><span id="status"></span></span></div>
+<script src="work-cursor.js"></script></body></html>

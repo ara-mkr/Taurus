@@ -293,6 +293,41 @@
         "--strictPort"
       ],
       "port": 5221
+    },
+    {
+      "name": "taurus-deck-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TAURUS_PORT=8851",
+        "TAURUS_HTTPS_PORT=8852",
+        "TAURUS_HOME=/private/tmp/claude-501/-Users-akhilraja-amudhan-Documents-Mule-Bot/f437e4f1-a4c7-47ee-a317-8fdc75caaad1/scratchpad/taurus-home",
+        "TAURUS_BROKER_URL=",
+        "TAURUS_NO_SCHEDULER=1",
+        "TAURUS_APP_URL=http://127.0.0.1:5231",
+        "pnpm",
+        "--dir",
+        "Taurus/apps/server",
+        "start"
+      ],
+      "port": 8851
+    },
+    {
+      "name": "taurus-deck",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TAURUS_PORT=8851",
+        "pnpm",
+        "--dir",
+        "Taurus/apps/web",
+        "exec",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5231",
+        "--strictPort"
+      ],
+      "port": 5231
     }
   ]
 }
