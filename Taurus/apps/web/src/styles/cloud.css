@@ -192,9 +192,11 @@
   .cloud-add ul { max-height: none; flex: 1; min-height: 0; }
   .cloud-add { display: flex; flex-direction: column; }
   .cloud-center { min-height: 0; overflow: hidden auto; padding-bottom: calc(var(--bar-bottom) + 70px); scrollbar-width: none; }
-  .cloud-core { width: min(390px, 100%, 44dvh); }
-  .cloud-dash[data-taurus="small"] .cloud-core { width: min(300px, 100%, 34dvh); }
-  .cloud-dash[data-taurus="large"] .cloud-core { width: min(420px, 100%, 46dvh); }
+  /* The corner readouts (Needs you, Next, Body, Mode) sit 18% outside the ring, and this column hides what spills
+     sideways, so the ring takes at most 72% of the column (owner, November 20, 2026: "why is the needs u getting cut off"). */
+  .cloud-core { width: min(390px, 72%, 44dvh); }
+  .cloud-dash[data-taurus="small"] .cloud-core { width: min(300px, 72%, 34dvh); }
+  .cloud-dash[data-taurus="large"] .cloud-core { width: min(420px, 72%, 46dvh); }
   /* The chat bar sits under Taurus, between the columns, so it covers no panel. The browser panel floats over the right column. */
   .shell:has(.cloud-dash) + .chatbar, .shell.with-dock:has(.cloud-dash) + .chatbar { left: calc(var(--rail-w) + var(--side-w) + var(--gap) * 2); right: calc(var(--side-w) + var(--gap) * 2); }
   .shell.with-dock:has(.cloud-dash) { grid-template-columns: var(--rail-w) minmax(0, 1fr); }

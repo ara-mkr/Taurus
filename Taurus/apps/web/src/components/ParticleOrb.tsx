@@ -56,7 +56,8 @@ function seeded(seed: number) {
 export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbState; level?: number; className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef({ state, level });
-  useEffect(() => { live.current = { state, level }; }, [state, level]);
+  const restart = useRef<() => void>(() => {});
+  useEffect(() => { live.current = { state, level }; restart.current(); }, [state, level]);
 
   useEffect(() => {
     const el = canvas.current!;
@@ -70,7 +71,7 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
       const [sx, sy, sz] = logo[i];
       return { x: sx, y: sy, z: sz, sx, sy, sz, ball: ballPoint(i), speed: 2.2 + rand() * 2.6, phase: rand() * TAU, size: 0.6 + rand() * 0.9 };
     });
-    let w = 0, h = 0, dpr = 1, raf = 0, last = performance.now(), spin = 0, sway = 0, voice = 0, seen = true;
+    let w = 0, h = 0, dpr = 1, raf = 0, last = performance.now(), spin = 0, sway = 0, voice = 0, seen = true, flat = false;
     let color = '125, 232, 255';
     // A light page (the Deck, November 22, 2026) sets --orb-glow: 0 and --orb-blend: source-over, so dark dots stay crisp.
     let glowOn = 1, blend: GlobalCompositeOperation = 'lighter';
@@ -87,11 +88,12 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
       blend = getComputedStyle(el).getPropertyValue('--orb-blend').trim() === 'source-over' ? 'source-over' : 'lighter';
     };
     fit();
-    const sizer = new ResizeObserver(fit); sizer.observe(el);
-    // The colours change with Light and Dark (November 23, 2026: in Light the logo stayed light and vanished), so they
-    // are read again whenever the theme does, not only when the orb resizes.
-    const theme = new MutationObserver(fit); theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    const scheme = matchMedia('(prefers-color-scheme: dark)'); scheme.addEventListener('change', fit);
+    // Resizing clears the canvas, so a still orb is drawn once more. The colours change with Light and Dark (November 23,
+    // 2026: in Light the logo stayed light and vanished), so they are read again, and a still orb redrawn, when the theme does.
+    const redraw = () => { fit(); if (el.dataset.still !== undefined) { flat = true; frame(performance.now()); flat = false; } };
+    const sizer = new ResizeObserver(redraw); sizer.observe(el);
+    const theme = new MutationObserver(redraw); theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-palette'] });
+    const scheme = matchMedia('(prefers-color-scheme: dark)'); scheme.addEventListener('change', redraw);
 
     const frame = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -100,7 +102,7 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
       const ballish = s !== 'rest';
       voice += ((s === 'talk' ? lv : 0) - voice) * Math.min(1, dt * 14);
       spin += dt * (still ? 0.05 : s === 'think' ? 1.5 : s === 'talk' ? 0.55 + voice * 0.8 : s === 'listen' ? 0.35 : 0);
-      sway = still ? 0 : Math.sin(now / 2600) * 0.32;
+      sway = still || flat ? 0 : Math.sin(now / 2600) * 0.32;
       const breathe = s === 'listen' && !still ? Math.sin(now / 420) * 0.035 : 0;
       const radius = 0.66 + breathe + voice * 0.14;
       const tilt = 0.38, cosT = Math.cos(tilt), sinT = Math.sin(tilt);
@@ -115,6 +117,7 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
       glow.addColorStop(1, `rgba(${color}, 0)`);
       ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
       ctx.globalCompositeOperation = blend;
+      ctx.fillStyle = `rgb(${color})`;
 
       for (const d of dots) {
         let tx: number, ty: number, tz: number;
@@ -129,7 +132,7 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
           const x1 = bx * cosS - bz * sinS, z1 = bx * sinS + bz * cosS;
           tx = x1 * r; ty = (by * cosT - z1 * sinT) * r; tz = (by * sinT + z1 * cosT) * r;
         } else {
-          const shimmer = still ? 0 : 0.012 * Math.sin(now / 700 + d.phase);
+          const shimmer = still || flat ? 0 : 0.012 * Math.sin(now / 700 + d.phase);
           tx = (d.sx * cosW - d.sz * sinW) * 0.6 + shimmer; ty = d.sy * 0.6 + shimmer; tz = (d.sx * sinW + d.sz * cosW) * 0.6;
         }
         const k = 1 - Math.exp(-dt * (still ? 12 : d.speed));
@@ -138,23 +141,51 @@ export function ParticleOrb({ state, level = 0, className = '' }: { state: OrbSt
         const px = cx + d.x * scale * persp, py = cy + d.y * scale * persp;
         const near = Math.max(0.15, Math.min(1, 0.6 - d.z * 0.55));
         const size = d.size * persp * (1.1 + voice * 0.6);
-        ctx.fillStyle = `rgba(${color}, ${Math.min(1, near * (0.78 + voice * 0.25)).toFixed(3)})`;
+        // One colour for every dot and its strength through globalAlpha: building a colour string per dot per frame
+        // was most of the orb's cost (owner, November 20, 2026: "my computer heats up significanrtly").
+        ctx.globalAlpha = Math.min(1, near * (0.78 + voice * 0.25));
         ctx.fillRect(px - size / 2, py - size / 2, size, size);
       }
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     };
 
+    // How often to draw (November 20, 2026, measured on the desktop app: the orb at 60 frames a second was most of the
+    // 25-35% CPU Taurus used sitting on Home). Listening, thinking and talking draw every frame. At rest the logo only
+    // sways and shimmers slowly, so 20 frames a second looks the same; once the dots have settled into the logo and the
+    // app is resting (no touch for 20 seconds, or out of focus), it stops drawing until something changes.
+    let settledFor = 0, lastDrawn = 0;
     const loop = () => {
       cancelAnimationFrame(raf);
-      const tick = (now: number) => { if (!seen || document.hidden) return; frame(now); raf = requestAnimationFrame(tick); };
-      last = performance.now();
+      const tick = (now: number) => {
+        if (!seen || document.hidden) return;
+        const active = live.current.state !== 'rest';
+        if (active) settledFor = 0;
+        // Settled into the logo at rest: one flat drawing, then the CSS sway (hud.css, .particle-orb[data-still]) turns
+        // it from the same point in the sway, and nothing is drawn until Taurus listens, thinks or talks.
+        if (!active && settledFor > 2.5) {
+          flat = true; frame(now); flat = false;
+          const at = ((now / 2600) % TAU + TAU) % TAU / TAU * 16.3;
+          if (!calm.matches) { el.style.animationDelay = `-${at.toFixed(2)}s`; el.dataset.still = ''; }
+          raf = 0; return;
+        }
+        if (active || now - lastDrawn >= 48) { if (!active) settledFor += Math.min(0.1, (now - lastDrawn) / 1000); frame(now); lastDrawn = now; }
+        raf = requestAnimationFrame(tick);
+      };
+      last = performance.now(); lastDrawn = last - 48;
       raf = requestAnimationFrame(tick);
     };
-    const watcher = new IntersectionObserver(([e]) => { seen = e.isIntersecting; if (seen) loop(); }); watcher.observe(el);
-    const back = () => { if (!document.hidden) loop(); };
+    // Waking from rest, or a new state, starts drawing again.
+    restart.current = () => {
+      if (live.current.state === 'rest' && el.dataset.still !== undefined) return;
+      delete el.dataset.still; settledFor = 0;
+      if (!raf) loop();
+    };
+    const watcher = new IntersectionObserver(([e]) => { seen = e.isIntersecting; if (seen && el.dataset.still === undefined) loop(); }); watcher.observe(el);
+    const back = () => { if (!document.hidden && el.dataset.still === undefined) loop(); };
     document.addEventListener('visibilitychange', back);
     loop();
-    return () => { cancelAnimationFrame(raf); sizer.disconnect(); theme.disconnect(); scheme.removeEventListener('change', fit); watcher.disconnect(); document.removeEventListener('visibilitychange', back); };
+    return () => { cancelAnimationFrame(raf); sizer.disconnect(); theme.disconnect(); scheme.removeEventListener('change', redraw); watcher.disconnect(); restart.current = () => {}; document.removeEventListener('visibilitychange', back); };
   }, []);
 
   return <canvas ref={canvas} className={`particle-orb ${className}`} data-state={state} aria-hidden="true" />;

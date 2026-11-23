@@ -12,7 +12,8 @@ import { appearance, findApp, macAllowed, macState, openApp, sleepDisplay, volum
 import { context, dashboardSoon } from './dashboard.ts';
 import { instant } from './instant.ts';
 import { bodyNow, fresh, searchMail } from './live.ts';
-import { memoryText, remember } from './memory.ts';
+import { remember } from './memory.ts';
+import { memoryFor } from './recall.ts';
 import { lessonsText } from './learn.ts';
 import { messagesOn, readMessages } from './messages.ts';
 import { getRoute, saveRoute, settingsCommand, tierNames } from './route.ts';
@@ -405,7 +406,8 @@ export async function converse(turns: Turn[], via: Via, options: ConverseOptions
   }
   const { quietStart, quietEnd } = store.settings();
   const { profile } = prefs();
-  const memory = memoryText();
+  // Day 2 (November 20, 2026): core memory every time, and only the saved facts that fit this question.
+  const memory = await memoryFor(turns.filter(t => t.role === 'user').map(t => t.text));
   const learned = lessonsText();
   const voice = `${persona(quietStart, quietEnd, profile)}${memory ? `\n\n${memory}` : ''}${learned ? `\n\n${learned}` : ''}\n\n${rules(via)}${via === 'phone' ? '' : `\n\n${INTERVIEW}`}`;
   // A simple turn: no board, no tools, the fast model. Only if it asks for tools does the full prompt follow.

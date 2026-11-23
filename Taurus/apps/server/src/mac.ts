@@ -229,3 +229,118 @@ const specs: Spec[] = [
   },
 ];
 register(...specs);
+
+// ---------- Music apps already open (owner, November 20, 2026) ----------
+// "it should look for sign ins it can use like just apps in general like spotify without u having to connect to it like
+// how vorrsaint sees when spotify is running and can skip". Spotify and Apple Music on this Mac answer to their own
+// AppleScript, so when one is open Taurus plays, pauses, skips, sets its volume and shuffle and reads what's playing,
+// with no sign-in and without the "Control this Mac" switch: it changes only what the owner's own app plays, like
+// Spotify playback (November 4). One fixed script per app; the action is picked from a fixed list and the volume is
+// a number, both passed as arguments, never as code. An app that isn't open is never launched (the script checks
+// "is running" first), and an app that isn't installed is never named to AppleScript, so macOS never asks where it is.
+// The first time, macOS asks once whether Taurus may control Spotify (or Music).
+export type MediaApp = 'Spotify' | 'Music';
+export type MediaAct = 'now' | 'pause' | 'resume' | 'next' | 'previous' | 'volume' | 'shuffle';
+export interface MediaNow { app: MediaApp; playing: boolean; title?: string; artist?: string; album?: string; durationMs: number; positionMs: number; volume?: number; shuffle?: boolean; art?: string; uri?: string }
+const MEDIA: MediaApp[] = ['Spotify', 'Music'];
+const mediaScript = (app: MediaApp) => {
+  const shuffle = app === 'Spotify' ? 'shuffling' : 'shuffle enabled';
+  return `on run argv
+  if not (application "${app}" is running) then return "off"
+  set act to item 1 of argv
+  tell application "${app}"
+    if act is "pause" then pause
+    if act is "resume" then play
+    if act is "next" then next track
+    if act is "previous" then previous track
+    if act is "volume" then set sound volume to ((item 2 of argv) as integer)
+    if act is "shuffle" then set ${shuffle} to ((item 2 of argv) is "on")
+    if act is "next" or act is "previous" then delay 0.4
+    set s to (player state as text)
+    if s is "stopped" then return "stopped"
+    set t to current track
+    set out to s & tab & (name of t) & tab & (artist of t) & tab & (album of t) & tab & ((duration of t) as text) & tab & ((player position) as text) & tab & ((sound volume) as text) & tab & ((${shuffle}) as text)
+    ${app === 'Spotify' ? 'set out to out & tab & (artwork url of t) & tab & (spotify url of t)' : ''}
+    return out
+  end tell
+end run`;
+};
+// Tests never touch the owner's real apps: under node --test only a stand-in runner may answer.
+const underTest = () => Boolean(process.env.NODE_TEST_CONTEXT) || process.argv.some(a => /\.test\.ts$/.test(a));
+const mediaAllowed = () => isMac() && !(runner === real && underTest());
+const num = (v?: string) => Number(String(v ?? '').replace(',', '.')) || 0;
+function readMedia(app: MediaApp, out: string): MediaNow | undefined {
+  if (!out || out === 'off') return undefined;
+  if (out === 'stopped') return { app, playing: false, durationMs: 0, positionMs: 0 };
+  const [s, title, artist, album, duration, position, volume, shuffle, art, uri] = out.split('\t');
+  return { app, playing: s === 'playing', title, artist, album, durationMs: app === 'Spotify' ? num(duration) : num(duration) * 1000, positionMs: num(position) * 1000,
+    volume: Math.round(num(volume)), shuffle: shuffle === 'true', art: art || undefined, uri: uri || undefined };
+}
+async function askMedia(app: MediaApp, act: MediaAct, value = ''): Promise<MediaNow | undefined> {
+  return readMedia(app, await runner('osascript', ['-e', mediaScript(app), act, value]));
+}
+// The music app that's open: the one playing, else one that's open and paused. Undefined when none is open.
+export async function mediaNow(): Promise<MediaNow | undefined> {
+  if (!mediaAllowed()) return undefined;
+  const have = installedApps();
+  const open = (await Promise.all(MEDIA.filter(a => have.includes(a)).map(a => askMedia(a, 'now').catch(() => undefined)))).filter((m): m is MediaNow => Boolean(m));
+  return open.find(m => m.playing) ?? open[0];
+}
+export async function mediaControl(act: MediaAct, value?: number | boolean): Promise<MediaNow | undefined> {
+  const now = await mediaNow();
+  if (!now || act === 'now') return now;
+  const arg = act === 'volume' ? String(Math.max(0, Math.min(100, Math.round(Number(value) || 0)))) : act === 'shuffle' ? (value ? 'on' : 'off') : '';
+  const step = begin('action', `${now.app} on this Mac: ${act}`, { by: 'taurus' });
+  try { const after = await askMedia(now.app, act, arg); step.done(); return after; } catch (error) { step.fail(error); throw error; }
+}
+// "Play juice wrld" with no Spotify sign-in: Spotify's own search opens in the app, where one tap plays it.
+export async function openInSpotify(query: string): Promise<boolean> {
+  if (!mediaAllowed() || !installedApps().includes('Spotify')) return false;
+  await runner('open', [`spotify:search:${query.replace(/[\r\n]+/g, ' ').trim().slice(0, 120)}`]);
+  return true;
+}
+
+// ---------- The Calendar app on this Mac (owner, November 20, 2026: "can u make it take apple and notion calender") ----
+// Apple Calendar with no link to paste: Apple's own calendar framework (EventKit), through one fixed JavaScript for
+// Automation script, reads today's and tomorrow's events from every calendar this Mac already shows: iCloud, and any
+// Google, Exchange or subscribed calendar added in System Settings. Read only; the Calendar app isn't opened. The two
+// times are passed as arguments. The first time, macOS asks the owner whether Taurus may see his calendars.
+const CALENDAR = `function run(argv) {
+  ObjC.import('EventKit');
+  const store = $.EKEventStore.alloc.init;
+  let status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
+  if (status === 0 && argv[2] === 'ask') {
+    let done = false;
+    const answered = () => { done = true; };
+    if (store.respondsToSelector('requestFullAccessToEventsWithCompletion:')) store.requestFullAccessToEventsWithCompletion(answered);
+    else store.requestAccessToEntityTypeCompletion($.EKEntityTypeEvent, answered);
+    const until = $.NSDate.dateWithTimeIntervalSinceNow(90);
+    while (!done && $.NSDate.date.compare(until) < 0) $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.2));
+    status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
+  }
+  if (status !== 3) return JSON.stringify({ status: status });
+  const from = $.NSDate.dateWithTimeIntervalSince1970(Number(argv[0]) / 1000), to = $.NSDate.dateWithTimeIntervalSince1970(Number(argv[1]) / 1000);
+  const events = store.eventsMatchingPredicate(store.predicateForEventsWithStartDateEndDateCalendars(from, to, $()));
+  const out = [];
+  const text = v => (v && !v.isNil()) ? ObjC.unwrap(v) : undefined;
+  for (let i = 0; i < Number(events.count); i++) {
+    const e = events.objectAtIndex(i);
+    if (Number(e.status) === 3) continue;
+    let declined = false;
+    const people = e.attendees;
+    if (people && !people.isNil()) for (let j = 0; j < Number(people.count); j++) { const p = people.objectAtIndex(j); if (p.isCurrentUser && Number(p.participantStatus) === 3) declined = true; }
+    if (declined) continue;
+    out.push({ id: text(e.eventIdentifier), title: text(e.title), start: Number(e.startDate.timeIntervalSince1970) * 1000, end: Number(e.endDate.timeIntervalSince1970) * 1000,
+      allDay: Boolean(e.allDay), location: text(e.location), calendar: text(e.calendar.title), url: e.URL && !e.URL.isNil() ? text(e.URL.absoluteString) : undefined });
+  }
+  return JSON.stringify({ status: 3, events: out });
+}`;
+export interface MacEvent { id: string; title?: string; start: number; end: number; allDay: boolean; location?: string; calendar?: string; url?: string }
+export async function macCalendar(fromMs: number, toMs: number, ask = true): Promise<MacEvent[]> {
+  if (!isMac()) throw new HttpError(409, 'Apple Calendar on this Mac works only when Taurus runs on a Mac.');
+  if (runner === real && underTest()) throw new HttpError(409, 'Not in tests.');
+  const out = JSON.parse(await runner('osascript', ['-l', 'JavaScript', '-e', CALENDAR, String(fromMs), String(toMs), ask ? 'ask' : 'check']) || '{}') as { status?: number | string; events?: MacEvent[] };
+  out.status = Number(out.status);
+  if (out.status !== 3) throw new HttpError(409, out.status === 0 ? 'macOS hasn’t asked yet. Turn Apple Calendar off and on to see its question.' : 'macOS isn’t letting Taurus see your calendars. Allow Taurus in System Settings, Privacy & Security, Calendars (Full Access).');
+  return out.events ?? [];
+}

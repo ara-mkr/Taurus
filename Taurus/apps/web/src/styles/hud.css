@@ -70,10 +70,13 @@
 .hud-ring .tick.major { stroke: var(--hud); stroke-width: 1.6; }
 .hud-ring circle { fill: none; transform-origin: 200px 200px; }
 .hud-ring .hr-edge { stroke: var(--hud-faint); stroke-width: 1; }
-.hud-ring .hr-arc-a { stroke: var(--hud); stroke-width: 2; stroke-dasharray: 70 38 18 38 120 30 8 30; animation: ring-turn 38s linear infinite; filter: drop-shadow(0 0 4px rgba(var(--hud-rgb), .7)); }
-.hud-ring .hr-arc-b { stroke: var(--hud-dim); stroke-width: 1; stroke-dasharray: 3 7; animation: ring-turn 80s linear infinite reverse; }
+.hud-ring .hr-arc-a { stroke: var(--hud); stroke-width: 2; stroke-dasharray: 70 38 18 38 120 30 8 30; }
+.hud-ring .hr-arc-b { stroke: var(--hud-dim); stroke-width: 1; stroke-dasharray: 3 7; }
 .hud-ring .hr-inner { stroke: var(--hud-faint); stroke-width: 1; }
-.hud-ring .ticks { transform-origin: 200px 200px; animation: ring-turn 240s linear infinite; }
+.hud-turn { will-change: transform; transform-origin: 50% 50%; }
+.hud-turn.turn-a { animation: ring-turn 38s linear infinite; }
+.hud-turn.turn-b { animation: ring-turn 80s linear infinite reverse; }
+.hud-turn.turn-ticks { animation: ring-turn 240s linear infinite; }
 .hud-page[data-phase="listening"] .hr-arc-a { animation-duration: 8s; }
 .hud-page[data-phase="thinking"] .hr-arc-a { animation-duration: 4s; }
 .hud-page[data-phase="thinking"] .hr-arc-b { animation-duration: 12s; stroke: var(--hud); }
@@ -123,5 +126,24 @@
   .hud-log { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hud-sweep, .hud-ring .hr-arc-a, .hud-ring .hr-arc-b, .hud-ring .ticks, .hud-status .hud-dot, .hud-log li { animation: none; }
+  .hud-sweep, .hud-turn, .particle-orb, .hud-status .hud-dot, .hud-log li { animation: none; }
 }
+
+/* Heat (owner, November 20, 2026: "its still super laggy right as i open it my computer heats up significanrtly").
+   Measured in the desktop app: anything moving behind the frosted glass makes every glass panel re-blur on every
+   frame. The radar sweep fills the whole screen, so it turns only while Taurus listens, thinks or talks; the rings and
+   the status dot stop when the app rests. The arc's glow is no longer a filter on a turning shape. */
+:root:has(.cloud-dash[data-phase="idle"]) .hud-sweep, :root:not(:has(.cloud-dash)) .hud-sweep { animation-play-state: paused; }
+:root[data-resting] :is(.hud-turn, .particle-orb, .hud-status .hud-dot, .ring-a, .ring-b) { animation-play-state: paused; }
+/* The orb at rest, once its dots have settled into the logo: the canvas stops drawing and this turns the finished
+   picture the way the drawing swayed (about 18 degrees either way, every 16 seconds). */
+.particle-orb[data-still] { will-change: transform; animation: orb-sway 16.3s ease-in-out infinite; }
+@keyframes orb-sway { 0% { transform: perspective(900px) rotateY(0deg); } 25% { transform: perspective(900px) rotateY(18deg); } 50% { transform: perspective(900px) rotateY(0deg); } 75% { transform: perspective(900px) rotateY(-18deg); } 100% { transform: perspective(900px) rotateY(0deg); } }
+
+/* Still while Taurus is idle (November 20, 2026, measured in the desktop app): anything moving makes the whole window,
+   with its frosted glass, composite again 60 times a second, 20 to 40% CPU however cheap the motion itself is; with
+   nothing moving Taurus uses about 2%. So by default the rings, the orb's sway and the status dot hold still while
+   Taurus is idle and move while he listens, thinks or talks. Backdrop "Always" (data-clouds="lively") keeps them moving. */
+:root:not(:has(.sky[data-clouds="lively"])):has(.cloud-dash[data-phase="idle"]) :is(.hud-turn, .particle-orb[data-still], .hud-status .hud-dot) { animation-play-state: paused; }
+:root:has(.sky[data-clouds="off"]) :is(.hud-turn, .particle-orb[data-still], .hud-status .hud-dot) { animation: none; }
+

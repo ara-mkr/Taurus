@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import ForceGraph from 'force-graph';
 import { api, type BrainGraph, type BrainNode, type BrainNote, type BrainSuggestion } from '../api';
+import { BrainMemory } from './BrainMemory';
 import type { Extras } from './ChatBar';
 import '../styles/brain.css';
 
@@ -329,5 +330,6 @@ export function BrainPage({ onAsk }: { onAsk: (question: string, frame?: string,
         </nav>}
       </aside>
     </div>
+    <BrainMemory open={open} />
   </main>;
 }

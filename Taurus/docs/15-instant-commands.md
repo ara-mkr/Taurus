@@ -19,6 +19,8 @@ Say these after "Hey Taurus" (or tap Talk), type them in the chat bar, or say th
 
 The window shows the cover, title, artist, where it's playing, a live progress line, and Back, Pause and Skip. Setup: Settings → Actions → Spotify (your own Spotify app keys, same app as the Spotify connection). Spotify only lets Premium start music from another app; without Premium, or with no Spotify app open, the window shows Spotify's own player to press play on.
 
+With nothing connected (November 20, 2026): when Spotify or Apple Music is open on this Mac, "skip", "pause", "play", "previous", "what's playing", "turn it up", "volume 30" and "shuffle" work on that app directly, preferring the one that's playing. "Play <something>" with no Spotify sign-in opens Spotify's own search in the app. macOS asks once whether Taurus may control Spotify (or Music). Signing in to Spotify playback still adds starting any song, on any of your devices.
+
 ## Timers
 
 | Say | Does |
@@ -48,7 +50,9 @@ When one is due: a red window with Done, In 10 minutes and In an hour, a chime, 
 
 ## Memory
 
-"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.taurus/memory.json` and sent to your chosen AI with every question, so answers use it. "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
+"remember that I take my coffee black", "remember Sam's birthday is March 3": saved in your words in `~/.taurus/memory.json`. Since November 20, 2026 (Luke's Day 2) only the memories that fit a question go with it; see `docs/23-brain-and-profinder.md`, "Core memory and recall". "what do you know about me" shows the list with Forget on each; "forget Sam's birthday" removes the closest match. The AI can only save a memory when your own message asked it to remember.
+
+Core memory, the few things sent with every question: "always sign my emails as Akhil", "never book meetings before 10am", "pin that I'm vegetarian", "unpin the meetings rule", "what's in your core memory" (it lists them and opens the Brain page). "how much memory are you using" gives the counts; "what do you know about my sister" reads back the saved facts that fit; "share my memory with Claude" opens the Brain page at Copy for other AIs. "let Claude use my memory" turns on the memory server for apps on this Mac, and "stop sharing my memory" turns it off. "turn off sharper recall" and "turn on sharper recall" switch the AI picker.
 
 ## Opening apps
 

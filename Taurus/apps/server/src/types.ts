@@ -67,6 +67,8 @@ export interface Dashboard {
 export interface FieldInfo { key: string; label: string; secret: boolean; appKey: boolean; instead?: boolean; set: boolean; value?: string; placeholder?: string }
 
 export interface ConnectorInfo {
+  // Every account signed in (November 20, 2026): the first is primary; more are read too, marked by account.
+  accounts?: { key: string; account?: string; primary: boolean }[];
   id: string;
   name: string;
   group: Group;

@@ -118,6 +118,11 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
     catch (error) { setMessage((error as Error).message); }
     finally { setBusy(false); }
   }
+  async function removeAccount(key: string, account?: string) {
+    if (!confirm(`Remove ${account ?? 'this account'} from Taurus? It forgets that account’s token; the others stay.`)) return;
+    setBusy(true);
+    try { onChange((await api.disconnect(c.id, key)).connectors); } finally { setBusy(false); }
+  }
   async function remove() {
     if (!confirm(allow ? `Stop Taurus acting in ${c.name}? It forgets that permission; reading is not affected.` : `Disconnect ${c.name}? Taurus forgets its token. You can reconnect any time.`)) return;
     setBusy(true);
@@ -164,6 +169,16 @@ function ConnectorBody({ c, onChange, allow = false }: { c: ConnectorInfo; onCha
     </div> : c.auth === 'oauth' && !allow ? <>
       {/* One button to the company's own sign-in page; keys only if you open the links under it (November 19, 2026). */}
       {fieldForm(c.fields.filter(f => !f.appKey && !f.instead), true)}
+      {/* More than one account (November 20, 2026: "i have multipe emails"): each one signed in, and another. */}
+      {c.connected && (c.accounts?.length ?? 0) > 0 && <div className="accounts">
+        <h3>{(c.accounts?.length ?? 0) > 1 ? `${c.accounts!.length} accounts, all read together` : 'Signed in as'}</h3>
+        <ul>{c.accounts!.map(a => <li key={a.key}>
+          <span>{a.account ?? (a.primary ? 'Your first account' : a.key)}</span>
+          {(c.accounts?.length ?? 0) > 1 && <button type="button" className="text-button" disabled={busy} onClick={() => void removeAccount(a.key, a.account)}>Remove</button>}
+        </li>)}</ul>
+        {onThisMac() && <a className="button" href={`/api/oauth/start/${c.id}?add${desktop ? '&outside' : ''}`} target={desktop ? '_blank' : undefined} rel={desktop ? 'noreferrer' : undefined}>Add another {name} account</a>}
+      </div>}
+      {c.oneClick && /^(gmail|google-)/.test(c.id) && <p className="muted">Google lets an address in only once it’s a test user of Taurus’s sign-in app, while that app is in Testing. If Google says access is blocked, add that address under Test users in Google Cloud (project oxbot-513223, Google Auth Platform, Audience), then sign in again.</p>}
       {!c.ready && !c.connected && <p className="muted">Signing in with {name} isn’t ready yet.{c.fields.some(f => f.instead) ? ' You can use a personal key for now.' : ''}</p>}
       {c.fields.some(f => f.instead) && <details className="own-keys" open={c.fields.some(f => f.instead && f.set)}>
         <summary>Use a personal key instead</summary>

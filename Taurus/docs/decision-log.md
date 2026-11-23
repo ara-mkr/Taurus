@@ -369,6 +369,71 @@ Entries above this one keep the old names (OXBOT, Ox, and Hud's old name, Taurus
 - **Luke's Day 1:** pick one job to hand off (onboarding); "interview me" and new standing jobs get one question at a time before Taurus starts; "check my email twice a day" schedules weekday checks at 8 and 4 that draft replies as approval cards; drafts you edit or decline become lessons in his instructions (`learn.ts`, `~/.taurus/lessons.json`).
 - **Not done, and needs the owner:** Taurus never sends on his own. Luke's "eventually respond to emails on your own" would change the rule that every action waits for an OK, so it stays locked until the owner decides it, task by task.
 
+## November 20, 2026: Luke's Day 2, core memory and recall
+
+The owner asked for everything Luke's Day 2 ("Build your AI agent's brain", challenge.lukebuildsai.com) teaches that Taurus didn't already do, built better where possible, inside AGENTS.md. Day 2's points: an agent that is sent every saved fact answers worse and spends more tokens; keep a small memory that is always sent (about 3,000 characters, with rules that must never be missed); put everything else in a big store where only the facts that fit the question are picked; keep that memory independent of which AI answers; and watch it in a console (requests, the memory graph, added documents).
+
+- **Built** (`apps/server/src/recall.ts`, `docs/23-brain-and-profinder.md`): core memory with a 3,000 character budget, sent every time; recall that sends at most 8 facts and 1,600 characters out of memories, Brain note lines and the words of text and PDF files; counts of what was sent and saved; a Memory panel on the Brain page with "Try a question" and "Copy for other AIs"; and voice for all of it ("always …", "pin …", "unpin …", "what's in your core memory", "how much memory are you using", "what do you know about my …", "share my memory with Claude").
+- **Better than the video:** nothing leaves this Mac to pick facts (Luke signs up for Supermemory, a cloud service, and adds a second AI call per question). The pinned rules answer the "nine times out of ten" miss Luke describes. The page shows exactly which facts went with the last question and lets the owner try any question first.
+- **Rejected:** connecting Supermemory or Honcho. They are cloud services AGENTS.md does not authorize, and Luke's agent creates the account and reads the verification code from Gmail, which Taurus never does (no account creation, no codes). An AI picker on top of BM25 was also rejected: a second call per question costs time and allowance for a vault this size. Revisit if recall misses in real use. Serving the memory to other apps over MCP was left for the owner to decide, since it would open a new way for Brain contents to leave Taurus; Copy for other AIs is the step that needs no new permission.
+- **Consequences:** the AI no longer sees memories that don't fit the question. A memory phrased unlike the question can be missed, so things that must always apply belong in core memory. No new permission; what reaches the AI is still part of a question the owner asked the AI they chose (November 16 Brain rule). Tests: `apps/server/test/recall.test.ts`, and the Memory test in `apps/web/tests/brain-profinder.spec.ts`.
+- **The owner's own Day 2 homework:** pin his few always-true facts and rules (say "always …" or use the Brain page), and use Copy for other AIs if he wants Claude or ChatGPT to share them. The Day 3 live Q&A is in Luke's paid Skool community, which is his call.
+
+## November 20, 2026 (later): what Day 2 first left out
+
+Shown the list of what was left out of Day 2, the owner said: "no add all the stuff from left out thats dumb or the most or if something is close enough skip it".
+
+- **Built:** an MCP server for Taurus's memory (`memory-share.ts`), so Claude Code, Claude Desktop, Cursor and other apps on this Mac share one memory with Taurus, the job Luke gives Supermemory. It is off by default, loopback only, behind its own key, with no web pages, and adds wait for the owner's yes. Also built: the AI picker on top of word matching ("sharper recall", only when more facts fit than may be sent, three seconds at most), a same-meaning word list, PDF words read at start-up, and voice for each switch. Recorded in AGENTS.md as an owner authorization.
+- **Skipped as close enough:** a Supermemory or Honcho account. With the two above, Taurus does what they do without a cloud account, and an agent signing up and reading verification codes stays not authorized.
+- **Consequences:** a question with many fitting facts costs one small extra call to the fastest model, which counts against a free OpenRouter allowance; the switch turns it off. ChatGPT can't reach a server on this Mac, so it keeps Copy for other AIs. Tests: `apps/server/test/memory-share.test.ts`, and the Memory test in `apps/web/tests/brain-profinder.spec.ts`.
+
+## November 20, 2026: DeepSeek V4 Flash every day, the Claude app for big jobs
+
+The owner: "fuck the extramoney for openrouter i wil just be using deepseek v4 flash cus its cheap ash and fast and good enough and for any other big work it can just tap into my claude app".
+
+- **Built:** DeepSeek's default model is now `deepseek-flash`, DeepSeek's current name for V4 Flash (V4.1 Flash; `deepseek-v4-flash` still works there). DeepSeek's pricing page, read November 20, 2026, gives about $0.15 per million tokens in and $0.60 out off-peak, double at peak. Quick and everyday asks send `thinking: disabled`, so it answers without thinking first; big jobs keep thinking. A route preset "DeepSeek, Claude for big jobs" was added, and by voice "use DeepSeek for everything and Claude for big jobs", "switch to DeepSeek V4 Flash" or "use deep seek for quick stuff". "Claude" already means the owner's Claude app (Claude Code on his plan) before a Claude key.
+- **Consequences:** sharper recall's extra call goes to the quick-ask AI, so with this setup it's a fraction of a cent on DeepSeek rather than one of OpenRouter's 50 free daily asks. Nothing changes until the owner adds his DeepSeek key (Settings, AI, API keys) and says the line or taps the preset. Tests: `apps/server/test/deepseek.test.ts`.
+- **Later the same day,** the owner: "btw i use my openrouter for deepseek ... like let me paste in my api key". "DeepSeek" now means DeepSeek V4 Flash on his OpenRouter key when there is no DeepSeek key. Saying the line or tapping the preset pins OpenRouter's model to `deepseek/deepseek-v4-flash` (about $0.09 in and $0.18 out per million tokens on OpenRouter's model list, November 20, 2026). If the OpenRouter account runs out of credit, the free models answer instead of an error. Quick and everyday asks go with `reasoning: {effort: "none"}`. The AI page's OpenRouter model picker offers "DeepSeek V4 Flash (paid, pennies)", and the route menu names the pinned model. He pastes the key himself on the AI page (API keys, OpenRouter, "Or paste an OpenRouter key"); it is saved in `~/.taurus` only.
+
+## November 20, 2026: Taurus heating the Mac on open
+
+The owner: "its still super laggy right as i open it my computer heats up significanrtly it becomes laggy".
+
+- **Measured** on the packaged desktop app (scratch data folder, port 8861, `top` over 5 seconds, summed over every Taurus process): Home sat at 25 to 35% CPU while in use, mostly in the graphics process. With every animation paused it used about 2%. Taken apart: the particle orb redrawing 1,600 dots 60 times a second at rest (building a colour string for each dot each frame) cost about 15 to 20%. The turning HUD rings cost about 30% even with the frosted glass off. Any motion at all, however cheap to draw, made the whole window with its frosted glass composite again every frame, 20 to 40%.
+- **Changed:**
+  - The orb draws with one colour and `globalAlpha`, at 20 frames a second at rest. Once its dots settle into the logo it stops drawing, and CSS turns the finished picture for the sway.
+  - Each turning ring is its own layer, and the arc's glow is no longer a filter on a turning shape.
+  - By default (Backdrop "While working", formerly "Slow"), the rings, sweep, orb sway and status dot hold still while Taurus is idle and move while he listens, thinks or talks. "Always" (formerly "Fast") keeps them moving, and the menu says it warms the Mac.
+- **Result,** same build and screen: about 3% while idle with the mouse moving, down from about 30%. Not measured: the owner's own data (more panels, scans, voice models), and the first-run welcome, which still animates fully.
+
+## November 20, 2026: several Gmail (and other) accounts, and why Google said no
+
+The owner: "make it so u can connect multiple gmails or multiple accounts", and "signing in on gmail is so annoying it says it doesnt owkr i have multipe emails".
+
+- **Why it failed:** Taurus's own Google sign-in app (project oxbot-513223, used by the sign-in service) is still in Google's Testing mode; verification was paused on October 31. In Testing, Google blocks every address that isn't listed as a test user. The fix is the owner's: add each address under Test users (Google Cloud, Google Auth Platform, Audience). The Connections page now says so on Google's sheets. While in Testing, Google also ends sign-ins after 7 days.
+- **Built:**
+  - Google sign-ins ask which account every time (`prompt=select_account consent`), and Microsoft's ask too (`prompt=select_account`). Taurus's own developer-app sign-in has this now; the sign-in service gets it when the owner redeploys `apps/broker`.
+  - Any OAuth app can hold several accounts: "Add another account" on its sheet, or by voice ("add another Gmail account"). The first stays under the connector's id; each further account is saved as `<id>@@<email>` in `~/.taurus/tokens.json`, named by asking the provider who signed in (Gmail profile, primary calendar, Microsoft /me). Signing in again as an account already here refreshes it.
+  - Every account is read and the results merged, each item marked "Gmail · address", with Gmail links opening that account. Mail search covers all of them.
+  - Remove takes away one account; removing the first lets the next take its place.
+- **Not built:** sending from more than one Gmail. Sending stays the one Gmail allowed in Actions; a reply to an email in another account says to reply from that account for now. Tests: `apps/server/test/accounts.test.ts`.
+
+## November 20, 2026: Spotify and Music that are already open, with nothing connected
+
+The owner: "it should look for sign ins it can use like just apps ing eneral like spotify without u having to connect to it like how vorrsaint sees when spotify is running and can skip and shit". Recorded in AGENTS.md.
+
+- **Built** (`mac.ts`, `music.ts`): with no Spotify playback sign-in, music commands, the music window's buttons and the AI's music tools use whichever of Spotify or Apple Music is open on this Mac, preferring the one playing. That covers play, pause, next, previous, volume, louder and quieter, shuffle, and "what's playing" with title, artist, album, art (Spotify) and position. The work is done through one fixed AppleScript per app with the action as an argument. It never launches an app that isn't open, and never names an app that isn't installed, so macOS doesn't ask where it is. "Play juice wrld" with no sign-in opens Spotify's own search for it in the app.
+- **Not built:** starting a specific song with no sign-in (Spotify's AppleScript can't search), and a background watcher that notices music starting on its own: it would mean asking macOS every few seconds, and the heat fix above argues against that. Taurus checks when asked. Other apps beyond music aren't detected yet.
+- **Checks:** `apps/server/test/media.test.ts` with a stand-in for macOS. Not tried on the owner's real Spotify, which would have played and paused his music; macOS will ask him once to allow it.
+
+## November 20, 2026: Apple Calendar and Notion Calendar
+
+The owner: "can u make it take apple and notion calender". Recorded in AGENTS.md.
+
+- **Apple Calendar on this Mac:** a switch under Connections. It reads the Calendar app's events for today and tomorrow (iCloud, and any Google, Exchange or subscribed calendar added in System Settings) through EventKit, run by `osascript -l JavaScript` with a fixed script. It skips cancelled and declined events, labels each event "Apple Calendar · <calendar>", and changes nothing. The desktop app now tells macOS why it asks for calendars. Before this, Apple Calendar needed a calendar made Public on iCloud.com and its link pasted, which still works under the feed connector.
+- **Notion Calendar:** it has no public API or feed. It is a view of the Google (and Outlook) calendars added to it, plus Notion database dates. So Google Calendar now reads every calendar switched on in each Google account, an event on two of them showing once, and Notion's database items dated today or tomorrow join the schedule. The feed connector no longer claims Notion Calendar.
+- **Checks:** `apps/server/test/calendars.test.ts`. On this Mac the script was run in check-only mode: it answered that macOS hasn't asked yet, and read nothing. It has not read a real calendar; the owner's Taurus will show macOS's question when he switches it on.
+
 
 ## November 22, 2026 — Taurus desktop work cursors and Nus review
 

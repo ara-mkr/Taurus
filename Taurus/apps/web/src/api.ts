@@ -88,7 +88,7 @@ export const api = {
   composio: () => request<ComposioInfo>('/api/composio'),
   connectors: () => request<{ connectors: ConnectorInfo[]; bundles?: Bundle[]; redirectUri: string; home: string }>('/api/connectors'),
   saveFields: (id: string, values: Record<string, string>) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/fields`, { method: 'POST', body: { values } }),
-  disconnect: (id: string) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/disconnect`, { method: 'POST' }),
+  disconnect: (id: string, account?: string) => request<{ connectors: ConnectorInfo[] }>(`/api/connectors/${id}/disconnect${account ? `?account=${encodeURIComponent(account)}` : ''}`, { method: 'POST' }),
   ask: (turns: AskTurn[], options: { image?: string; files?: { name: string; text: string }[]; via?: 'ask' | 'talk' } = {}) => request<Answer>('/api/ask', { method: 'POST', body: { turns: turns.map(({ role, text }) => ({ role, text })), ...options } }),
   approvals: () => request<{ pending: Proposal[] }>('/api/approvals'),
   skills: () => request<{ skills: Skill[]; mcp: McpServer[] }>('/api/skills'),
@@ -167,6 +167,14 @@ export const api = {
   brainSearch: (q: string) => request<{ results: BrainHit[] }>(`/api/brain/search?q=${encodeURIComponent(q)}`),
   detachFile: (note: string, name: string) => request<{ note: BrainNote; graph: BrainGraph }>(`/api/brain/file?note=${encodeURIComponent(note)}&name=${encodeURIComponent(name)}`, { method: 'DELETE' }),
   fileText: (name: string) => request<{ name: string; text: string }>(`/api/brain/file/text?name=${encodeURIComponent(name)}`),
+  // Core memory and recall (Luke's Day 2, November 20, 2026).
+  brainMemory: () => request<BrainMemory>('/api/brain/memory'),
+  pinCore: (text: string) => request<BrainMemory>('/api/brain/core', { method: 'POST', body: { text } }),
+  unpinCore: (id: string) => request<BrainMemory>(`/api/brain/core?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  recallPreview: (q: string) => request<{ facts: RecallFact[]; pool: number; poolChars: number; sentChars: number }>(`/api/brain/recall?q=${encodeURIComponent(q)}`),
+  memoryExport: () => request<{ text: string }>('/api/brain/export'),
+  setMemorySharing: (on: boolean) => request<BrainMemory>('/api/brain/sharing', { method: 'POST', body: { on } }),
+  setRecallPicker: (on: boolean) => request<BrainMemory>('/api/brain/picker', { method: 'POST', body: { on } }),
   decideSuggestion: (id: string, add: boolean) => request<{ suggestions: BrainSuggestion[]; graph: BrainGraph }>(`/api/brain/suggestions/${id}`, { method: 'POST', body: { add } }),
   attachFile: async (note: string, file: File) => {
     let response: Response;
@@ -183,6 +191,14 @@ export interface BrainNode { id: string; title: string; kind: 'hub' | 'note' | '
 export interface BrainGraph { nodes: BrainNode[]; links: { source: string; target: string }[] }
 export interface BrainNote { title: string; path: string; hub: boolean; up?: string; tags: string[]; updated: string; body: string; links: string[]; files: string[] }
 export interface BrainSuggestion { id: string; fact: string; note: string; at: string; why?: string }
+// Core memory and recall (shapes from apps/server/src/recall.ts).
+export interface CoreItem { id: string; text: string; kind: 'rule' | 'fact'; at: string }
+export interface RecallFact { id: string; text: string; from: 'memory' | 'note' | 'file'; where?: string; at?: string }
+export interface BrainMemory {
+  core: CoreItem[]; used: number; budget: number; facts: number; chars: number; report: string; picker: boolean;
+  sharing: { on: boolean; url: string; key?: string; uses: number; lastUse?: { at: string; app: string; tool: string } };
+  stats: { questions: number; factsSent: number; charsSent: number; charsAll: number; last?: { at: string; asked: string; facts: RecallFact[]; pool: number; poolChars: number; sentChars: number } };
+}
 export interface BrainHit { title: string; up?: string; snippet: string; files: string[]; score: number }
 
 export const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });

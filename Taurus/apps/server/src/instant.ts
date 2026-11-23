@@ -5,7 +5,9 @@ import { note } from './activity.ts';
 import { prefs } from './boards.ts';
 import { greeting } from './greetings.ts';
 import { go } from './go.ts';
+import { send } from './ring.ts';
 import { emailRoutine } from './routines.ts';
+import { brainCommand } from './recall.ts';
 import { homeCommand } from './home.ts';
 import { appearance, findApp, findShortcut, macAllowed, isMac, openApp, runningApps, runShortcut, sleepDisplay, trustedShortcut, volume } from './mac.ts';
 import { forget, remember, showMemory } from './memory.ts';
@@ -161,6 +163,14 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
   }
   const routine = emailRoutine(said);
   if (routine) return routine;
+  // Another account (November 20, 2026: "make it so u can connect multiple gmails or multiple accounts"). The sign-in
+  // itself happens in the company's own window, so this opens Connections and says what to tap.
+  const another = said.match(/^(?:add|connect|link|sign (?:me )?in(?: to| with)?)(?: (?:another|a second|one more|my other|another one of my))(?: (gmail|google|email|e-mail|mail|outlook|calendar|google calendar))?(?: (?:account|address|inbox))?s?$/);
+  if (another) {
+    const what = /outlook/.test(another[1] ?? '') ? 'Outlook Mail' : /calendar/.test(another[1] ?? '') ? 'Google Calendar' : 'Gmail';
+    if (via !== 'phone') send('go', { hash: '#connections', name: 'Connections', via });
+    return { text: `Tap ${what}, then Add another ${what.split(' ')[0]} account, and pick the account in its sign-in window. Every account is read together after that.` };
+  }
   // Opening an app on this Mac comes first (owner, November 6, 2026: "hey taurus open up my notes app and it wil literally
   // open in like half a second"). Nothing else is checked before it: no smart-home hubs, no Shortcuts list, no AI.
   const appWanted = said.match(OPEN_APP);
@@ -176,6 +186,10 @@ async function route(said: string, heard: string, via: Via): Promise<Instant | n
   }
 
   // Memory
+  // Core memory and recall (Luke's Day 2, November 20, 2026): "always sign my emails as Akhil", "unpin the email
+  // thing", "what's in your core memory", "how much memory are you using", "what do you know about my sister".
+  const brain = brainCommand(said, original(heard, said), via);
+  if (brain) return brain;
   const keep = said.match(/^(?:remember|note|don'?t forget|keep in mind|make a note)(?: that| this:?)?\s+(.{3,})$/);
   if (keep && !/^(?:when|what|who|how|me to)\b/.test(keep[1])) { remember(original(heard, keep[1]), heard); return { text: 'Got it. I’ll remember that.' }; }
   const drop = said.match(/^(?:forget|stop remembering|delete the memory)(?: about| that| the)?\s+(.{3,})$/);

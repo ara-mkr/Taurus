@@ -40,6 +40,8 @@ import { addServer, mcpServers, refreshServer, removeServer } from './mcp.ts';
 import { addSchedule, nextLine, removeSchedule, runNow, schedules, setScheduleOn } from './schedule.ts';
 import { removeSkill, saveSkill, skills } from './skills.ts';
 import { brainRoute } from './brain-routes.ts';
+import { shareRoute } from './memory-share.ts';
+import { warmBrain } from './recall.ts';
 import type { AskTurn, MarketRange, PhoneSettings, Prefs } from './types.ts';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -168,6 +170,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   // DNS-rebinding guard: only answer to names this machine actually goes by.
   if (!allowedHosts().has(requestHost)) return send(res, 421, { error: 'Unknown host' });
 
+  // Your memory for your other AI apps (November 20, 2026, Luke's Day 2): MCP at /mcp, this Mac only, with its own key
+  // instead of the x-taurus header, and off until the owner turns it on (memory-share.ts).
+  if (path === '/mcp') return shareRoute(req, res, isLoopback(req) && !(req.socket as TLSSocket).encrypted, () => raw(req, 64_000));
+
   // Taurus's certificate authority, public by nature: the phone installs it once so it can trust this Mac over HTTPS.
   // Compare its SHA-256 fingerprint with the one on the Mac's Phone page before trusting it.
   if (method === 'GET' && path === '/taurus-ca.cer') {
@@ -224,20 +230,20 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   let m = path.match(/^\/api\/connectors\/([a-z-]+)\/(fields|disconnect)$/);
   if (method === 'POST' && m) {
     if (m[2] === 'fields') saveFields(m[1], (await json<{ values: Record<string, string> }>(req)).values ?? {});
-    else disconnect(m[1]);
+    else disconnect(m[1], url.searchParams.get('account') ?? undefined);
     await dashboard(true);
     return send(res, 200, { connectors: connectorInfo() });
   }
 
   m = path.match(/^\/api\/oauth\/start\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuth(m[1], url.searchParams.has('outside')) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuth(m[1], url.searchParams.has('outside'), url.searchParams.has('add')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   // One tap connects a whole provider (Google mail+calendar, Microsoft mail+calendar) in a single sign-in.
   m = path.match(/^\/api\/oauth\/start-bundle\/([a-z-]+)$/);
   if (method === 'GET' && m) {
-    try { res.writeHead(302, { Location: await startOAuthBundle(m[1], url.searchParams.has('outside')) }); return res.end(); }
+    try { res.writeHead(302, { Location: await startOAuthBundle(m[1], url.searchParams.has('outside'), url.searchParams.has('add')) }); return res.end(); }
     catch (error) { res.writeHead(400, { 'Content-Type': 'text/html' }); return res.end(page('Can’t connect yet', (error as Error).message)); }
   }
   if (method === 'GET' && path === '/api/oauth/callback') {
@@ -325,7 +331,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (method === 'POST' && path === '/api/ai/route') {
     const { route, preset } = await json<{ route?: Record<string, string>; preset?: string }>(req);
     if (preset) {
-      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'] };
+      const brands: Record<string, [Brand, Brand, Brand]> = { 'all-free': ['free', 'free', 'free'], 'all-claude': ['claude', 'claude', 'claude'], 'all-chatgpt': ['chatgpt', 'chatgpt', 'chatgpt'], 'mixed-claude': ['free', 'free', 'claude'], 'mixed-chatgpt': ['free', 'free', 'chatgpt'], 'deepseek-claude': ['deepseek', 'deepseek', 'claude'] };
       if (!brands[preset]) return send(res, 400, { error: 'No such preset.' });
       const picked = brands[preset].map(b => providerForBrand(b));
       const failed = picked.find(p => 'error' in p);
@@ -597,6 +603,8 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
 createServer(handle).listen(port, host, () => {
   console.log(`Taurus on ${publicUrl}  (bound to ${host}, data in ${store.dir})`);
+  // The words of files on Brain notes, read once now so a PDF counts from the first question (recall.ts).
+  setTimeout(warmBrain, 2000).unref();
   if (host !== '127.0.0.1') {
     // The certificate covers the Wi-Fi addresses this Mac has now; a new network gets a new one at the next start.
     try {

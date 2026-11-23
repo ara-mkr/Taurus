@@ -5,7 +5,8 @@ import { show } from './windows.ts';
 
 // What Taurus remembers about you (owner, November 4, 2026), the feature people say makes OpenClaw feel like theirs:
 // "remember I take my coffee black", "forget the gym thing", "what do you know about me". Only what you tell it
-// to remember, in your words, saved in ~/.taurus/memory.json and sent to your chosen AI with each question.
+// to remember, in your words, saved in ~/.taurus/memory.json. Since November 20, 2026 only the ones that fit a question
+// go with it (recall.ts).
 
 const FILE = 'memory.json';
 const MAX = 200;

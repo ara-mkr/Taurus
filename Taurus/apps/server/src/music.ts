@@ -1,5 +1,6 @@
 import { begin } from './activity.ts';
 import { isConnected, tokenFor } from './connectors.ts';
+import { mediaControl, mediaNow, openInSpotify, type MediaNow } from './mac.ts';
 import { api, HttpError } from './store.ts';
 import type { MusicState, Track } from './types.ts';
 import { show, shown } from './windows.ts';
@@ -91,8 +92,16 @@ async function device(t: string): Promise<{ id: string; name: string } | undefin
 const blank = (extra: Partial<MusicState> = {}): MusicState => ({ playing: false, track: null, progressMs: 0, at: new Date().toISOString(), ...extra });
 const needsGrant = 'Allow Spotify playback first: Settings, then Actions.';
 
+// The Spotify or Music app open on this Mac, as a MusicState (November 20, 2026): used whenever there's no Spotify
+// playback sign-in, so "skip", "pause" and "what's playing" work with nothing connected (mac.ts, "Music apps already open").
+const fromApp = (m: MediaNow): MusicState => ({
+  playing: m.playing, at: new Date().toISOString(), progressMs: m.positionMs, device: `${m.app} on this Mac`, volume: m.volume, shuffle: m.shuffle,
+  track: m.title ? { title: m.title, artist: m.artist ?? '', album: m.album, art: m.art, durationMs: m.durationMs,
+    url: m.uri?.startsWith('spotify:track:') ? `https://open.spotify.com/track/${m.uri.slice(14)}` : undefined } : null,
+});
+
 export async function state(): Promise<MusicState> {
-  if (!canPlay()) return blank({ setup: true, problem: needsGrant });
+  if (!canPlay()) { const m = await mediaNow().catch(() => undefined); return m ? fromApp(m) : blank({ setup: true, problem: needsGrant }); }
   const p = await api<any>(`${BASE}/me/player`, { token: await token() });
   const before = shown('music');
   const kept = before?.kind === 'music' ? before.music : undefined;
@@ -111,6 +120,12 @@ export async function play(said: string, heard?: string): Promise<{ text: string
   if (!canSearch()) {
     const { q, by } = readQuery(said);
     const name = [q, by].filter(Boolean).join(' by ').replace(/\b\w/g, c => c.toUpperCase()) || 'music';
+    // No Spotify sign-in, but the app is on this Mac: its own search opens there, one tap from playing.
+    if (await openInSpotify([q, by].filter(Boolean).join(' ')).catch(() => false)) {
+      const music = blank({ context: { kind: 'track', name, url: `https://open.spotify.com/search/${encodeURIComponent(name)}` }, device: 'Spotify on this Mac' });
+      window(music, heard);
+      return { text: `${name} is up in Spotify. Tap play there. To have me start songs myself, allow playback in Settings, then Actions.`, music };
+    }
     const music = blank({ setup: true, problem: 'Connect Spotify so I can find it and play it: Settings, then Actions.',
       context: { kind: 'track', name, url: `https://open.spotify.com/search/${encodeURIComponent(name)}` } });
     window(music, heard);
@@ -155,11 +170,33 @@ export async function play(said: string, heard?: string): Promise<{ text: string
   } catch (error) { step.fail(error); throw error; }
 }
 
+// Pause, skip, volume and the rest on the app that's open, when there's no playback sign-in. Undefined when no music
+// app is open, so the caller says how to connect.
+async function appControl(what: Control, value?: number, heard?: string): Promise<{ text: string; music: MusicState } | undefined> {
+  const before = await mediaNow().catch(() => undefined);
+  if (!before) return undefined;
+  const vol = (n: number) => mediaControl('volume', n);
+  const after = what === 'now' ? before
+    : what === 'pause' || what === 'resume' || what === 'next' || what === 'previous' ? await mediaControl(what)
+    : what === 'volume' ? await vol(value ?? 50)
+    : what === 'louder' || what === 'quieter' ? await vol((before.volume ?? 50) + (what === 'louder' ? 1 : -1) * (value ?? 15))
+    : await mediaControl('shuffle', what === 'shuffle');
+  const music = fromApp(after ?? before);
+  window(music, heard);
+  const now = music.track ? `${music.track.title} by ${music.track.artist}` : '';
+  const text = what === 'now' ? (now ? `${music.playing ? 'This is' : 'Paused on'} ${now}, in ${before.app}.` : `${before.app} is open, with nothing playing.`)
+    : what === 'pause' ? 'Paused.' : what === 'resume' ? 'Playing.' : what === 'next' || what === 'previous' ? (now ? `${now}.` : 'Skipped.')
+    : what === 'shuffle' ? 'Shuffle on.' : what === 'unshuffle' ? 'Shuffle off.' : music.volume !== undefined ? `Volume ${music.volume}.` : 'Done.';
+  return { text, music };
+}
+
 export type Control = 'pause' | 'resume' | 'next' | 'previous' | 'volume' | 'louder' | 'quieter' | 'shuffle' | 'unshuffle' | 'now';
 export const controls: Control[] = ['pause', 'resume', 'next', 'previous', 'volume', 'louder', 'quieter', 'shuffle', 'unshuffle', 'now'];
 
 export async function control(what: Control, value?: number, heard?: string): Promise<{ text: string; music: MusicState }> {
   if (!canPlay()) {
+    const local = await appControl(what, value, heard);
+    if (local) return local;
     const music = blank({ setup: true, problem: needsGrant });
     window(music, heard);
     return { text: 'I can’t control Spotify yet. Allow playback in Settings, then Actions.', music };

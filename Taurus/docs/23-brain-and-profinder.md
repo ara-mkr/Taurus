@@ -47,6 +47,36 @@ Added to the plain-text tool protocol in `agent.ts` (works with every AI choice)
 - `brain_read {note, file?}`: the whole note, or the words of one file on it (PDF or text).
 - `brain_suggest {fact, note}`: an "Add to Brain?" suggestion, never a direct write.
 
+### Core memory and recall (November 20, 2026, Luke's Day 2)
+
+Luke's Day 2, "Build your AI agent's brain": an agent that gets every saved fact with every question answers worse and costs more. Before this change Taurus did exactly that, sending the last 60 memories with every question. Now the memory part of Taurus's instructions has two layers (`apps/server/src/recall.ts`):
+
+- **Core memory**, `~/.taurus/core-memory.json`: a few facts and "do this every time" rules the owner pins, inside a 3,000 character budget (Hermes's size, which Luke quotes). It goes with every question, so a rule is never the one that recall misses. Pinning past the budget is refused with what's used, so the owner chooses what to drop. A pin starting "always", "never", "don't" or "every time" is a rule; anything else is a fact.
+- **Recall**: every memory, every line of every Brain note (with its note and heading), and the words of text and PDF files on notes form one pool. For each question Taurus ranks the pool against the owner's last two messages with BM25 over word stems, counting the note and heading a line sits under, with newer memories slightly ahead. It sends at most 8 facts and 1,600 characters, and only those scoring within 30% of the best. A general question ("what is the capital of France") recalls nothing. When nothing fits, Taurus is told how many facts it has and to use `brain_search` before saying it doesn't know.
+- **Counts**, `~/.taurus/recall-stats.json`: questions asked, facts and characters sent against the whole pool, and what the last question sent. The Brain page shows them, and so does voice.
+
+Luke does the second layer with Supermemory, a cloud service his agent signs up for, where a second AI picks the facts. Taurus does it on this Mac. Word matching ranks the pool first, so most questions cost nothing extra. Only when more facts fit than may be sent does **sharper recall** hand up to 20 of them, numbered, with the question to the fastest model of the AI the owner chose, which answers with the numbers that help (or "none"). It waits three seconds at most; otherwise the word-matched pick stands. It's on by default, with a switch on the Brain page and by voice ("turn off sharper recall"). The picker sees only those facts and the question, still part of a question to the AI the owner chose (November 16 Brain rule). **Words that mean the same thing** count too: a small hand-made list (sister, brother, sibling; mom, mother, mum; job, work, employer; birthday, born; and so on) widens the question, with the owner's own words ranking ahead.
+
+**Your memory in your other AI apps** (`apps/server/src/memory-share.ts`, owner, November 20, 2026). Luke's reason for Supermemory is that one memory serves Claude, ChatGPT and his agent. Taurus is that memory, so it serves it as an MCP server at `http://127.0.0.1:8787/mcp`, off until the owner turns it on (the Brain page, or "let Claude use my memory"; "stop sharing my memory" turns it off and drops the key). The walls:
+- loopback only, never the phone, the network or the voice tunnel;
+- a 48-character key sent as `Authorization: Bearer`, compared in constant time and new each time sharing is turned on;
+- any request with an `Origin` header is refused, so no web page can use it.
+
+The tools:
+- `memory_search {query}`: recall, without the AI picker.
+- `memory_core`: the pinned facts and rules.
+- `memory_add {fact}`: makes an "Add to Brain?" suggestion marked with the app's name. It never writes.
+
+Every call is noted in Activity and counted on the Brain page. The page's "Copy the command" button gives `claude mcp add --transport http taurus-memory <address> --header "Authorization: Bearer <key>"` for Claude Code. Claude Desktop, Cursor and Gemini CLI take the same address and key in their MCP settings (Claude Desktop through `mcp-remote`). ChatGPT only connects to servers on the internet, so it gets "Copy for other AIs", which puts core memory and every memory on the clipboard to paste into custom instructions.
+
+Not built: signing up for Supermemory or Honcho. It's close enough to what Taurus now does, and an agent creating accounts or reading verification codes is not authorized.
+
+**The Memory panel** (`apps/web/src/components/BrainMemory.tsx`, under the graph on `#brain`): core memory with its budget as a meter, Pin and Unpin; "What Taurus sends": facts saved, tokens not sent so far, the last question and the facts it took (a note's fact opens that note); "Try a question" to see what would be sent; and Copy for other AIs.
+
+**By voice** (`brainCommand` in `recall.ts`, called from `instant.ts`, no AI): "always sign my emails as Akhil", "never book meetings before 10", "pin that I'm vegetarian", "unpin the meetings rule", "what's in your core memory", "how much memory are you using", "what do you know about my sister", "share my memory with Claude", "let Claude use my memory", "stop sharing my memory", "turn off sharper recall". "Never mind", questions starting "always is …", and "what do you know about" a general topic are not commands and go to the AI as before.
+
+**Limits, said plainly:** the same-meaning list is small and hand-made, so an unusual word for something can still miss; the picker covers that only among facts that already share a word. PDF words are read when Taurus starts and when a file is added. Anything that must apply every time belongs in core memory.
+
 ## ProFinder
 
 ### Profile, kept in the Brain under Career

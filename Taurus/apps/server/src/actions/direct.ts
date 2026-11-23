@@ -77,6 +77,9 @@ const mail: Spec[] = [
     async prepare(args) {
       const text = body(args.text);
       if (!text) throw new HttpError(400, 'The reply has no text.');
+      // An email in another Gmail account (November 20, 2026): sending is allowed for one Gmail, so say which.
+      const other = String(args.need).match(/^gmail@([^:]+):/);
+      if (other) throw new HttpError(409, `That email is in ${other[1]}. Taurus sends only from the Gmail you allowed in Settings, Actions, so reply from ${other[1]} yourself for now.`);
       if (String(args.need).startsWith('gmail:')) {
         if (!isConnected('gmail-send')) throw new HttpError(409, 'Gmail isn’t allowed to send yet. Settings, then Actions.');
         const id = String(args.need).slice(6);

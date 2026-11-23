@@ -6,7 +6,7 @@
   "files": ["dist/**/*", "package.json", "!dist/**/*.map"],
   "extraResources": [{ "from": "../web/dist", "to": "web" }],
   "asar": true,
-  "asarUnpack": ["dist/taurus-hands", "dist/TaurusNotch", "dist/libTaurusNowPlaying.dylib"],
+  "asarUnpack": ["dist/taurus-hands", "dist/TaurusNotch", "dist/libTaurusNowPlaying.dylib", "**/node_modules/onnxruntime-node/**", "**/node_modules/onnxruntime-common/**", "**/node_modules/sharp/**", "**/node_modules/@img/**"],
   "npmRebuild": false,
   "nodeGypRebuild": false,
   "publish": null,
@@ -18,7 +18,7 @@
     "hardenedRuntime": false,
     "gatekeeperAssess": false,
     "notarize": false,
-    "extendInfo": { "NSMicrophoneUsageDescription": "Taurus asks for the microphone only when you tap Talk.", "NSCameraUsageDescription": "Taurus uses the camera only while Look is open, and sends one frame to your AI when you tap Send." }
+    "extendInfo": { "NSMicrophoneUsageDescription": "Taurus asks for the microphone only when you tap Talk.", "NSCameraUsageDescription": "Taurus uses the camera only while Look is open, and sends one frame to your AI when you tap Send.", "NSCalendarsFullAccessUsageDescription": "Taurus reads today's and tomorrow's events to show your schedule and ring before meetings. It never changes your calendars.", "NSCalendarsUsageDescription": "Taurus reads today's and tomorrow's events to show your schedule and ring before meetings. It never changes your calendars." }
   },
   "dmg": { "writeUpdateInfo": false },
   "win": { "target": [{ "target": "nsis", "arch": ["x64", "arm64"] }], "icon": "assets/icon.ico", "signAndEditExecutable": true },

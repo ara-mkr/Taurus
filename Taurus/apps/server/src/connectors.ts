@@ -3,10 +3,10 @@ import { aiFields, providers as aiProviders } from './ai.ts';
 import { newHandoffKey, openSealed } from './handoff.ts';
 import { apps, authorizeUrl, tokenRequest as exchange, writeScopes, type App, type AppName, type TokenSet } from './providers.ts';
 import { begin } from './activity.ts';
-import { api, store } from './store.ts';
+import { api, store, type Tokens } from './store.ts';
 import type { CalendarEvent, ConnectorInfo, Grant, Group } from './types.ts';
 
-import { appFields, DAY, iso, startOfToday, type Def, type Field, type Pull } from './connectors/kit.ts';
+import { appFields, DAY, iso, startOfToday, toggleField, type Def, type Field, type Pull } from './connectors/kit.ts';
 import { workDefs } from './connectors/work.ts';
 import { numbersBodyDefs } from './connectors/numbers-body.ts';
 import { filesFeedsDefs } from './connectors/files-feeds.ts';
@@ -82,12 +82,22 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'google-calendar', name: 'Google Calendar', group: 'Calendar', reads: 'Your primary calendar, today and tomorrow. Declined events are skipped.',
+    id: 'google-calendar', name: 'Google Calendar', group: 'Calendar', reads: 'Every calendar you have switched on, today and tomorrow, so it matches Notion Calendar too. Declined events are skipped.',
     oauth: { app: 'google', scopes: ['https://www.googleapis.com/auth/calendar.readonly'] }, fields: appFields('google'),
     setup: 'Same Google OAuth client as Gmail. Enable the Google Calendar API.', setupUrl: 'https://console.cloud.google.com/apis/library/calendar-json.googleapis.com',
+    // Every calendar you have switched on in Google Calendar, not only the main one (owner, November 20, 2026: "make it
+    // take ... notion calender"). Notion Calendar has no feed of its own: it shows the Google calendars you add to it, so
+    // this reads the same ones. An event on two of your calendars shows once.
     async pull({ token }) {
       const from = startOfToday();
-      const data = await api<any>(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${iso(from)}&timeMax=${iso(from + 2 * DAY)}&singleEvents=true&orderBy=startTime&maxResults=50`, { token: await token() });
+      const t = await token();
+      const list = await api<any>('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=50', { token: t }).catch(() => ({ items: [{ id: 'primary', selected: true }] }));
+      const calendars = (list.items ?? []).filter((c: any) => c.primary || c.selected).slice(0, 15);
+      const pages = await Promise.all((calendars.length ? calendars : [{ id: 'primary' }]).map((c: any) =>
+        api<any>(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(c.id)}/events?timeMin=${iso(from)}&timeMax=${iso(from + 2 * DAY)}&singleEvents=true&orderBy=startTime&maxResults=50`, { token: t }).catch((e: unknown) => { if (c.primary || c.id === 'primary') throw e; return { items: [] }; })));
+      const seen = new Set<string>();
+      const data = { items: pages.flatMap(p => p.items ?? []).filter((e: any) => { const k = e.iCalUID ?? e.id; if (seen.has(k)) return false; seen.add(k); return true; })
+        .sort((a: any, b: any) => String(a.start?.dateTime ?? a.start?.date).localeCompare(String(b.start?.dateTime ?? b.start?.date))) };
       return {
         schedule: (data.items ?? [])
           .filter((e: any) => e.status !== 'cancelled' && e.attendees?.find((a: any) => a.self)?.responseStatus !== 'declined')
@@ -114,7 +124,24 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'ics', name: 'Apple Calendar and others (ICS)', group: 'Calendar', reads: 'Any private calendar feed URL: iCloud, Fastmail, Proton, Fantastical, Notion Calendar.',
+    // Apple Calendar with nothing to paste (owner, November 20, 2026: "can u make it take apple and notion calender"):
+    // the Calendar app's events on this Mac, which include iCloud and any account added in System Settings (mac.ts).
+    id: 'apple-calendar', name: 'Apple Calendar on this Mac', group: 'Calendar', toggle: true,
+    reads: 'Every calendar in the Calendar app on this Mac (iCloud, and any Google, Exchange or subscribed calendar you added there), today and tomorrow. Read only.',
+    fields: [toggleField('apple-calendar')],
+    setup: 'Turn it on. macOS asks once whether Taurus may see your calendars.', setupUrl: 'https://support.apple.com/guide/calendar/welcome/mac',
+    async pull() {
+      const { macCalendar } = await import('./mac.ts');
+      const from = startOfToday();
+      const events = await macCalendar(from, from + 2 * DAY);
+      return {
+        schedule: events.map(e => ({ id: `acal:${e.id}`, title: e.title || 'Busy', start: new Date(e.start).toISOString(), end: new Date(e.end).toISOString(), allDay: e.allDay,
+          location: e.location, url: e.url, source: e.calendar ? `Apple Calendar · ${e.calendar}` : 'Apple Calendar' })),
+      };
+    },
+  },
+  {
+    id: 'ics', name: 'Apple Calendar and others (ICS)', group: 'Calendar', reads: 'Any private calendar feed URL: iCloud, Fastmail, Proton, Fantastical. For Apple Calendar with nothing to paste, use Apple Calendar on this Mac.',
     fields: [{ key: 'ICS_URLS', label: 'Calendar feed URLs, comma separated', secret: true, placeholder: 'webcal://p01-caldav.icloud.com/published/2/…' }],
     setup: 'In Apple Calendar on iCloud.com, share a calendar as Public and copy the link. Other apps call it "secret address in iCal format".', setupUrl: 'https://www.icloud.com/calendar/',
     async pull({ field }) {
@@ -190,7 +217,7 @@ const coreDefs: Def[] = [
     },
   },
   {
-    id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose.',
+    id: 'notion', name: 'Notion', group: 'Tasks', reads: 'Open items from one task database you choose, and its items dated today or tomorrow on your schedule.',
     // Notion's own sign-in screen asks which pages Taurus may see; with no database named, it reads the first one shared.
     oauth: { app: 'notion', scopes: ['pages'] },
     fields: [...appFields('notion'), { key: 'NOTION_TOKEN', label: 'Internal integration secret', secret: true, instead: true }, { key: 'NOTION_DATABASE_ID', label: 'Task database ID', optional: true, placeholder: 'The first database you share' }],
@@ -209,7 +236,22 @@ const coreDefs: Def[] = [
         body: JSON.stringify({ page_size: 25, sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }] }),
       });
       const done = /^(done|complete|completed|shipped|archived|cancel)/i;
+      // Items with a date today or tomorrow go on your schedule, the way Notion Calendar shows them (November 20, 2026).
+      const from = startOfToday();
+      const schema = await api<any>(`https://api.notion.com/v1/databases/${database}`, { token: t, headers }).catch(() => undefined);
+      const dateProp = Object.entries(schema?.properties ?? {}).find(([, p]: [string, any]) => p.type === 'date')?.[0];
+      const dated = dateProp ? await api<any>(`https://api.notion.com/v1/databases/${database}/query`, { method: 'POST', token: t, headers,
+        body: JSON.stringify({ page_size: 25, filter: { and: [{ property: dateProp, date: { on_or_after: iso(from).slice(0, 10) } }, { property: dateProp, date: { before: iso(from + 2 * DAY).slice(0, 10) } }] } }) }).catch(() => ({ results: [] })) : { results: [] };
+      const schedule = (dated.results ?? []).flatMap((page: any) => {
+        const props = page.properties ?? {};
+        const d = props[dateProp!]?.date;
+        if (!d?.start) return [];
+        const title = (Object.values(props) as any[]).find(p => p.type === 'title')?.title?.map((x: any) => x.plain_text).join('') || 'Untitled';
+        const allDay = !/T/.test(d.start);
+        return [{ id: `notion-date:${page.id}`, title, start: d.start, end: d.end ?? d.start, allDay, url: page.url, source: 'Notion' }];
+      });
       return {
+        schedule,
         needs: (data.results ?? []).map((page: any) => {
           const props = Object.values(page.properties ?? {}) as any[];
           const title = props.find(p => p.type === 'title')?.title?.map((t: any) => t.plain_text).join('') || 'Untitled';
@@ -520,7 +562,7 @@ export async function checkBroker() {
 }
 // A sign-in in flight. `ids` is set when one sign-in connects several connectors at once (a provider bundle, below).
 // outside: started from the desktop app, so it finishes in the default browser, which then only needs closing.
-const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey; ids?: string[]; outside?: boolean }>();
+const pending = new Map<string, { id: string; verifier: string; created: number; handoff?: CryptoKey; ids?: string[]; outside?: boolean; add?: boolean }>();
 export const startedOutside = (key: string) => Boolean(pending.get(key)?.outside);
 const errors = new Map<string, string>();
 
@@ -547,6 +589,7 @@ export function connectorInfo(): ConnectorInfo[] {
     connected: isConnected(def.id), ready: missing(def).length === 0, missing: missing(def), oneClick: oneClick(def),
     fields: (def.fields ?? []).map(f => ({ key: f.key, label: f.label, secret: Boolean(f.secret), appKey: Boolean(f.appKey), instead: f.instead || undefined, set: Boolean(store.secret(f.key)), value: f.secret ? undefined : store.secret(f.key), placeholder: f.placeholder })),
     setup: def.setup, setupUrl: def.setupUrl, redirectUri: def.oauth ? redirectUri() : undefined, lastError: errors.get(def.id),
+    accounts: def.oauth ? accounts(def.id).map(a => ({ key: a.key, account: a.account, primary: a.primary })) : undefined,
   }));
 }
 
@@ -566,8 +609,13 @@ export function saveFields(id: string, values: Record<string, string>) {
   errors.delete(id);
 }
 
-export function disconnect(id: string) {
+export function disconnect(id: string, key?: string) {
   const def = byId(id);
+  // One more account: only it goes.
+  if (key && key !== id) { if (key.startsWith(`${id}${SEP}`)) store.removeTokens(key); return; }
+  // The first account, with more still signed in: the next one takes its place.
+  const next = accounts(id).find(a => !a.primary);
+  if (next && def.oauth) { store.setTokens(id, store.tokens(next.key)!); store.removeTokens(next.key); errors.delete(id); return; }
   store.removeTokens(id);
   if (!def.oauth) store.setSecrets(Object.fromEntries(requiredFields(def).map(f => [f.key, ''])));
   const keys = (def.fields ?? []).filter(f => f.instead);
@@ -575,28 +623,28 @@ export function disconnect(id: string) {
   errors.delete(id);
 }
 
-function remember(id: string, entry: { verifier: string; handoff?: CryptoKey; ids?: string[]; outside?: boolean }) {
+function remember(id: string, entry: { verifier: string; handoff?: CryptoKey; ids?: string[]; outside?: boolean; add?: boolean }) {
   for (const [key, value] of pending) if (Date.now() - value.created > 600_000) pending.delete(key);
   const state = randomBytes(24).toString('base64url');
   pending.set(state, { id, created: Date.now(), ...entry });
   return state;
 }
 
-export async function startOAuth(id: string, outside = false): Promise<string> {
+export async function startOAuth(id: string, outside = false, add = false): Promise<string> {
   const def = byId(id);
   if (!def.oauth) throw new Error(`${def.name} uses a token, not sign-in`);
   const app = apps[def.oauth.app];
   // One click: Taurus's sign-in service holds the app keys and returns tokens encrypted to this Mac.
   if (oneClick(def)) {
     const handoff = await newHandoffKey();
-    const nonce = remember(id, { verifier: '', handoff: handoff.privateKey, outside });
+    const nonce = remember(id, { verifier: '', handoff: handoff.privateKey, outside, add });
     const params = new URLSearchParams({ provider: def.oauth.app, scopes: def.oauth.scopes.join(' '), return_to: `${publicUrl}/api/oauth/handoff`, nonce, key: handoff.publicKey });
     return `${brokerUrl()}/start?${params}`;
   }
   const clientId = store.secret(app.id);
   if (!clientId || !store.secret(app.secret)) throw new Error(`Add the ${app.name} client ID and secret first`);
   const verifier = randomBytes(48).toString('base64url');
-  const state = remember(id, { verifier, outside });
+  const state = remember(id, { verifier, outside, add });
   return authorizeUrl(app, clientId, redirectUri(), def.oauth.scopes, state, createHash('sha256').update(verifier).digest('base64url'));
 }
 
@@ -623,7 +671,7 @@ export function bundleInfo() {
   });
 }
 
-export async function startOAuthBundle(provider: string, outside = false): Promise<string> {
+export async function startOAuthBundle(provider: string, outside = false, add = false): Promise<string> {
   const bundle = providerBundles.find(b => b.provider === provider);
   if (!bundle) throw new Error(`No one-tap sign-in for ${provider}`);
   const app = apps[bundle.provider];
@@ -635,14 +683,14 @@ export async function startOAuthBundle(provider: string, outside = false): Promi
   // One click through Taurus's sign-in service, exactly like a single connector, but with the combined scopes and id list.
   if (!ownKeys(app) && brokerUrl() && brokerApps[bundle.provider]) {
     const handoff = await newHandoffKey();
-    const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids, outside });
+    const nonce = remember(primary, { verifier: '', handoff: handoff.privateKey, ids, outside, add });
     const params = new URLSearchParams({ provider: bundle.provider, scopes: scopes.join(' '), return_to: `${publicUrl}/api/oauth/handoff`, nonce, key: handoff.publicKey });
     return `${brokerUrl()}/start?${params}`;
   }
   const clientId = store.secret(app.id);
   if (!clientId || !store.secret(app.secret)) throw new Error(`Add the ${app.name} client ID and secret first`);
   const verifier = randomBytes(48).toString('base64url');
-  const state = remember(primary, { verifier, ids, outside });
+  const state = remember(primary, { verifier, ids, outside, add });
   return authorizeUrl(app, clientId, redirectUri(), scopes, state, createHash('sha256').update(verifier).digest('base64url'));
 }
 
@@ -659,7 +707,7 @@ export async function finishOAuth(state: string, code: string): Promise<{ name: 
   const def = byId(entry.id), app = apps[def.oauth!.app];
   const tokens = await ownKeyExchange(app, { grant_type: 'authorization_code', code, redirect_uri: redirectUri(), ...(app.pkce ? { code_verifier: entry.verifier } : {}) });
   // A bundle saves the one token under each connector it covers; a single sign-in is just the one id.
-  for (const id of entry.ids ?? [def.id]) { store.setTokens(id, tokens); errors.delete(id); }
+  await keep(entry.ids ?? [def.id], tokens, Boolean(entry.add));
   const bundle = entry.ids && entry.ids.length > 1 ? providerBundles.find(b => b.provider === def.oauth!.app) : undefined;
   return { name: bundle?.name ?? def.name, page: def.write ? 'actions' : 'connections' };
 }
@@ -669,14 +717,14 @@ export async function finishHandoff(nonce: string, payload: string): Promise<str
   if (!entry.handoff) throw new Error('Sign-in was not started through the Taurus sign-in service.');
   const tokens = await openSealed<TokenSet>(entry.handoff, payload);
   if (!tokens.access_token) throw new Error('The sign-in service returned no token.');
-  for (const id of entry.ids ?? [entry.id]) { store.setTokens(id, { ...tokens, meta: { via: 'broker' } }); errors.delete(id); }
+  await keep(entry.ids ?? [entry.id], { ...tokens, meta: { via: 'broker' } }, Boolean(entry.add));
   const def = byId(entry.id);
   const bundle = entry.ids && entry.ids.length > 1 ? providerBundles.find(b => b.provider === def.oauth!.app) : undefined;
   return bundle?.name ?? def.name;
 }
 
-async function accessToken(def: Def): Promise<string> {
-  const tokens = store.tokens(def.id);
+async function accessToken(def: Def, key = def.id): Promise<string> {
+  const tokens = store.tokens(key);
   if (!tokens) throw new Error('Not signed in');
   if (!tokens.expires_at || tokens.expires_at > Date.now() + 60_000) return tokens.access_token;
   if (!tokens.refresh_token) throw new Error('Sign-in expired. Connect again.');
@@ -684,12 +732,70 @@ async function accessToken(def: Def): Promise<string> {
   const fresh = tokens.meta?.via === 'broker'
     ? await api<TokenSet>(`${brokerUrl()}/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: def.oauth!.app, refresh_token: tokens.refresh_token, scopes: def.oauth!.scopes }) })
     : await ownKeyExchange(app, { grant_type: 'refresh_token', refresh_token: tokens.refresh_token, ...(app.refreshScope ? { scope: def.oauth!.scopes.join(app.sep) } : {}) });
-  store.setTokens(def.id, { ...tokens, ...fresh, refresh_token: fresh.refresh_token ?? tokens.refresh_token });
+  store.setTokens(key, { ...tokens, ...fresh, refresh_token: fresh.refresh_token ?? tokens.refresh_token });
   return fresh.access_token;
 }
 
 // For actions and live answers: a fresh token for a connection or a write grant.
-export const tokenFor = (id: string) => accessToken(byId(id));
+export const tokenFor = (id: string, key = id) => accessToken(byId(id), key);
+
+// ---------- More than one account (owner, November 20, 2026: "make it so u can connect multiple gmails or multiple
+// accounts") ----------
+// The first account stays under the connector's own id, so everything that reads one account works as before. Each
+// more account is saved under "<id>@@<its email>", found by asking the provider who signed in (Gmail's profile, the
+// primary calendar, Microsoft's /me). Signing in again as an account already here refreshes it instead of adding twice.
+const SEP = '@@';
+export interface Account { key: string; account?: string; primary: boolean }
+export function accounts(id: string): Account[] {
+  const all = store.allTokens();
+  const out: Account[] = all[id] ? [{ key: id, account: all[id].meta?.account, primary: true }] : [];
+  for (const [key, t] of Object.entries(all)) if (key.startsWith(`${id}${SEP}`)) out.push({ key, account: t.meta?.account ?? key.slice(id.length + SEP.length), primary: false });
+  return out;
+}
+async function whoAmI(ids: string[], token: string): Promise<string | undefined> {
+  try {
+    if (ids.includes('gmail')) return (await api<any>('https://gmail.googleapis.com/gmail/v1/users/me/profile', { token })).emailAddress;
+    if (ids.includes('google-calendar')) return (await api<any>('https://www.googleapis.com/calendar/v3/users/me/calendarList/primary', { token })).id;
+    if (ids.some(i => i.startsWith('outlook'))) { const me = await api<any>('https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName', { token }); return me.mail ?? me.userPrincipalName; }
+  } catch { /* the account just has no name then */ }
+  return undefined;
+}
+async function keep(ids: string[], tokens: Tokens, add: boolean): Promise<string | undefined> {
+  const account = await whoAmI(ids, tokens.access_token);
+  for (const id of ids) {
+    const have = accounts(id);
+    const same = account ? have.find(a => a.account?.toLowerCase() === account.toLowerCase()) : undefined;
+    const key = same?.key ?? (!add || !have.length ? id : `${id}${SEP}${account ?? `account ${have.length + 1}`}`);
+    store.setTokens(key, { ...tokens, meta: { ...(tokens.meta ?? {}), ...(account ? { account } : {}) } });
+    errors.delete(id);
+  }
+  return account;
+}
+// One account's items, marked with which account they came from: "Gmail · sam@example.com", ids carry the account
+// ("gmail@sam@example.com:<message>") so a reply knows which mailbox it belongs to, and Gmail links open that account.
+function markAccount(pull: Pull, a: Account): Pull {
+  if (!a.account) return pull;
+  const out: Record<string, unknown> = {};
+  for (const [section, value] of Object.entries(pull as Record<string, unknown>)) {
+    out[section] = Array.isArray(value) ? value.map(item => {
+      if (!item || typeof item !== 'object') return item;
+      const x = { ...(item as Record<string, unknown>) };
+      if (typeof x.source === 'string') x.source = `${x.source} · ${a.account}`;
+      if (!a.primary && typeof x.id === 'string') x.id = x.id.replace(/^([a-z-]+):/, `$1@${a.account}:`);
+      if (!a.primary && typeof x.url === 'string') x.url = x.url.replace('https://mail.google.com/mail/u/0/#', `https://mail.google.com/mail/?authuser=${encodeURIComponent(a.account!)}#`);
+      return x;
+    }) : value;
+  }
+  return out as Pull;
+}
+function mergePulls(pulls: Pull[]): Pull {
+  const out: Record<string, unknown> = {};
+  for (const p of pulls) for (const [section, value] of Object.entries(p as Record<string, unknown>)) {
+    if (Array.isArray(value)) out[section] = [...((out[section] as unknown[] | undefined) ?? []), ...value];
+    else if (!(section in out)) out[section] = value;
+  }
+  return out as Pull;
+}
 export const noteError = (id: string, message: string) => errors.set(id, message);
 
 export interface PullResult { id: string; name: string; group: Group; pull?: Pull; error?: string }
@@ -703,7 +809,14 @@ export async function pullAll(only?: (def: Def) => boolean): Promise<PullResult[
       const signedIn = Boolean(def.oauth && store.tokens(def.id));
       const key = (def.fields ?? []).find(f => f.instead && store.secret(f.key));
       const token = () => signedIn || !key ? accessToken(def) : Promise.resolve(store.secret(key.key)!);
-      const pull = await def.pull!({ token, field: k => store.secret(k), signedIn });
+      const several = def.oauth ? accounts(def.id) : [];
+      // More than one account: each is read on its own and the results are put together, marked by account. One that
+      // fails doesn't hide the others; its error is noted.
+      const pull = several.length > 1
+        ? mergePulls((await Promise.all(several.map(a => def.pull!({ token: () => accessToken(def, a.key), field: k => store.secret(k), signedIn: true })
+          .then(p => markAccount(p, a)).catch(e => { if (a.primary) throw e; errors.set(`${def.id}${SEP}${a.key}`, (e as Error).message); return undefined; }))))
+          .filter((p): p is Pull => Boolean(p)))
+        : await def.pull!({ token, field: k => store.secret(k), signedIn });
       errors.delete(def.id);
       return { id: def.id, name: def.name, group: def.group, pull };
     } catch (error) {
