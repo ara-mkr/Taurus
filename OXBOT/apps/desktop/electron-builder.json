@@ -6,7 +6,7 @@
   "files": ["dist/**/*", "package.json", "!dist/**/*.map"],
   "extraResources": [{ "from": "../web/dist", "to": "web" }],
   "asar": true,
-  "asarUnpack": ["dist/taurus-hands", "dist/TaurusNotch", "dist/libOxNowPlaying.dylib"],
+  "asarUnpack": ["dist/taurus-hands", "dist/TaurusNotch", "dist/libOxNowPlaying.dylib", "**/node_modules/onnxruntime-node/**", "**/node_modules/onnxruntime-common/**", "**/node_modules/sharp/**", "**/node_modules/@img/**"],
   "npmRebuild": false,
   "nodeGypRebuild": false,
   "publish": null,

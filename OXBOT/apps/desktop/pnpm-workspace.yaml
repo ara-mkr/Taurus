@@ -3,3 +3,7 @@ allowBuilds:
   electron: true
   esbuild: true
   electron-winstaller: false
+  # Kokoro's voice runtime (November 20, 2026) ships its own prebuilt binaries, so none of these need to run.
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false
