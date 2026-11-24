@@ -163,8 +163,11 @@ function aiBrief(d: Dashboard): { text: string; by: string } | undefined {
 let cached: { at: number; value: Dashboard } | undefined;
 let inflight: Promise<Dashboard> | undefined;
 
+// Pulling every connector costs a couple of seconds of network and CPU; the page polls and the ring scheduler ticks
+// far more often than mail or a calendar changes, so a pull is reused for three minutes unless someone asks for fresh.
+const FRESH_MS = 180_000;
 export async function dashboard(refresh = false): Promise<Dashboard> {
-  if (!refresh && cached && Date.now() - cached.at < 60_000) return withBrief(cached.value);
+  if (!refresh && cached && Date.now() - cached.at < FRESH_MS) return withBrief(cached.value);
   inflight ??= pullAll().then(results => {
     const merged = merge(results);
     try { record(merged); } catch (error) { console.warn('history:', error instanceof Error ? error.message : error); }
@@ -180,7 +183,7 @@ export async function dashboard(refresh = false): Promise<Dashboard> {
 // 60-second cache had run out. Older than 15 minutes, or never pulled, waits for a fresh one as before.
 export async function dashboardSoon(): Promise<Dashboard> {
   if (cached && Date.now() - cached.at < 15 * 60_000) {
-    if (Date.now() - cached.at >= 60_000) void dashboard().catch(() => undefined);
+    if (Date.now() - cached.at >= FRESH_MS) void dashboard().catch(() => undefined);
     return withBrief(cached.value);
   }
   return dashboard();

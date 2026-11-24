@@ -145,13 +145,16 @@ async function chat(p: Provider, system: string, turns: Turn[], onText?: (delta:
   const order = !free ? [await modelFor(p, key)] : pinned ? [pinned, ...(paidPin ? freeOrder(tier, (await freeModels()).map(m => m.id)).filter(m => m !== pinned) : [])] : seesPicture ? [SUPER, ...freeOrder(tier).filter(m => m !== SUPER)] : freeOrder(tier, (await freeModels()).map(m => m.id));
   const reasoning = free ? freeTiers[tier].reasoning : undefined;
   let lastError: unknown;
+  // However many free models are busy, an ask gives up after a minute instead of trying each for two.
+  const giveUpAt = Date.now() + 60_000;
   for (const model of order) {
+    if (free && lastError && Date.now() > giveUpAt) break;
     // Streamed (November 16, 2026): each piece of the answer is passed on as it arrives. A provider that answers with
     // plain JSON instead still works.
     let streamed = '', usage: ChatReply['usage'], first = 0;
     const started = performance.now();
     const attempt = (think: unknown) => postStream(`${base}/chat/completions`, {
-      token: key, headers, timeoutMs: 120_000,
+      token: key, headers, timeoutMs: 120_000, stallMs: free ? 20_000 : 90_000,
       body: { model, stream: true, ...(think ? { reasoning: think } : {}), ...deepseekThinking(p, tier), ...(p.plan ? { stream_options: { include_usage: true } } : {}), messages: [{ role: 'system', content: system }, ...turns.map(t => ({ role: t.role, content: t.image ? [{ type: 'text', text: t.text }, { type: 'image_url', image_url: { url: t.image } }] : t.text }))] },
     }, event => {
       if (event.error) throw new Error(`${p.name}: ${String(event.error.message ?? event.error).slice(0, 200)}`);

@@ -231,7 +231,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (method === 'POST' && m) {
     if (m[2] === 'fields') saveFields(m[1], (await json<{ values: Record<string, string> }>(req)).values ?? {});
     else disconnect(m[1], url.searchParams.get('account') ?? undefined);
-    await dashboard(true);
+    // Saved at once; Home's numbers catch up in the background instead of holding the Save button for every connector.
+    void dashboard(true).catch(() => undefined);
     return send(res, 200, { connectors: connectorInfo() });
   }
 
@@ -281,7 +282,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const next = await json<{ provider?: string; freeModel?: string }>(req);
     if (typeof next.provider === 'string' && (next.provider === '' || aiProviders.some(p => p.id === next.provider))) store.saveSettings({ aiProvider: next.provider });
     if (typeof next.freeModel === 'string' && /^[\w./:-]{0,120}$/.test(next.freeModel)) store.setSecrets({ OPENROUTER_MODEL: next.freeModel });
-    await dashboard(true);
+    void dashboard(true).catch(() => undefined);
     return send(res, 200, await aiInfo());
   }
   if (method === 'GET' && path === '/api/ai/openrouter/start') {

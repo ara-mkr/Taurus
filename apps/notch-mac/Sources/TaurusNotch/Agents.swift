@@ -43,7 +43,8 @@ final class AgentScanner {
 
     func start() {
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now(), repeating: 5)
+        // Every 10 s: the logs of a busy coding session grow by megabytes, and reading them twice as often showed only as CPU.
+        timer.schedule(deadline: .now(), repeating: 10, leeway: .seconds(2))
         timer.setEventHandler { [weak self] in self?.scan() }
         timer.resume()
         self.timer = timer

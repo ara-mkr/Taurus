@@ -100,7 +100,17 @@ const fromApp = (m: MediaNow): MusicState => ({
     url: m.uri?.startsWith('spotify:track:') ? `https://open.spotify.com/track/${m.uri.slice(14)}` : undefined } : null,
 });
 
-export async function state(): Promise<MusicState> {
+// Several windows ask what's playing every few seconds; each answer from the Mac app costs an osascript process, so
+// answers from the last 5 seconds are shared and calls already on their way are joined.
+let lastState: { at: number; value: Promise<MusicState> } | undefined;
+export function state(): Promise<MusicState> {
+  if (lastState && Date.now() - lastState.at < 5_000) return lastState.value;
+  const value = readState();
+  lastState = { at: Date.now(), value };
+  value.catch(() => { if (lastState?.value === value) lastState = undefined; });
+  return value;
+}
+async function readState(): Promise<MusicState> {
   if (!canPlay()) { const m = await mediaNow().catch(() => undefined); return m ? fromApp(m) : blank({ setup: true, problem: needsGrant }); }
   const p = await api<any>(`${BASE}/me/player`, { token: await token() });
   const before = shown('music');
@@ -117,6 +127,7 @@ const settle = () => new Promise(r => setTimeout(r, process.env.TAURUS_FAST ? 0 
 const window = (music: MusicState, said?: string) => show({ id: 'music', kind: 'music', music, said });
 
 export async function play(said: string, heard?: string): Promise<{ text: string; music: MusicState }> {
+  lastState = undefined;
   if (!canSearch()) {
     const { q, by } = readQuery(said);
     const name = [q, by].filter(Boolean).join(' by ').replace(/\b\w/g, c => c.toUpperCase()) || 'music';
@@ -164,7 +175,7 @@ export async function play(said: string, heard?: string): Promise<{ text: string
     }
     if (found.kind === 'liked') await api(`${BASE}/me/player/shuffle?state=true&device_id=${encodeURIComponent(d.id)}`, { method: 'PUT', token: t }).catch(() => undefined);
     await settle();
-    const music: MusicState = { ...await state(), context, device: d.name, playing: true, embed: undefined, problem: undefined };
+    const music: MusicState = { ...await readState(), context, device: d.name, playing: true, embed: undefined, problem: undefined };
     window(music, heard); step.done(`Spotify: playing ${found.name} on ${d.name}`);
     return { text: `Playing ${found.kind === 'track' ? found.name.split(' · ')[0] : found.name}${found.kind === 'liked' ? ', shuffled' : ''}.`, music };
   } catch (error) { step.fail(error); throw error; }
@@ -194,6 +205,10 @@ export type Control = 'pause' | 'resume' | 'next' | 'previous' | 'volume' | 'lou
 export const controls: Control[] = ['pause', 'resume', 'next', 'previous', 'volume', 'louder', 'quieter', 'shuffle', 'unshuffle', 'now'];
 
 export async function control(what: Control, value?: number, heard?: string): Promise<{ text: string; music: MusicState }> {
+  lastState = undefined;
+  try { return await controlNow(what, value, heard); } finally { lastState = undefined; }
+}
+async function controlNow(what: Control, value?: number, heard?: string): Promise<{ text: string; music: MusicState }> {
   if (!canPlay()) {
     const local = await appControl(what, value, heard);
     if (local) return local;
@@ -215,7 +230,7 @@ export async function control(what: Control, value?: number, heard?: string): Pr
     if (what === 'louder' || what === 'quieter') await vol((p.device.volume_percent ?? 50) + (what === 'louder' ? 1 : -1) * (value ?? 15));
     if (what === 'shuffle' || what === 'unshuffle') await api(`${BASE}/me/player/shuffle?state=${what === 'shuffle'}`, { method: 'PUT', token: t });
     if (what === 'next' || what === 'previous') await settle();
-    const music = await state();
+    const music = await readState();
     if (what === 'pause') music.playing = false;
     if (what === 'resume') music.playing = true;
     window(music, heard); step.done();

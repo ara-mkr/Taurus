@@ -245,10 +245,17 @@ final class NotchController: NSObject, NSApplicationDelegate {
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.windows.values.forEach { $0.panel.orderFrontRegardless() }
         })
+        // A still mouse over a closed island changes nothing, so those ticks are skipped; an open one keeps ticking for
+        // its close delay. Tolerance lets macOS group the wake-ups with others.
+        var lastMouse = CGPoint(x: -1, y: -1)
         let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            guard let self else { return }
             let mouse = NSEvent.mouseLocation
-            self?.windows.values.forEach { $0.tick(mouse) }
+            if mouse == lastMouse, !self.windows.values.contains(where: { $0.state.open }) { return }
+            lastMouse = mouse
+            self.windows.values.forEach { $0.tick(mouse) }
         }
+        timer.tolerance = 0.01
         RunLoop.main.add(timer, forMode: .common)
         mouseTimer = timer
         if options.managed { listenToDesktopApp() }

@@ -126,7 +126,13 @@ export function taurusAnywhere(o: Options) {
     escape(false);
     send({ kind: 'dismiss' });
     clearTimeout(leaving);
-    leaving = setTimeout(() => { if (!shown && win && !win.isDestroyed()) win.hide(); }, CHARGE_OUT_MS + 260);
+    leaving = setTimeout(() => {
+      if (shown || !win || win.isDestroyed()) return;
+      win.hide();
+      // Gone for two minutes: his window is closed, so its renderer's memory goes back to the Mac.
+      const w = win;
+      leaving = setTimeout(() => { if (!shown && win === w && !w.isDestroyed()) { w.destroy(); win = null; } }, 120_000);
+    }, CHARGE_OUT_MS + 260);
   }
 
   // He goes once nothing more is coming: soon after an empty "Hey Taurus", later after an answer, by its length.
@@ -175,8 +181,8 @@ export function taurusAnywhere(o: Options) {
     dismiss,
     closeAll() { clearInterval(gaze); clearInterval(walk); clearTimeout(toSide); clearTimeout(idle); clearTimeout(leaving); escape(false); if (win && !win.isDestroyed()) win.destroy(); win = null; shown = false; },
   };
-  // Loaded ahead, hidden, so "Hey Taurus" brings him up at once instead of waiting for a page to load.
-  setTimeout(() => { if (!win) make(); }, 3_000);
+  // Made the first time he is called, not at start: a hidden page held its own renderer (about 90 MB) for nothing.
+  if (testing) setTimeout(() => { if (!win) make(); }, 3_000);
   // Main-process only, for tests/taurus-anywhere.spec.ts; the pages can't reach it.
   if (testing) Object.assign(globalThis, { taurusAnywhere: api });
   return api;

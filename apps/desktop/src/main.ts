@@ -148,7 +148,7 @@ function createWindow() {
     show: false, title: 'Taurus',
     // The page's own background, remembered from last time, so the window never flashes white.
     backgroundColor: saved.background ?? (nativeTheme.shouldUseDarkColors ? '#07080A' : '#E8E6E1'),
-    ...(mac ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 22, y: 30 } } : {}),
+    ...(mac ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 18 } } : {}),
     webPreferences: {
       contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: false, spellcheck: false,
       preload: join(here, 'preload.cjs'),

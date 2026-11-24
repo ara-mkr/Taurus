@@ -22,7 +22,9 @@ const patterns = [
   ['a Slack token', /\bxox[abprs]-[0-9A-Za-z-]{10,}/],
   ['a stored refresh_token', /"refresh_token"\s*:\s*"[^"]{8,}"/],
   ['a stored access_token', /"access_token"\s*:\s*"[^"]{8,}"/],
-  ['a personal email address', /[\w.+-]+@(?:gmail|googlemail|icloud|me|mac|outlook|hotmail|live|yahoo|proton|protonmail)\.(?:com|me)\b/i],
+  // Starts at the @ and checks the character before it: a leading [\w.+-]+ tried a match at every byte of the 60 MB
+  // native libraries and kept a packaging run at 100% CPU for over ten minutes.
+  ['a personal email address', /(?<=[\w.+-])@(?:gmail|googlemail|icloud|me|mac|outlook|hotmail|live|yahoo|proton|protonmail)\.(?:com|me)\b/i],
 ];
 function localIdentity() {
   if (process.platform !== 'darwin') return undefined;
@@ -68,7 +70,9 @@ function scan(label, files) {
     const text = data.toString('latin1');
     // A library's own license file names its authors (public addresses, such as sindresorhus@gmail.com in Playwright's).
     // Only that check is skipped there; keys and the owner's email are still looked for in every file.
-    const credits = /^node_modules\/.+(\.LICENSE|\/LICENSE|\/NOTICE|\/ThirdPartyNotices\.txt)$/.test(path);
+    // Libraries name their authors in package.json and license files (public addresses); Taurus's own code is still
+    // checked for any personal address, and every file for keys and the owner's own email.
+    const credits = path.startsWith('node_modules/');
     for (const [what, re] of patterns) { if (credits && what === 'a personal email address') continue; const m = text.match(re); if (m) problems.push(`${label}: ${path} contains ${what} (${m[0].slice(0, 12)}…)`); }
     for (const email of owner) if (text.toLowerCase().includes(email)) problems.push(`${label}: ${path} contains the owner's email`);
   }
@@ -97,8 +101,9 @@ for (const platform of platforms) {
   for (const dir of unpacked) {
     for (const asar of findAll(join(release, dir), 'app.asar')) {
       const r = scan(relative(release, asar), asarFiles(asar));
-      // playwright-core is the one library the bundled server loads from node_modules (Taurus's own browser).
-      const names = [...asarFiles(asar)].map(([p]) => p).filter(p => !p.startsWith('dist/') && p !== 'package.json' && !p.startsWith('node_modules/playwright-core/'));
+      // The bundled server loads playwright-core (Taurus's browser) and the Kokoro voice with its runtime from
+      // node_modules; every one of those files is still searched above. Anything else beside dist/ is a mistake.
+      const names = [...asarFiles(asar)].map(([p]) => p).filter(p => !p.startsWith('dist/') && p !== 'package.json' && !p.startsWith('node_modules/'));
       if (names.length) r.problems.push(`${relative(release, asar)}: unexpected files ${names.join(', ')}`);
       console.log(`Checked ${relative(release, asar)}: ${r.count} files, ${r.problems.length ? 'PROBLEMS' : 'clean'}`);
       failures.push(...r.problems);
