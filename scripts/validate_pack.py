@@ -31,7 +31,8 @@ def main() -> int:
     # Boundary approved by the owner on 2026-10-30 and 2026-10-31: local server, read-only connectors,
     # the Electron desktop app and the home-screen phone app on; sending, writes, purchases and the
     # native iPhone build still off. Change deliberately.
-    if state['external_actions_authorized'] or state.get('ios_native_app_authorized'):
+    # Since November 1, 2026 the owner allows acting only after approving each exact action; anything looser fails.
+    if state['external_actions_authorized'] not in (False, 'only_after_owner_approves_each_action') or state.get('ios_native_app_authorized'):
         errors.append('External actions or the native iPhone build are now enabled; review owner authorization and checks.')
     if state['owner_decision'].get('date') != '2026-10-30' or state['data_mode'] != 'live_read_only_with_labelled_sample_fallback':
         errors.append('Phase state no longer matches the 2026-10-30 owner decision; update this check deliberately.')
