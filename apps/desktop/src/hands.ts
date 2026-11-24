@@ -253,6 +253,10 @@ export function handsService(o: { here: string; local: string; home: string; tok
     menu,
     // At start (owner, November 23, 2026: "right as u open it make it hit u with all the stuff"): macOS's own prompts
     // for whichever of Screen Recording and Accessibility are still off. The owner still flips the switch in Settings.
+    async status(): Promise<{ screen?: boolean; accessibility?: boolean } | undefined> {
+      if (!mac || !existsSync(helper)) return undefined;
+      return call<{ screen?: boolean; accessibility?: boolean }>('status').catch(() => undefined);
+    },
     async askMissing() {
       if (!mac || !existsSync(helper)) return;
       const now = await call<{ screen?: boolean; accessibility?: boolean }>('status').catch(() => undefined);

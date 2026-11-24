@@ -10,7 +10,6 @@ import { ChatBar, type Extras } from './components/ChatBar';
 import { Connections } from './components/Connections';
 import { Dock, useActivity, useBrowser, type DockTab } from './components/Live';
 import { Onboarding, wasOnboarded } from './components/Onboarding';
-import { cardLine, taurusLines, TaurusBuddy } from './components/Taurus';
 import { TaurusWindows, useOxWindows } from './components/TaurusWindows';
 import { Swarm } from './components/Swarm';
 import { Phone } from './components/Phone';
@@ -28,7 +27,7 @@ import { armAlarm, RingScreen, Standby, Unreachable, useRing } from './component
 import { Look, readPalette, settingsPages, SettingsNav, Tabs, type Appearance, type Palette } from './components/Settings';
 import { NotchPage } from './components/NotchSettings';
 import { Backdrop, daypart, dayLine, nowDoing, PeopleStrip, Rail, TopBar } from './components/Shell';
-import { readVoice, saveVoice, useVoice, type VoiceSettings } from './components/Voice';
+import { readVoice, saveVoice, useVoice, VoiceStrip, type VoiceSettings } from './components/Voice';
 import { unlockAudio } from './speech';
 
 // Routes: #b/<board id>, #ask, the settings pages, and #ring for a phone on standby.
@@ -264,9 +263,10 @@ export default function App() {
   const setLanguage = (code: string) => setPrefs(p => ({ ...p, profile: { ...p.profile, language: code === 'en' ? undefined : code } }));
   useEffect(() => { document.documentElement.lang = prefs?.profile?.language ?? 'en'; }, [prefs?.profile?.language]);
   const ctx = { data, history, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
-  const lineFor = (id: string) => { const w = board?.widgets.find(x => x.id === id); return w && prefs ? cardLine(w, data, prefs, now) : null; };
-  // On Hud, Taurus lives in the middle of the page, so the roaming one stays away.
-  const showOx = page.kind !== 'hud' && ((page.kind === 'board' && board && prefs && prefs.taurus !== false) || voice.view.phase !== 'idle');
+  // No little Taurus walking around inside the app, on any page (owner, November 23, 2026: "the mini taurus should never
+  // show up inside the app dashboard, NEVER"). Voice shows as a plain strip above the chat bar instead (VoiceStrip);
+  // on Home the Deck shows it in Taurus's own window.
+  const showVoice = page.kind !== 'hud' && voice.view.phase !== 'idle';
   const background = (prefs ?? offline).background ?? offline.background;
   const tint = prefs?.tint ?? 'graphite';
   if (unreachable && page.kind !== 'ring') return <>
@@ -327,8 +327,8 @@ export default function App() {
     {!ring && <ApprovalTray waiting={waiting} hide={inline} onChange={update} />}
     {!ring && <TaurusWindows {...windows} hide={center && 'win' in center ? center.win : undefined} />}
     {!ring && <Swarm />}
-    {showOx && <TaurusBuddy lines={taurusLines(data, shownPrefs, now)} lineFor={lineFor} voice={voice.view} roam={page.kind === 'board' && prefs?.taurus !== false} />}
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
     {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = homeView === 'hud' ? 'hud' : `b/${boards[0]?.id ?? 'home'}`; }} />}
+    {!ring && showVoice && <VoiceStrip voice={voice.view} />}
   </>;
 }

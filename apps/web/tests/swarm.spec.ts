@@ -38,13 +38,13 @@ async function start(page: Page) {
   const send = stream(page);
   // On a board: on Home (the Deck) the bots sit in boxes around Taurus and the Swarm panel steps aside (deck.spec.ts).
   await page.goto('/#b/home');
-  await expect(page.locator('[data-taurus-center], .taurus-buddy').first()).toBeVisible();
+  await expect(page.locator('[data-taurus-center], .chatbar .composer-bar').first()).toBeVisible();
   await page.waitForTimeout(700);
   return send;
 }
 // Where Taurus is, as the overlay finds him.
 const centre = (page: Page) => page.evaluate(() => {
-  const r = (document.querySelector('[data-taurus-center]') ?? document.querySelector('.taurus-buddy .taurus-button') ?? document.querySelector('.taurus-buddy'))!.getBoundingClientRect();
+  const r = (document.querySelector('[data-taurus-center]') ?? document.querySelector('.chatbar .composer-bar'))!.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 });
 const cursorAt = (page: Page, id: string) => page.locator(`.swarm-cursor[data-helper="${id}"]`).evaluate(el => ({ x: Number((el as HTMLElement).dataset.x), y: Number((el as HTMLElement).dataset.y), phase: (el as HTMLElement).dataset.phase, opacity: Number(getComputedStyle(el).opacity) }));

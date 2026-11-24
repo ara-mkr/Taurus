@@ -20,6 +20,7 @@
   "asar": true,
   "asarUnpack": [
     "dist/taurus-hands",
+    "dist/taurus-permissions",
     "dist/TaurusNotch",
     "dist/libTaurusNowPlaying.dylib",
     "**/node_modules/onnxruntime-node/**",
@@ -55,7 +56,20 @@
       "NSMicrophoneUsageDescription": "Taurus asks for the microphone only when you tap Talk.",
       "NSCameraUsageDescription": "Taurus uses the camera only while Look is open, and sends one frame to your AI when you tap Send.",
       "NSCalendarsFullAccessUsageDescription": "Taurus reads today's and tomorrow's events to show your schedule and ring before meetings. It never changes your calendars.",
-      "NSCalendarsUsageDescription": "Taurus reads today's and tomorrow's events to show your schedule and ring before meetings. It never changes your calendars."
+      "NSCalendarsUsageDescription": "Taurus reads today's and tomorrow's events to show your schedule and ring before meetings. It never changes your calendars.",
+      "NSContactsUsageDescription": "Taurus reads your contacts to know who people are when you ask about them or message them.",
+      "NSPhotoLibraryUsageDescription": "Taurus can find and attach a photo when you ask.",
+      "NSRemindersFullAccessUsageDescription": "Taurus reads and adds reminders when you ask.",
+      "NSRemindersUsageDescription": "Taurus reads and adds reminders when you ask.",
+      "NSBluetoothAlwaysUsageDescription": "Taurus can see your Bluetooth devices, such as headphones, for your Home and music.",
+      "NSLocationUsageDescription": "Taurus uses your location for weather, travel times and what's nearby.",
+      "NSLocationAlwaysAndWhenInUseUsageDescription": "Taurus uses your location for weather, travel times and what's nearby.",
+      "NSSpeechRecognitionUsageDescription": "Taurus can use the Mac's own speech recognition as a backup when you talk to him.",
+      "NSAppleEventsUsageDescription": "Taurus opens, switches and controls apps for you when you ask, such as Messages, Notes and Music.",
+      "NSDesktopFolderUsageDescription": "Taurus finds and opens files on your Desktop when you ask.",
+      "NSDocumentsFolderUsageDescription": "Taurus finds and opens your documents when you ask.",
+      "NSDownloadsFolderUsageDescription": "Taurus finds and opens your downloads when you ask.",
+      "NSAppleMusicUsageDescription": "Taurus plays and controls your music when you ask."
     },
     "artifactName": "Taurus-${version}-AppleSilicon.${ext}"
   },

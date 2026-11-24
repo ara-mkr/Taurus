@@ -81,9 +81,9 @@ function useAway() {
   return away;
 }
 
-// Where Taurus is: the cloud dashboard's centre mark, else Taurus himself, else the middle of the window.
+// Where Taurus is: his window on Home, else the chat bar you talk to him in, else the middle of the window.
 function taurusCentre() {
-  const el = document.querySelector('[data-taurus-center]') ?? document.querySelector('.taurus-buddy .taurus-button') ?? document.querySelector('.taurus-buddy');
+  const el = document.querySelector('[data-taurus-center]') ?? document.querySelector('.chatbar .composer-bar');
   const r = el?.getBoundingClientRect();
   if (r && r.width && r.bottom > 0 && r.top < innerHeight) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   return { x: innerWidth / 2, y: innerHeight / 2 };

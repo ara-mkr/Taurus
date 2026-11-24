@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react';
-import { stateNames, timeOf, useBots, type Bot, type BotLine } from '../bots';
+import { isMadeBot, makeBot, stateNames, tellBot, timeOf, useBots, type Bot, type BotLine } from '../bots';
 import { Logo } from './Logo';
 import { inkOn, Mascot } from './Mascot';
 
@@ -63,18 +63,40 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [bot.id, bot.lines.length]);
   const groups = grouped(bot.lines);
+  const mine = isMadeBot(bot.id);
+  const busy = mine ? bot.state === 'working' : pending;
   const send = (e?: FormEvent) => {
     e?.preventDefault();
     const text = draft.trim();
-    if (!text || pending) return;
-    onAsk(bot.id === 'taurus' ? text : `About ${bot.name} (${bot.role}${bot.where ? `, on ${bot.where}` : ''}): ${text}`);
+    if (!text || busy) return;
+    if (mine) void tellBot(bot.id, text);
+    else onAsk(bot.id === 'taurus' ? text : `About ${bot.name} (${bot.role}${bot.where ? `, on ${bot.where}` : ''}): ${text}`);
     setDraft('');
+  };
+  // A new bot: a name and a job, then it starts (owner, November 23, 2026: "in bots u cant create a new bot").
+  const [making, setMaking] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newJob, setNewJob] = useState('');
+  const create = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newJob.trim()) return;
+    const id = makeBot(newName, newJob);
+    setMaking(false); setNewName(''); setNewJob('');
+    location.hash = `#bots/${encodeURIComponent(id)}`;
   };
   const enter = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   return <main id="main" tabIndex={-1} className="bots deck-look">
     <nav className="deck-win bots-list" aria-label="Bots">
       <header className="deck-bar"><h2>Bots</h2><span className="deck-count">{bots.filter(b => b.live && b.state === 'working').length} working</span></header>
+      <div className="bots-new">
+        {!making ? <button type="button" className="primary" onClick={() => setMaking(true)}>New bot</button>
+          : <form className="bots-new-form" onSubmit={create} aria-label="New bot">
+            <label>Name<input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Inbox Zero" maxLength={40} autoFocus /></label>
+            <label>What should it do?<textarea rows={3} value={newJob} onChange={e => setNewJob(e.target.value)} placeholder="Go through my inbox and tell me what needs a reply today" maxLength={200} /></label>
+            <div className="bots-new-actions"><button type="submit" className="primary" disabled={!newJob.trim()}>Start</button><button type="button" onClick={() => setMaking(false)}>Cancel</button></div>
+          </form>}
+      </div>
       <ul>
         {bots.map(b => { const last = b.lines.at(-1); return <li key={b.id}>
           <a className="bots-item" href={`#bots/${encodeURIComponent(b.id)}`} aria-current={b.id === bot.id ? 'page' : undefined}>
@@ -103,10 +125,10 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
         <div ref={end} />
       </div>
       <form className="bots-composer" onSubmit={send}>
-        <label className="sr-only" htmlFor="bots-message">{bot.id === 'taurus' ? 'Message Taurus' : `Ask Taurus about ${bot.name}`}</label>
+        <label className="sr-only" htmlFor="bots-message">{bot.id === 'taurus' ? 'Message Taurus' : mine ? `Message ${bot.name}` : `Ask Taurus about ${bot.name}`}</label>
         <textarea id="bots-message" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={enter}
-          placeholder={bot.id === 'taurus' ? 'Message Taurus' : `Ask Taurus about ${bot.name}`} />
-        <button type="submit" className="primary" disabled={!draft.trim() || pending}>Send</button>
+          placeholder={bot.id === 'taurus' ? 'Message Taurus' : mine ? `Message ${bot.name}` : `Ask Taurus about ${bot.name}`} />
+        <button type="submit" className="primary" disabled={!draft.trim() || busy}>Send</button>
       </form>
     </section>
   </main>;

@@ -1,6 +1,9 @@
-import { app, BrowserWindow, Menu, Notification, Tray, nativeImage, nativeTheme, screen, session, shell, systemPreferences, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
+import { app, BrowserWindow, dialog, Menu, Notification, Tray, nativeImage, nativeTheme, screen, session, shell, systemPreferences, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
 import { createServer } from 'node:net';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { open as openFile, readdir } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { sep } from 'node:path';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -319,6 +322,7 @@ function trayMenu() {
     click: item => { writeJson(desktopFile, { ...readJson(desktopFile, {}), swarmScreens: item.checked }); swarms?.sync(); trayMenu(); },
   });
   // Login items exist on macOS and Windows only.
+  if (mac) items.push({ label: 'Allow everything…', toolTip: 'Every macOS permission Taurus uses, one prompt at a time.', click: () => void askPermissions(true) });
   if (process.platform !== 'linux') items.push({ label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin, click: item => { app.setLoginItemSettings({ openAtLogin: item.checked }); trayMenu(); } });
   items.push({ type: 'separator' }, { label: 'Quit Taurus', click: () => app.quit() });
   tray?.setContextMenu(Menu.buildFromTemplate(items));
@@ -375,19 +379,71 @@ async function start() {
 }
 
 // Every Mac permission Taurus uses, asked for right away (owner, November 23, 2026: "right as u open it make it hit u
-// with all the stuff like allow microphone, allow video, allow control and accessbility"): the microphone for Talk and
-// "Hey Taurus", the camera for Look, then Screen Recording and Accessibility for helpers in other apps. macOS shows
-// each prompt once; ones already allowed or already answered are skipped, and the Accessibility and Screen Recording
-// prompts come back at most once a day while they stay off.
-async function askPermissions() {
-  if (!mac || process.env.TAURUS_HOME || process.env.TAURUS_DESKTOP_HIDDEN) return;
-  for (const media of ['microphone', 'camera'] as const) {
-    if (systemPreferences.getMediaAccessStatus(media) === 'not-determined') await systemPreferences.askForMediaAccess(media).catch(() => false);
+// with all the stuff ... make it ask for all permissions just as a pop up like everything ... developer tools,
+// bluetooth ... calender, photos, files, everything!"). On first launch, and again from the tray's "Allow everything…":
+//   1. macOS's own prompts, one after another: microphone, camera, then (taurus-permissions) calendars, reminders,
+//      contacts, photos, speech recognition, Bluetooth, location and input monitoring;
+//   2. Files and Folders (Desktop, Documents, Downloads) and Automation (System Events, Finder), by a first look;
+//   3. Screen Recording and Accessibility through their own prompts (taurus-hands);
+//   4. the ones macOS only lets you switch on yourself (Accessibility and Screen Recording if still off, Full Disk
+//      Access, Developer Tools): a Taurus popup for each that opens the exact page in System Settings, then the next
+//      when you come back.
+// Each prompt shows once; anything already allowed or already answered is skipped. Nothing is read beyond the first
+// look that makes macOS ask.
+let asking = false;
+const unpacked = (file: string) => join(here, file).replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
+const run = (file: string, args: string[], ms = 15 * 60_000) => new Promise<string>(resolve => execFile(file, args, { timeout: ms }, (_e, out) => resolve(String(out ?? ''))));
+const pane = (name: string) => `x-apple.systempreferences:com.apple.preference.security?Privacy_${name}`;
+
+async function askPermissions(again = false) {
+  if (!mac || asking || process.env.TAURUS_HOME || process.env.TAURUS_DESKTOP_HIDDEN) return;
+  // "Control this Mac" (open and switch apps, volume, dark mode, the Taurus Shortcuts) starts on in the desktop app, once
+  // (owner, November 23, 2026: "i ask it like open messages it says allow it in settings with control this mac i dont
+  // fucking know how to do that"). Switched off later, it stays off. Sending, quitting apps and the like still wait
+  // for an OK each time.
+  const first = readJson<{ macControlOn?: boolean; permissionsAsked?: number }>(desktopFile, {});
+  if (!first.macControlOn) {
+    const ok = await fetch(`${local}/api/connectors/mac-control/fields`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-taurus': '1' }, body: JSON.stringify({ values: { MAC_CONTROL_ON: '1' } }) }).then(r => r.ok).catch(() => false);
+    if (ok) writeJson(desktopFile, { ...readJson(desktopFile, {}), macControlOn: true });
   }
-  const saved = readJson<{ askedControlAt?: number }>(desktopFile, {});
-  if (Date.now() - (saved.askedControlAt ?? 0) < 86_400_000) return;
-  writeJson(desktopFile, { ...saved, askedControlAt: Date.now() });
-  await hands?.askMissing();
+  if (first.permissionsAsked && !again) return;
+  asking = true;
+  try {
+    writeJson(desktopFile, { ...readJson(desktopFile, {}), permissionsAsked: Date.now() });
+    for (const media of ['microphone', 'camera'] as const) {
+      if (systemPreferences.getMediaAccessStatus(media) === 'not-determined') await systemPreferences.askForMediaAccess(media).catch(() => false);
+    }
+    const tool = unpacked('taurus-permissions');
+    if (existsSync(tool)) await run(tool, ['ask']);
+    for (const folder of ['Desktop', 'Documents', 'Downloads']) await readdir(join(homedir(), folder)).catch(() => undefined);
+    for (const target of ['System Events', 'Finder']) await run('/usr/bin/osascript', ['-e', `tell application "${target}" to get name`], 120_000);
+    await hands?.askMissing();
+    await walkSettings();
+  } finally { asking = false; }
+}
+
+// Full Disk Access shows as being able to open the system's own privacy database (only that is allowed to); the rest
+// come from taurus-hands.
+async function walkSettings() {
+  const fullDisk = await openFile(join(homedir(), 'Library/Application Support/com.apple.TCC/TCC.db'), 'r').then(async f => { await f.close(); return true; }, () => false);
+  const control = await hands?.status();
+  const steps: { name: string; pane: string; why: string }[] = [
+    ...(control && !control.accessibility ? [{ name: 'Accessibility', pane: 'Accessibility', why: 'lets helpers click and type in other apps when you ask' }] : []),
+    ...(control && !control.screen ? [{ name: 'Screen & System Audio Recording', pane: 'ScreenCapture', why: 'lets helpers see the app they are working in' }] : []),
+    ...(!fullDisk ? [{ name: 'Full Disk Access', pane: 'AllFiles', why: 'lets Taurus read Messages, Mail and Safari history on this Mac when you ask' }] : []),
+    { name: 'Developer Tools', pane: 'DevTools', why: 'lets Taurus run its own helpers and scripts without macOS slowing them down' },
+  ];
+  for (const [i, step] of steps.entries()) {
+    const { response } = await dialog.showMessageBox({
+      type: 'info', buttons: ['Open System Settings', i < steps.length - 1 ? 'Skip' : 'Done'], defaultId: 0, cancelId: 1,
+      message: `Switch on Taurus in ${step.name}`,
+      detail: `macOS only lets you turn this one on yourself. It ${step.why}.\n\nIn the page that opens, find Taurus and switch it on (use + to add it if it isn't listed), then come back to Taurus.${steps.length > 1 ? `\n\nStep ${i + 1} of ${steps.length}.` : ''}`,
+    });
+    if (response !== 0) continue;
+    await shell.openExternal(pane(step.pane));
+    // The next popup waits until you're back in Taurus.
+    await new Promise<void>(resolve => { const back = () => { app.off('browser-window-focus', back); resolve(); }; app.on('browser-window-focus', back); setTimeout(back, 10 * 60_000); });
+  }
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();

@@ -19,7 +19,10 @@ export function saveSpeech(v: SpeechPrefs) { try { localStorage.setItem(key, JSO
 export interface Speaking { active: boolean; level: number; text: string; engine: 'taurus' | 'browser' | '' }
 let now: Speaking = { active: false, level: 0, text: '', engine: '' };
 const listeners = new Set<() => void>();
-const emit = (next: Partial<Speaking>) => { now = { ...now, ...next }; listeners.forEach(l => l()); };
+// For the microphone (hearing.ts): while Taurus talks, and a moment after, what it picks up is mostly his own voice.
+let quietAt = 0;
+export const speakingNow = () => now.active || Date.now() < quietAt;
+const emit = (next: Partial<Speaking>) => { if (now.active && next.active === false) quietAt = Date.now() + 700; now = { ...now, ...next }; listeners.forEach(l => l()); };
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 export const useSpeaking = () => useSyncExternalStore(subscribe, () => now, () => now);
 
@@ -64,22 +67,36 @@ function watchLevel(id: number) {
   meter = requestAnimationFrame(tick);
 }
 
-// Sentences, with the first one short so the first sound comes fast.
+// Pieces small enough that each is ready before the one before it finishes playing (November 23, 2026: the second
+// sentence of a preview took 5 s to make, so the voice paused mid-thought). Kokoro on the Mac makes speech in about
+// 0.6 of the time it takes to play, so each piece may be about 1.5 times the one before it: the first is a short
+// clause, the rest grow. Cut at sentence ends first, then at commas and dashes, then between words.
+const CAPS = [48, 72, 110, 165, 250, 380];
 export function chunks(text: string): string[] {
   const clean = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/https?:\/\/\S+/g, '').replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
-  const sentences = clean.match(/[^.!?]+(?:[.!?]+["')\]]*|$)\s*/g)?.map(s => s.trim()).filter(Boolean) ?? [];
-  // The first chunk is all you wait for (about 2.5 s per sentence on the Mac's CPU, November 18, 2026), so it stays
-  // one sentence, cut at its first comma when that comes early. Later chunks are made while earlier ones play.
-  const first = sentences[0];
-  const comma = first ? first.search(/[,;:–—]\s/) : -1;
-  if (first && first.length > 60 && comma >= 12 && comma <= 70) sentences.splice(0, 1, first.slice(0, comma + 1), first.slice(comma + 1).trim());
+  const sentences = clean.match(/[^.!?]+(?:[.!?]+["')\]]*|$)\s*/g)?.map(x => x.trim()).filter(Boolean) ?? [];
+  // Clauses: a sentence split after commas, semicolons, colons and dashes.
+  const clauses = sentences.flatMap(x => x.split(/(?<=[,;:–—])\s+/).filter(Boolean).map((c, i, all) => ({ text: c, end: i === all.length - 1 })));
   const out: string[] = [];
-  for (const s of sentences) {
-    const last = out.at(-1);
-    if (last !== undefined && out.length > 1 && last.length + s.length < 220) out[out.length - 1] = `${last} ${s}`;
-    else out.push(s.length > 400 ? s.slice(0, 400) : s);
+  let cur = '';
+  const cap = () => CAPS[Math.min(out.length, CAPS.length - 1)];
+  const push = () => { if (cur) { out.push(cur); cur = ''; } };
+  for (const c of clauses) {
+    let piece = c.text;
+    // A clause longer than the cap is cut between words.
+    while (piece.length > cap()) {
+      if (cur) push();
+      const room = cap(), at = piece.lastIndexOf(' ', room);
+      const cut = at > room * 0.5 ? at : room;
+      out.push(piece.slice(0, cut).trim()); piece = piece.slice(cut).trim();
+    }
+    if (cur && (cur + ' ' + piece).length > cap()) push();
+    cur = cur ? `${cur} ${piece}` : piece;
+    // Sentence ends are the most natural place to start the next piece once this one is a fair size.
+    if (c.end && cur.length >= cap() * 0.6) push();
   }
-  return out.slice(0, 8);
+  push();
+  return out.slice(0, 14);
 }
 
 export function stopSpeaking() {

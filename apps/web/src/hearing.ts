@@ -4,6 +4,8 @@
 // Mac's Taurus server (/api/voice/hear), which turns it into words with Moonshine on the Mac's CPU. Audio goes only to
 // localhost, is kept in memory for one stretch, and is never stored.
 
+import { speakingNow } from './speech';
+
 interface Alternative { transcript: string }
 interface Result { isFinal: boolean; length: number; [i: number]: Alternative }
 
@@ -115,23 +117,32 @@ export class LocalRecognition {
 
   abort() { this.stopping = true; this.end(); }
 
+  // Phrases waiting for the Mac to turn into words; in continuous listening, more than two waiting are dropped.
+  private waiting = 0;
+
   private send(frames: Float32Array[]) {
+    // Always-on listening (November 23, 2026: "it will randomly just stop listening"): Taurus's own voice coming back
+    // through the microphone isn't sent, and a backlog of noise is dropped instead of queueing up behind itself.
+    if (this.continuous && (speakingNow() || this.waiting >= 2)) return;
     const body = toPcm16(frames);
+    this.waiting++;
     this.sending = this.sending.then(async () => {
       if (this.ended) return;
       try {
         const res = await fetch('/api/voice/hear', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream', 'x-taurus': '1' }, body });
         const data = await res.json().catch(() => ({})) as { text?: string; error?: string };
         if (this.ended) return;
-        if (!res.ok) { this.onerror?.({ error: data.error ?? 'I couldn’t make out the words.' }); this.end(); return; }
+        // One phrase the Mac couldn't handle (busy, or still loading the model) is skipped; it no longer ends
+        // always-on listening, which used to give up for good after a few of those in a row.
+        if (!res.ok) { if (this.continuous) return; this.onerror?.({ error: data.error ?? 'I couldn’t make out the words.' }); this.end(); return; }
         const text = (data.text ?? '').trim();
         if (!text) return;
         this.results.push(Object.assign([{ transcript: text }], { isFinal: true }) as unknown as Result);
         this.onresult?.({ resultIndex: this.results.length - 1, results: this.results });
         if (!this.continuous) this.end();
       } catch {
-        if (!this.ended) { this.onerror?.({ error: 'I lost touch with Taurus on this Mac.' }); this.end(); }
-      }
+        if (!this.ended && !this.continuous) { this.onerror?.({ error: 'I lost touch with Taurus on this Mac.' }); this.end(); }
+      } finally { this.waiting--; }
     });
   }
 

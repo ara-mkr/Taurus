@@ -129,11 +129,18 @@
 .deck-agent-doing { margin: 0; font-size: 14px; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .deck-side { flex: 1; }
-.deck-pick select { min-height: 22px; padding: 0 22px 0 0; border: 0; border-radius: 0; background-color: transparent; color: var(--on-bar); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer;
-  appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(-45deg, transparent 50%, currentColor 50%);
-  background-position: right 8px center, right 3px center; background-size: 5px 5px; background-repeat: no-repeat; }
-.deck-pick select:focus-visible { outline: 1px solid var(--on-bar); outline-offset: 2px; }
-.deck-pick option { color: var(--ink); background: var(--surface); }
+.deck-pick { position: relative; }
+.deck-pick-button { display: inline-flex; align-items: center; gap: 8px; min-height: 22px; padding: 0 2px; border: 0; border-radius: 0; background: transparent; color: var(--on-bar);
+  font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; }
+.deck-pick-button:focus-visible { outline: 1px solid var(--on-bar); outline-offset: 2px; }
+.deck-pick-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; }
+.deck-pick-button[aria-expanded="true"] .deck-pick-caret { transform: rotate(180deg); }
+.deck-pick-list { position: absolute; top: calc(100% + 6px); left: -8px; z-index: 40; min-width: 190px; max-height: min(420px, 60vh); margin: 0; padding: 4px 0; overflow: auto;
+  list-style: none; border: 1px solid var(--ink); border-radius: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); outline: none; }
+.deck-pick-list li { padding: 7px 12px; font-family: var(--mono); font-size: 13px; cursor: pointer; white-space: nowrap; }
+.deck-pick-list li[data-active] { background: var(--rule); }
+.deck-pick-list li[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+.deck-pick-list li[aria-selected="true"]::before { content: "■ "; }
 .deck-side-body { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
 .deck-side-body > .card-head h2 { display: none; }
 .deck-side-body > .card-head { min-height: 0; padding: 8px 12px 0; border: 0; }
@@ -273,6 +280,12 @@ a.deck-chip { display: inline-flex; align-items: center; text-decoration: none; 
 .bots { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 16px; box-sizing: border-box; width: 100%; height: 100dvh; padding: 16px; }
 .shell:has(.bots) + .chatbar { display: none; }
 .bots-list { overflow: hidden; }
+.bots-new { padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+.bots-new > button { width: 100%; }
+.bots-new-form { display: grid; gap: 8px; }
+.bots-new-form label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.bots-new-form :is(input, textarea) { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid var(--ink); border-radius: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; resize: vertical; }
+.bots-new-actions { display: flex; gap: 8px; }
 .bots-list ul { flex: 1; min-height: 0; margin: 0; padding: 0; overflow: auto; list-style: none; }
 .bots-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px dashed var(--rule); color: var(--ink); text-decoration: none; }
 .bots-item:hover { background: var(--wash); }
@@ -401,3 +414,12 @@ a.deck-chip { display: inline-flex; align-items: center; text-decoration: none; 
 :root:not([data-look="old"]) .rail-doing, :root:not([data-look="old"]) .rail-doing > button:first-child { min-width: 0; max-width: 100%; }
 /* On Bots there are no boxes for the helpers' cursors to point into, so they stay off this page. */
 .shell:has(.bots) ~ .swarm-layer { display: none; }
+
+/* Voice on pages other than Home (November 23, 2026): a square strip above the chat bar, in place of the little Taurus. */
+.voice-strip { position: fixed; right: 20px; bottom: calc(var(--bar-bottom) + 76px); z-index: 36; box-sizing: border-box; width: min(420px, calc(100vw - 40px)); max-height: 40vh; overflow: auto;
+  padding: 12px 14px; border: 1px solid var(--ink); border-radius: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-size: 15px; }
+.voice-strip p { margin: 0; }
+.voice-strip p + p { margin-top: 8px; }
+.voice-strip[data-voice="listening"] p:first-child, .voice-strip[data-voice="thinking"] p:first-child { color: var(--ink-2); }
+.voice-strip-actions { display: flex; align-items: baseline; gap: 14px; margin-top: 8px !important; font-weight: 600; }
+.voice-strip-actions .text-button { min-height: 0; padding: 0; border: 0; font-weight: 600; }

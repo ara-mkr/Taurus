@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import type { Activity, BrowserState } from './api';
+import { api, type Activity, type BrowserState } from './api';
 import type { ChatTurn } from './components/Ask';
 import { useSwarm } from './components/Swarm';
 
@@ -23,6 +23,7 @@ const lines = new Map<string, BotLine[]>();
 const known = new Map<string, Omit<Bot, 'lines' | 'live'>>();
 const listeners = new Set<() => void>();
 let current: Bot[] = [];
+let base: Bot[] = [];
 
 function add(id: string, line: BotLine) {
   const list = lines.get(id) ?? [];
@@ -64,10 +65,59 @@ export function useBotRecorder(log: Activity[], browser: BrowserState | null, tu
     }
     for (const b of live) known.set(b.id, b);
     const liveIds = new Set(live.map(b => b.id));
-    current = [...live.map(b => ({ ...b, live: true, lines: [...(lines.get(b.id) ?? [])] })),
+    base = [...live.map(b => ({ ...b, live: true, lines: [...(lines.get(b.id) ?? [])] })),
       ...[...known.values()].filter(b => !liveIds.has(b.id)).map(b => ({ ...b, live: false, state: (b.state === 'working' ? 'idle' : b.state) as BotState, lines: [...(lines.get(b.id) ?? [])] }))];
-    listeners.forEach(l => l());
+    publish();
   }, [log, browser, turns, swarm, frames, now]);
+}
+
+// ---------- Bots you make (owner, November 23, 2026: "in bots u cant create a new bot") ----------
+// A bot you make has a name and a job. It works on the job on its own, through Taurus (the same tools, approvals and
+// rules), in its own conversation, so its steps and answers show in its own chat and you can keep talking to it there.
+// Like the rest of this store it lasts until the window reloads.
+interface Made { id: string; name: string; job: string; colour: string; state: BotState; doing: string; turns: { role: 'user' | 'assistant'; text: string }[] }
+const made = new Map<string, Made>();
+const madeColours = ['#F57EB6', '#7FC1EE', '#FFB454', '#9BE38A', '#C79BFF', '#FF7A6B', '#5FE0D0', '#F2E46B'];
+let madeCount = 0;
+function publish() {
+  const mine = [...made.values()].map(m => ({ id: m.id, name: m.name, role: `Your bot · ${m.job}`, colour: m.colour, state: m.state, doing: m.doing, live: m.state === 'working', lines: [...(lines.get(m.id) ?? [])] }));
+  current = [...base.slice(0, 1), ...mine, ...base.slice(1)];
+  listeners.forEach(l => l());
+}
+export const isMadeBot = (id: string) => made.has(id);
+export function makeBot(name: string, job: string): string {
+  const id = `mine-${++madeCount}`;
+  made.set(id, { id, name: name.trim().slice(0, 40) || `Bot ${madeCount}`, job: job.trim().slice(0, 200), colour: madeColours[(madeCount - 1) % madeColours.length], state: 'idle', doing: 'Starting', turns: [] });
+  void tellBot(id, job);
+  return id;
+}
+export async function tellBot(id: string, text: string) {
+  const m = made.get(id);
+  if (!m || !text.trim() || m.state === 'working') return;
+  const at = () => new Date().toISOString();
+  const n = m.turns.length;
+  m.turns.push({ role: 'user', text: text.trim() });
+  add(id, { at: at(), kind: 'you', text: text.trim(), ref: `u${n}` });
+  m.state = 'working'; m.doing = 'Working on it'; publish();
+  let reply = '', steps = 0;
+  const intro = m.turns.length === 1 ? `You are "${m.name}", one of the owner's bots in Taurus. Your job: ${m.job}. Work on it now and answer briefly.
+
+` : '';
+  try {
+    const answer = await api.askStream(m.turns.map((t, i) => i === 0 ? { ...t, text: intro + t.text } : t), { via: 'ask' }, {
+      step: s => { add(id, { at: at(), kind: 'act', text: s, ref: `s${n}-${steps++}` }); m.doing = s; publish(); },
+      text: d => { reply += d; add(id, { at: at(), kind: 'reply', text: reply, ref: `r${n}` }); publish(); },
+      reset: () => { reply = ''; },
+    });
+    const said = answer.text || reply || 'Done.';
+    m.turns.push({ role: 'assistant', text: said });
+    add(id, { at: at(), kind: 'reply', text: said, ref: `r${n}` });
+    m.state = 'done'; m.doing = said.split('\n')[0].slice(0, 120);
+  } catch (e) {
+    add(id, { at: at(), kind: 'fail', text: (e as Error).message || 'That didn’t work.', ref: `f${n}` });
+    m.state = 'failed'; m.doing = 'Stopped';
+  }
+  publish();
 }
 
 // Everyone, Taurus first: the bots working now, then the ones remembered from earlier this session.

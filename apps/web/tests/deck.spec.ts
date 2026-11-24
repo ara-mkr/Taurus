@@ -30,7 +30,7 @@ test('Home is the Deck: rail on the left, Taurus in the centre, agents above you
   await expect(page.locator('#taurus-says')).toHaveText('Reading Gmail');
   await expect(page.getByRole('list', { name: 'What Taurus did last' })).toContainText('Reading Gmail');
   await expect(page.getByRole('region', { name: 'Agents' })).toBeVisible();
-  await expect(page.getByLabel('What this window shows')).toHaveValue('schedule');
+  await expect(page.getByRole('button', { name: 'What this window shows: Calendar' })).toBeVisible();
   // One screen: no page scroll, and the right column ends inside the window.
   expect(await page.evaluate(() => document.scrollingElement!.scrollHeight <= innerHeight + 1)).toBe(true);
   const rail = await box(page, '.rail'), centre = await box(page, '.deck-center'), right = await box(page, '.deck-right'), bar = await box(page, '.composer-bar');
@@ -79,10 +79,16 @@ test('the right panel is yours to choose and stays chosen; light and dark switch
   await home(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  await page.getByLabel('What this window shows').selectOption('inbox');
+  // Our own square menu, not the Mac's: opens on click, arrows and Enter pick, Esc closes.
+  await page.getByRole('button', { name: /^What this window shows/ }).click();
+  await expect(page.getByRole('listbox', { name: 'What this window shows' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await page.getByRole('button', { name: /^What this window shows/ }).click();
+  await page.getByRole('option', { name: 'Inbox' }).click();
   await expect(page.locator('.deck-side')).toContainText(/unread|Inbox|inbox/);
   await page.reload();
-  await expect(page.getByLabel('What this window shows')).toHaveValue('inbox');
+  await expect(page.getByRole('button', { name: 'What this window shows: Inbox' })).toBeVisible();
   await page.getByRole('radio', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true');

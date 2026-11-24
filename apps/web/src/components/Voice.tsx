@@ -259,9 +259,10 @@ export function useVoice(settings: VoiceSettings, onAsk: (question: string) => P
         if (!alive) return;
         // Browsers end long sessions on their own: start again, but give up if it keeps failing.
         if (Date.now() - since > 10_000) { since = Date.now(); restarts = 0; }
-        if (++restarts > 6) { alive = false; setWaking(false); fail('Listening for “Hey Taurus” keeps stopping, so I paused it. Reload to try again.'); return; }
+        // It keeps stopping (the microphone was taken, the Mac slept): wait longer each time and keep trying, instead of
+        // giving up until a reload as before.
         seen = 0;
-        window.setTimeout(run, 300);
+        window.setTimeout(run, restarts > 6 ? Math.min(30_000, 2_000 * (restarts - 6)) : 300);
       };
       try { r.start(); setWaking(true); } catch (e) { alive = false; setWaking(false); fail((e as Error).message); }
     };
@@ -285,4 +286,17 @@ export function FunctionBar({ voice, floating = false }: { voice: Voice; floatin
     {voice.waking && <span className="fn-note">Listening for “Hey Taurus”</span>}
   </>;
   return floating ? <aside className="fnbar fnbar-float" aria-label="Quick functions">{items}</aside> : <div className="fnbar" role="group" aria-label="Quick functions">{items}</div>;
+}
+
+// What Taurus heard and says, on pages other than Home: a square strip above the chat bar, never a little Taurus.
+export function VoiceStrip({ voice }: { voice: VoiceView }) {
+  const lead = voice.phase === 'listening' ? (voice.text || 'Listening.') : voice.phase === 'thinking' ? (voice.text || 'Thinking.') : voice.text;
+  return <div className="voice-strip" id="taurus-says" role="status" data-voice={voice.phase}>
+    {lead.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}
+    {(voice.phase === 'answer' || voice.phase === 'error') && <p className="voice-strip-actions">
+      {voice.answered && <a href="#ask" onClick={voice.dismiss}>Open in Ask</a>}
+      {voice.browser && <a href={location.origin} target="_blank" rel="noreferrer" onClick={voice.dismiss}>Open in browser</a>}
+      <button type="button" className="text-button" onClick={voice.dismiss}>Close</button>
+    </p>}
+  </div>;
 }

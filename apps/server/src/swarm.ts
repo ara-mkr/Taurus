@@ -557,6 +557,53 @@ export async function runSwarm(job: Job, options: { merge?: 'ai' | 'rules' } = {
   return copy(swarm);
 }
 
+// Just for show (owner, November 23, 2026: "if i js wanna see like a bunch of agent swarm cursors js for shits and giggles
+// moving around it has to do that"): helpers with their own colours fly out and wander for a while, on Taurus's window
+// and, with "Helpers on every screen", on the other displays. No browser opens and nothing is read or clicked.
+const showLines = ['looking around', 'checking the corners', 'scouting', 'having a look', 'wandering', 'on patrol', 'doing laps'];
+export function showPhrase(raw: string): number | null {
+  const said = tidy(raw);
+  if (!said || said.length > 160) return null;
+  if (!/\b(?:swarm|helpers|scouts|cursors|agents|bots)\b/.test(said)) return null;
+  if (!/\b(?:show|let me see|see|send|spin|release|fly|unleash|run|do|launch|demo|for fun|for shits|just for|move around|go crazy|wander)\b/.test(said)) return null;
+  // A real job ("research X across 10 sites", "compare prices") is the real swarm, not the show.
+  if (/\b(?:research|look (?:up|into)|find|compare|price|read|dig|search)\b/.test(said) && !/\b(?:for fun|for shits|just for)\b/.test(said)) return null;
+  const n = said.match(/\b(\d{1,2})\b/);
+  return Math.max(MIN_HELPERS, Math.min(24, n ? Number(n[1]) : 8));
+}
+export function showSwarm(count = 8, seconds = 20): Swarm {
+  if (swarmBusy()) throw new HttpError(409, `Helpers are still out on “${now!.job}”. Stop them first.`);
+  stoppedByOwner = false;
+  stopper = new AbortController();
+  const signal = stopper.signal;
+  frames.clear(); lastFrame.clear();
+  const at = iso(), n = Math.max(MIN_HELPERS, Math.min(24, count));
+  const helpers: SwarmHelper[] = Array.from({ length: n }, (_, i) => ({
+    id: `h${i + 1}`, n: i + 1, name: `Scout ${i + 1}`, colour: colourFor(i), label: 'Just for show', doing: 'leaving Taurus', state: 'waiting', moves: 0, at,
+  }));
+  const swarm: Swarm = { id: randomUUID(), job: 'Just for show', kind: 'tasks', state: 'running', helpers, startedAt: at, width: HELPER_WIDTH, height: HELPER_HEIGHT, parallel: n };
+  now = swarm;
+  send('swarm', copy(swarm));
+  const acts: HelperAct[] = ['look', 'scroll', 'read', 'look', 'click'];
+  const tick = setInterval(() => {
+    for (const h of helpers) {
+      if (Math.random() < 0.35) continue;
+      const point = { x: Math.round(40 + Math.random() * (HELPER_WIDTH - 80)), y: Math.round(40 + Math.random() * (HELPER_HEIGHT - 80)) };
+      update(h, { state: 'working', point, act: acts[Math.floor(Math.random() * acts.length)], doing: showLines[Math.floor(Math.random() * showLines.length)] });
+    }
+  }, 650);
+  const finish = (state: Swarm['state']) => {
+    clearInterval(tick); clearTimeout(timer);
+    if (now !== swarm || swarm.state !== 'running') return;
+    for (const h of helpers) update(h, { state: state === 'done' ? 'done' : 'stopped', doing: 'back with Taurus', point: undefined });
+    swarm.answer = 'That was just for show.';
+    setState(state);
+  };
+  const timer = setTimeout(() => finish('done'), Math.max(5, Math.min(120, seconds)) * 1000);
+  signal.addEventListener('abort', () => finish('stopped'), { once: true });
+  return copy(swarm);
+}
+
 // From an instant phrase. Typed in Ask, the answer waits for the helpers; out loud or on a call, Taurus says he's on it and
 // shows the answer in a window when they're back.
 export async function swarmReply(job: Job, via: 'ask' | 'talk' | 'phone', said: string): Promise<string> {

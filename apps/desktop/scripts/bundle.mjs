@@ -2,7 +2,7 @@
 // runs plain JavaScript and never depends on Node's type stripping inside Electron.
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,21 @@ if (process.platform === 'darwin') {
     execFileSync('clang', ['-fobjc-arc', '-O2', '-mmacosx-version-min=14.0', '-arch', 'arm64', '-arch', 'x86_64', '-o', join(out, 'taurus-hands'), join(here, 'hands/main.m'),
       '-framework', 'AppKit', '-framework', 'ApplicationServices', '-framework', 'Carbon', '-framework', 'ScreenCaptureKit'], { stdio: 'inherit' });
   } catch { console.warn('taurus-hands was not built (no clang?). Helpers in other apps will be unavailable.'); }
+  // Every macOS permission prompt Taurus can show (November 23, 2026), from hands/permissions.m.
+  // A bare program asking for calendars, photos and the rest needs its own Info.plist with a reason for each, or macOS
+  // refuses without showing the prompt; it is linked into the program itself.
+  try {
+    const reasons = JSON.parse(readFileSync(join(here, 'electron-builder.json'), 'utf8')).mac.extendInfo;
+    const plist = join(out, 'taurus-permissions.plist');
+    writeFileSync(plist, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>\n`
+      + '  <key>CFBundleIdentifier</key><string>local.taurus.permissions</string>\n  <key>CFBundleName</key><string>Taurus</string>\n'
+      + Object.entries(reasons).filter(([k]) => k.endsWith('UsageDescription')).map(([k, v]) => `  <key>${k}</key><string>${String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</string>\n`).join('')
+      + '</dict></plist>\n');
+    execFileSync('clang', ['-fobjc-arc', '-O2', '-mmacosx-version-min=14.0', '-arch', 'arm64', '-o', join(out, 'taurus-permissions'), join(here, 'hands/permissions.m'),
+      '-sectcreate', '__TEXT', '__info_plist', plist,
+      ...['Foundation', 'AppKit', 'EventKit', 'Contacts', 'Photos', 'CoreBluetooth', 'CoreLocation', 'Speech', 'IOKit'].flatMap(f => ['-framework', f])], { stdio: 'inherit' });
+    rmSync(plist, { force: true });
+  } catch { console.warn('taurus-permissions was not built (no clang?). Permission prompts at first launch will be fewer.'); }
 }
 // The native notch (November 17, 2026): copied beside main.mjs when apps/notch-mac/build.sh has built it. Not built
 // here: without it the desktop app uses its Electron notch.

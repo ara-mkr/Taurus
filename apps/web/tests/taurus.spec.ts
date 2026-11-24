@@ -44,81 +44,15 @@ async function open(page: Page, init?: string) {
   await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
   return asked;
 }
-const taurus = (page: Page) => page.locator('.taurus-buddy');
-const rest = (page: Page) => expect(taurus(page)).toHaveAttribute('data-phase', 'rest', { timeout: 8_000 });
-// After a click, first see him set off (React paints the first frame a moment after the click), then see him stop.
-const travel = async (page: Page) => { await expect(taurus(page)).not.toHaveAttribute('data-phase', 'rest'); await rest(page); };
 
-test('clicking a card sends Taurus there and he talks about it', async ({ page }) => {
+// The little Taurus that walked to cards is gone (owner, November 23, 2026: "the mini taurus should never show up inside
+// the app dashboard, NEVER"); voice shows in a plain strip above the chat bar instead.
+test('no little Taurus anywhere in the app, even while talking', async ({ page }) => {
+  await fakeSpeech(page);
   await open(page);
-  await page.evaluate(() => {
-    const w = window as unknown as { seen: string[] }, el = document.querySelector<HTMLElement>('.taurus-buddy')!;
-    w.seen = [];
-    new MutationObserver(() => { const s = `${el.dataset.phase}/${el.querySelector('svg')!.dataset.mood}`; if (w.seen.at(-1) !== s) w.seen.push(s); }).observe(el, { attributes: true, subtree: true });
-  });
-  const card = page.getByRole('article', { name: 'Health', exact: true });
-  await card.evaluate(el => el.scrollIntoView({ block: 'center' }));
-  await rest(page);
-  const box = (await card.boundingBox())!;
-  await page.mouse.click(box.x + box.width - 14, box.y + box.height - 10);
-  await travel(page);
-  // Turn with the horns pinched, run, settle as he slows, then stand still.
-  const seen = await page.evaluate(() => (window as unknown as { seen: string[] }).seen);
-  expect(seen).toContain('turn/charge');
-  expect(seen).toContain('run/charge');
-  expect(seen).toContain('run/settle');
-  expect(seen.at(-1)).toMatch(/^rest\//);
-  const me = (await page.locator('.taurus-button').boundingBox())!, now = (await card.boundingBox())!;
-  expect(Math.abs(me.y + me.height - now.y)).toBeLessThan(20);
-  expect(me.x).toBeGreaterThanOrEqual(now.x);
-  expect(me.x + me.width).toBeLessThanOrEqual(now.x + now.width);
-  expect(Number(await taurus(page).getAttribute('data-heading'))).toBe(0);
-  await expect(page.locator('.taurus-bubble')).toContainText('Recovery 64%. A steady day.');
-  await page.screenshot({ path: `${shots}/taurus-perched-1440.png` });
-
-  // The board background moves him too; links, buttons and charts keep their own clicks.
-  const before = await taurus(page).getAttribute('data-x');
-  await page.getByRole('img', { name: /^Recovery, 30 days/ }).click();
-  await page.getByRole('button', { name: 'Edit' }).click();
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.waitForTimeout(300);
-  expect(await taurus(page).getAttribute('data-phase')).toBe('rest');
-  expect(await taurus(page).getAttribute('data-x')).toBe(before);
-  const grid = (await page.locator('.board-bar').boundingBox())!;
-  await page.mouse.click(grid.x + 40, grid.y + grid.height + 6);
-  await travel(page);
-  expect(await taurus(page).getAttribute('data-x')).not.toBe(before);
-});
-
-test('clicking a card also works on a phone and keeps clear of the tab bar', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page);
-  const card = page.getByRole('article', { name: 'Right now', exact: true });
-  const box = (await card.boundingBox())!;
-  await page.mouse.click(box.x + box.width - 16, box.y + box.height / 2);
-  await travel(page);
-  await expect(page.locator('.taurus-bubble')).toContainText(/Next up: Board prep/);
-  const bubble = (await page.locator('.taurus-bubble').boundingBox())!;
-  expect(bubble.x).toBeGreaterThanOrEqual(0);
-  expect(bubble.x + bubble.width).toBeLessThanOrEqual(390);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-});
-
-test.describe('reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' });
-  test('Taurus fades to the clicked card instead of travelling', async ({ page }) => {
-    await open(page);
-    await page.evaluate(() => { const w = window as unknown as { phases: string[] }; w.phases = []; new MutationObserver(() => w.phases.push(document.querySelector<HTMLElement>('.taurus-buddy')!.dataset.phase!)).observe(document.querySelector('.taurus-buddy')!, { attributes: true }); });
-    const card = page.getByRole('article', { name: 'Calendar', exact: true });
-    await card.evaluate(el => el.scrollIntoView({ block: 'center' }));
-    await rest(page);
-    const box = (await card.boundingBox())!;
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 10);
-    await expect(page.locator('.taurus-bubble')).toContainText('Next up: Board prep');
-    const me = (await page.locator('.taurus-button').boundingBox())!;
-    expect(Math.abs(me.y + me.height - box.y)).toBeLessThan(20);
-    expect(await page.evaluate(() => (window as unknown as { phases: string[] }).phases.filter(p => p !== 'rest'))).toEqual([]);
-  });
+  await page.getByRole('button', { name: 'Talk', exact: true }).click();
+  await expect(page.locator('.voice-strip')).toHaveText('Listening.');
+  await expect(page.locator('.taurus-buddy, .taurus-button')).toHaveCount(0);
 });
 
 for (const [name, size] of [['desktop', { width: 1440, height: 1000 }], ['tablet', { width: 1180, height: 820 }], ['phone', { width: 390, height: 844 }]] as const) {
@@ -131,16 +65,12 @@ for (const [name, size] of [['desktop', { width: 1440, height: 1000 }], ['tablet
     await expect(page.getByRole('complementary', { name: 'Chat with Taurus' }).getByRole('button', { name: 'Talk', exact: true })).toBeVisible();
     await talk.click();
     await expect(talk).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.taurus-buddy svg')).toHaveAttribute('data-mood', 'listening');
-    await expect(page.locator('.taurus-bubble')).toHaveText('Listening.');
+    await expect(page.locator('.voice-strip')).toHaveText('Listening.');
     await say(page, 'what should I do', false);
-    await expect(page.locator('.taurus-bubble')).toHaveText('what should I do');
-    await rest(page);
-    const bar = (await talk.boundingBox())!, me = (await page.locator('.taurus-button').boundingBox())!;
-    expect(Math.hypot(me.x + me.width / 2 - (bar.x + bar.width / 2), me.y + me.height / 2 - (bar.y + bar.height / 2))).toBeLessThan(120);
+    await expect(page.locator('.voice-strip')).toHaveText('what should I do');
     await page.screenshot({ path: `${shots}/taurus-listening-${name}.png` });
     await say(page, 'what should I do before the investor call', true);
-    await expect(page.locator('.taurus-bubble')).toContainText(answer);
+    await expect(page.locator('.voice-strip')).toContainText(answer);
     expect(asked).toEqual(['what should I do before the investor call']);
     // Cards fade in; under load the lowest ones can still be half transparent, which axe reads as low contrast.
     await page.waitForFunction(() => document.getAnimations().every(a => (a as CSSAnimation).animationName !== 'rise' || a.playState === 'finished'));
@@ -166,7 +96,7 @@ test('Talk sends the question as soon as the words are final, not when the micro
   await expect.poll(() => asked.length, { timeout: 1_000 }).toBe(1);
   console.log(`    final words to /api/ask: ${Date.now() - started} ms (the fake microphone closes after 3000 ms)`);
   expect(asked).toEqual(['open up my notes app']);
-  await expect(page.locator('.taurus-bubble')).toContainText(answer);
+  await expect(page.locator('.voice-strip')).toContainText(answer);
   // The late end of the microphone doesn't send it twice.
   await page.waitForTimeout(3_300);
   expect(asked).toEqual(['open up my notes app']);
@@ -201,23 +131,20 @@ test('“Hey Taurus” wakes him only at the start of a phrase and the rest goes
   await say(page, 'I think the taurus is fine');
   await page.waitForTimeout(200);
   expect(asked).toEqual([]);
-  await expect(page.locator('.taurus-buddy svg')).not.toHaveAttribute('data-mood', 'listening');
   // November 19, 2026: a sound-alike without "taurus" no longer wakes him.
   await say(page, 'hey box what is next');
   await page.waitForTimeout(200);
   expect(asked).toEqual([]);
-  await expect(page.locator('.taurus-buddy svg')).not.toHaveAttribute('data-mood', 'listening');
   await say(page, 'hey taurus', false);
-  await expect(page.locator('.taurus-buddy svg')).toHaveAttribute('data-mood', 'listening');
   await say(page, 'hey taurus what is next');
-  await expect(page.locator('.taurus-bubble')).toContainText(answer);
+  await expect(page.locator('.voice-strip')).toContainText(answer);
   expect(asked).toEqual(['what is next']);
   await page.getByRole('button', { name: 'Close' }).click();
   await say(page, 'okay taurus');
   // November 7, 2026: a bare "Hey Taurus" gets a hello back ("I say hey taurus it says hey back within a second").
-  await expect(page.locator('.taurus-bubble')).toHaveText(/^(?:Hey\.|Yo\.|Talk to me\.|What’s up\?|Here\. Go\.)$/);
+  await expect(page.locator('.voice-strip')).toHaveText(/^(?:Hey\.|Yo\.|Talk to me\.|What’s up\?|Here\. Go\.)$/);
   await say(page, 'who is waiting on me');
-  await expect(page.locator('.taurus-bubble')).toContainText(answer);
+  await expect(page.locator('.voice-strip')).toContainText(answer);
   expect(asked).toEqual(['what is next', 'who is waiting on me']);
   // November 6, 2026: "yo taurus, hi taurus, TAURUS, taurus, anything like that not just hey taurus".
   for (const [phrase, rest] of [['yo taurus open notes', 'open notes'], ['hi taurus what time is it', 'what time is it'], ['Taurus pause', 'pause'], ['hello there taurus, next song', 'next song'], ['taurus what is next', 'what is next']]) {
@@ -237,12 +164,12 @@ test('no browser support and a blocked microphone are said plainly', async ({ pa
   await page.addInitScript(() => { const w = window as unknown as Record<string, unknown>; delete w.webkitSpeechRecognition; delete w.SpeechRecognition; });
   await open(page);
   await page.getByRole('button', { name: 'Talk', exact: true }).click();
-  await expect(page.locator('.taurus-bubble')).toContainText('This browser can’t listen. Voice works in Chrome and Safari.');
+  await expect(page.locator('.voice-strip')).toContainText('This browser can’t listen. Voice works in Chrome and Safari.');
   await page.getByRole('button', { name: 'Close' }).click();
 
   await fakeSpeech(page, true);
   await page.reload();
   await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
   await page.getByRole('button', { name: 'Talk', exact: true }).click();
-  await expect(page.locator('.taurus-bubble')).toContainText('the microphone is blocked for this page');
+  await expect(page.locator('.voice-strip')).toContainText('the microphone is blocked for this page');
 });

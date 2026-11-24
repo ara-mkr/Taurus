@@ -1,7 +1,7 @@
 {
   "name": "taurus-desktop",
   "productName": "Taurus",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "type": "module",
   "description": "Taurus on the desktop: the local server and the dashboard in one window, with a menu bar or tray item that rings.",

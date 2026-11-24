@@ -193,6 +193,46 @@ const panelChoices: WidgetType[] = ['schedule', 'needs', 'inbox', 'todo', 'focus
 const read = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) as T : fallback; } catch { return fallback; } };
 const write = (key: string, value: unknown) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked: the choice lasts this visit */ } };
 
+// The window's own menu, square like the rest of the Deck (owner, November 23, 2026: the native select opened "a apple
+// native ui type drop down make it hard and like our style"). A button and a listbox: arrows, Home and End move, Enter
+// or a click picks, Esc or a click outside closes.
+function Pick({ value, choices, label, onPick }: { value: WidgetType; choices: WidgetType[]; label: string; onPick: (t: WidgetType) => void }) {
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState(() => Math.max(0, choices.indexOf(value)));
+  const box = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    list.current?.focus();
+    const away = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [open]);
+  useEffect(() => { list.current?.querySelector(`[data-i="${at}"]`)?.scrollIntoView({ block: 'nearest' }); }, [at, open]);
+  const choose = (i: number) => { onPick(choices[i]); setOpen(false); button.current?.focus(); };
+  const keys = (e: KeyboardEvent) => {
+    const last = choices.length - 1;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setAt(i => Math.min(last, i + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setAt(i => Math.max(0, i - 1)); }
+    else if (e.key === 'Home') { e.preventDefault(); setAt(0); }
+    else if (e.key === 'End') { e.preventDefault(); setAt(last); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(at); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { setOpen(false); if (e.key === 'Escape') button.current?.focus(); }
+  };
+  return <div className="deck-pick" ref={box}>
+    <button type="button" ref={button} className="deck-pick-button" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label}: ${catalog[value].name}`}
+      onClick={() => { setAt(Math.max(0, choices.indexOf(value))); setOpen(o => !o); }}
+      onKeyDown={e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setAt(Math.max(0, choices.indexOf(value))); setOpen(true); } }}>
+      {catalog[value].name}<span className="deck-pick-caret" aria-hidden="true" />
+    </button>
+    {open && <ul className="deck-pick-list" role="listbox" ref={list} tabIndex={-1} aria-label={label} aria-activedescendant={`deck-pick-${choices[at]}`} onKeyDown={keys}>
+      {choices.map((t, i) => <li key={t} id={`deck-pick-${t}`} role="option" data-i={i} aria-selected={t === value} data-active={i === at || undefined}
+        onPointerMove={() => setAt(i)} onClick={() => choose(i)}>{catalog[t].name}</li>)}
+    </ul>}
+  </div>;
+}
+
 function Side({ ctx }: { ctx: Ctx }) {
   const [type, setType] = useState<WidgetType>(() => { const v = read<string>('taurus-deck-panel', 'schedule'); return (panelChoices as string[]).includes(v) ? v as WidgetType : 'schedule'; });
   const [configs, setConfigs] = useState<Partial<Record<WidgetType, Widget['config']>>>(() => read('taurus-deck-config', {}));
@@ -200,11 +240,8 @@ function Side({ ctx }: { ctx: Ctx }) {
   const widget: Widget = { id: `deck-${type}`, type, size: 'tall', config: configs[type] ?? catalog[type].config };
   return <section className="deck-win deck-side" aria-labelledby="deck-side-name">
     <header className="deck-bar">
-      <label className="deck-pick"><span className="sr-only" id="deck-side-name">{catalog[type].name}</span>
-        <select value={type} onChange={e => pick(e.target.value as WidgetType)} aria-label="What this window shows">
-          {panelChoices.map(t => <option key={t} value={t}>{catalog[t].name}</option>)}
-        </select>
-      </label>
+      <span className="sr-only" id="deck-side-name">{catalog[type].name}</span>
+      <Pick value={type} choices={panelChoices} label="What this window shows" onPick={pick} />
     </header>
     <div className="deck-side-body">
       <WidgetView widget={widget} ctx={ctx} update={config => setConfigs(c => { const next = { ...c, [type]: config }; write('taurus-deck-config', next); return next; })} />
