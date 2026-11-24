@@ -167,7 +167,7 @@ enum Strip: Equatable {
 
     /// Both wings of a notched strip are as wide as the wider one, so it stays centred on the camera.
     func wing(_ hub: Hub, mascot: CGFloat) -> CGFloat {
-        let taurusWing = TaurusMark.width(for: mascot) + 22
+        let taurusWing = TaurusMark.width(for: mascot) + 30
         switch self {
         case .resting:
             let r = hub.settings.native.resting
@@ -558,9 +558,9 @@ struct ClosedContent: View {
         if geometry.notched {
             let wing = max(0, (size.width - geometry.camera) / 2)
             HStack(spacing: 0) {
-                leading(strip).padding(.leading, 9).frame(width: wing, height: geometry.top, alignment: .leading)
+                leading(strip).padding(.leading, 12).frame(width: wing, height: geometry.top, alignment: .leading)
                 Color.clear.frame(width: geometry.camera)
-                trailing(strip).padding(.trailing, 9).frame(width: wing, height: geometry.top, alignment: .trailing)
+                trailing(strip).padding(.trailing, 12).frame(width: wing, height: geometry.top, alignment: .trailing)
             }
             .frame(height: geometry.top)
         } else {

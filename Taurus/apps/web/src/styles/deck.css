@@ -216,6 +216,16 @@
 :root:not([data-look="old"]) .rail { padding: 0; }
 :root:not([data-look="old"]) .rail-panel { background: var(--rail); color: var(--on-rail); border-right: 0; padding: 18px 10px 12px; }
 :root:not([data-look="old"]) .rail .brand { color: var(--on-rail); }
+/* The Mac window has no title bar, so its close, minimise and zoom buttons float over the page's top-left corner:
+   keep the rail's first row below them, and let the empty strip above it drag the window. */
+:root[data-desktop="darwin"]:not([data-look="old"]) .rail-panel { padding-top: 50px; }
+:root[data-desktop="darwin"] .rail { -webkit-app-region: drag; }
+:root[data-desktop="darwin"] .rail :is(a, button, input, select, textarea) { -webkit-app-region: no-drag; }
+@media (max-width: 900px) {
+  /* With the rail tucked away, whatever sits first in the corner steps right of the buttons. */
+  :root[data-desktop="darwin"] .topbar { padding-left: 84px; }
+  :root[data-desktop="darwin"] .deck-top { padding-top: 12px; }
+}
 :root:not([data-look="old"]) .rail-list a, :root:not([data-look="old"]) .rail-list button { color: var(--on-rail-2); transition: none; }
 :root:not([data-look="old"]) .rail-list a:hover, :root:not([data-look="old"]) .rail-list button:hover:not(:disabled) { background: var(--rail-2); color: var(--on-rail); }
 :root:not([data-look="old"]) .rail-list [aria-current="page"], :root:not([data-look="old"]) .rail-list [aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }

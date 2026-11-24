@@ -139,6 +139,8 @@ const faces = new Set<{ step(dt: number, now: number): void; calm(): boolean }>(
 // A calm Taurus (idle or asleep: only a slow breath and the odd blink) moves 20 times a second, not 60. Every write
 // repaints him and the glass around him, in every window he is in (owner, November 18, 2026: Taurus ran the Mac hot).
 const CALM_MS = 50;
+// The Deck draws up to sixteen of him at once; past a few, the calm tick slows so the page does not repaint sixteen faces 20 times a second.
+const calmMs = () => (faces.size > 4 ? 100 : CALM_MS);
 // Between calm ticks it waits on a timer rather than asking for every frame, so the window has nothing to draw.
 let raf = 0, wait = 0, last = 0;
 // While the page rests (<html data-resting>: no input for a while, the window in the background, or the floating Taurus put
@@ -154,7 +156,7 @@ function loop(t: number) {
   if (!faces.size) { last = 0; return; }
   if ([...faces].every(f => f.calm())) {
     if (resting) { last = 0; restedAt = performance.now(); return; }
-    wait = window.setTimeout(() => { wait = 0; if (!raf) raf = requestAnimationFrame(loop); }, CALM_MS);
+    wait = window.setTimeout(() => { wait = 0; if (!raf) raf = requestAnimationFrame(loop); }, calmMs());
   } else raf = requestAnimationFrame(loop);
 }
 // Anything that moves him starts the next frame now instead of after the calm wait.

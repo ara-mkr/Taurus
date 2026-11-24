@@ -37,6 +37,8 @@ enum Screens {
             if !notched, top < 20 { top = 24 }
             if simulateNotch, index == 0, !notched { notched = true; top = 32 }
             if notched, camera < 1 { camera = 185 }
+            // The hardware notch has soft shoulders and its reported width is the bare gap: a few points of margin keep Taurus clear of it.
+            if notched { camera += 10 }
             return (s, NotchDisplay(id: id, frame: s.frame, builtIn: CGDisplayIsBuiltin(id) != 0, notched: notched,
                                     cameraWidth: camera, topHeight: top, isMain: index == 0))
         }

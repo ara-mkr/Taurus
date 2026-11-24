@@ -139,6 +139,8 @@ function onScreen(b: Bounds) {
 }
 
 function createWindow() {
+  // Never a second Taurus window: macOS can fire 'activate' while start() is still waiting on the server.
+  if (win && !win.isDestroyed()) return;
   const saved = readJson<Bounds>(windowFile(), { width: 1280, height: 860 });
   const position = onScreen(saved) ? { x: saved.x, y: saved.y } : {};
   win = new BrowserWindow({
