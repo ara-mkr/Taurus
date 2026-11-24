@@ -48,8 +48,14 @@ test('in the desktop app, “Hey Taurus” is heard on this Mac and the rest goe
   expect(phrase / 32_000).toBeLessThan(4.5);
 });
 
-test('in the desktop app, Talk listens on this Mac instead of saying to use a browser', async ({ page }) => {
+test('in the desktop app, “Hey Taurus” listens with nothing set: the voice settings start on there', async ({ page }) => {
   const { asked } = await open(page, '{}');
+  await expect.poll(() => asked.length, { timeout: 15_000 }).toBeGreaterThan(0);
+  expect(asked[0].replace(/[.!?]$/, '')).toBe('open my notes app');
+});
+
+test('in the desktop app, Talk listens on this Mac instead of saying to use a browser', async ({ page }) => {
+  const { asked } = await open(page, '{"wake":false}');
   await page.getByRole('button', { name: 'Talk', exact: true }).first().click();
   await expect.poll(() => asked.length, { timeout: 15_000 }).toBe(1);
   // Push-to-talk sends everything said, wake word and all; Ask gets it as spoken.
@@ -86,10 +92,12 @@ test('the Mac’s run-together forms of “Taurus” wake him, and sound-alikes 
     const path = '/src/components/Voice.tsx';
     const { afterWake } = await import(/* @vite-ignore */ path) as typeof import('../src/components/Voice');
     return ['Yotaurus, what’s next?', 'I taurus.', 'Heytaurus, open notes', 'Yo-Taurus, open notes', 'Hey, Taurus, open my notes app.', 'Taurus, pause', 'Hey taurus bot next song',
-      'Torus, set a timer for 5 minutes.', 'Hey box what is next', 'Thesaurus.', 'Tower', 'Okay, taurus in a box', 'Taurusville is lovely', 'I think so', 'Oh.'].map(afterWake);
+      'Torus, set a timer for 5 minutes.', 'Hey box what is next', 'Thesaurus.', 'Tower', 'Okay, taurus in a box', 'Taurusville is lovely', 'I think so', 'Oh.',
+      'Aetoras, what time is it?', 'Aotorus', 'Hey toras', 'A tarus. Open notes', 'Tours are great', 'Tears.', 'The tours, they were fun'].map(afterWake);
   });
   expect(got).toEqual(['what’s next?', '', 'open notes', 'open notes', 'open my notes app.', 'pause', 'next song',
-    'set a timer for 5 minutes.', null, null, null, 'in a box', null, null, null]);
+    'set a timer for 5 minutes.', null, null, null, 'in a box', null, null, null,
+    'what time is it?', '', '', 'open notes', null, null, null]);
 });
 
 // Taurus anywhere (November 16, 2026; docs/21-taurus-anywhere.md): with "Hey Taurus" or the clap on, the desktop window asks to keep

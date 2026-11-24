@@ -50,10 +50,13 @@ export function taurusAnywhere(o: Options) {
     return w;
   }
 
-  // Taurus's own window in front means the dashboard's Taurus is already the one listening.
+  // The dashboard on screen means its Taurus is already the one listening (owner, November 23, 2026: "why does the
+  // little taurus come from the bottom corner i lit had the dashboard up"). Only "focused" counted before, so a dashboard
+  // open beside the app you were typing in still brought him in. Closed to the menu bar, minimised, hidden or on
+  // another Space, he comes.
   function taurusInFront() {
     const m = o.main();
-    return Boolean(m && !m.isDestroyed() && m.isVisible() && m.isFocused());
+    return Boolean(m && !m.isDestroyed() && m.isVisible() && !m.isMinimized());
   }
 
   // He comes in beside the mouse on the screen you're using, then walks off to that screen's bottom corner (owner,

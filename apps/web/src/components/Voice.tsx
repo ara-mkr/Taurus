@@ -25,7 +25,11 @@ export const canListen = () => typeof window !== 'undefined' && Boolean(engine()
 export interface VoiceSettings { wake: boolean; speak: boolean; clap?: boolean }
 const key = 'taurus-voice';
 export function readVoice(): VoiceSettings {
-  try { const v = JSON.parse(localStorage.getItem(key) ?? '{}') as Partial<VoiceSettings>; return { wake: v.wake === true, speak: v.speak === true, clap: v.clap === true }; } catch { return { wake: false, speak: false, clap: false }; }
+  // In the desktop app "Hey Taurus", the double clap and spoken answers start on (owner, November 23, 2026: "it should
+  // reply and be listening for this and reply back with a voice"); hearing there stays on this Mac (../hearing.ts).
+  // Anything switched off in Settings stays off. In a browser or on the phone they still start off.
+  const on = inDesktop();
+  try { const v = JSON.parse(localStorage.getItem(key) ?? '{}') as Partial<VoiceSettings>; return { wake: v.wake ?? on, speak: v.speak ?? on, clap: v.clap ?? on }; } catch { return { wake: on, speak: on, clap: on }; }
 }
 export function saveVoice(v: VoiceSettings) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* storage blocked: the setting lasts this visit */ } }
 
@@ -46,7 +50,32 @@ const sameWords = (a: string, b: string) => { const x = words(a), y = words(b); 
 export function afterWake(phrase: string): string | null {
   const said = phrase.trim().toLowerCase().replace(/[“”"]/g, '').replace(/-/g, ' ').replace(/^[^a-z]+/, '');
   const m = said.match(wakeWord);
-  return m ? said.slice(m[0].length).trim() : null;
+  return m ? said.slice(m[0].length).trim() : soundsLikeWake(said);
+}
+
+// Moonshine on the Mac often spells the name by ear (November 23, 2026: "Hey Taurus" came back as "Aetoras"). A first word
+// that sounds like it counts when its consonants are t-r-s (taurus, toras, tarus, toros) after an optional run-together
+// greeting ("ae", "hey", "yo"), and only when it is clearly a call: a greeting before it, a greeting run into it, a comma
+// or stop after it, or nothing else said. So "Tours are great" or "Tears" mid-talk don't wake him.
+const greeting = /^(?:hey|hay|hi|hiya|hello|yo|ayo|ay|aye|ae|a|e|eh|oi|oh|okay|ok|hate|eight|i)$/;
+const notTheName = new Set(['tours', 'tears', 'tires', 'tries', 'trees', 'terse', 'tiers', 'tarts', 'trays', 'tress', 'traits', 'treats', 'trots', 'turns', 'tortes']);
+const skeleton = (w: string) => w.replace(/[aeiouyhw]/g, '');
+function nameLike(word: string): { joined: boolean } | null {
+  const m = word.match(/^(hey|hay|hi|yo|ayo|ay|ae|ao|a|e|eh|i|oi)?(t[a-z]{3,6})$/);
+  if (!m || notTheName.has(m[2]) || skeleton(m[2]) !== 'trs') return null;
+  return { joined: Boolean(m[1]) };
+}
+function soundsLikeWake(said: string): string | null {
+  const tokens = [...said.matchAll(/[a-z']+|[,.!?;:]/g)].map(t => ({ text: t[0], end: t.index! + t[0].length }));
+  const wordsOnly = tokens.filter(t => /[a-z]/.test(t.text));
+  if (!wordsOnly.length) return null;
+  let at = 0, called = false;
+  if (wordsOnly.length > 1 && greeting.test(wordsOnly[0].text) && nameLike(wordsOnly[1].text)) { at = 1; called = true; }
+  const name = nameLike(wordsOnly[at].text);
+  if (!name) return null;
+  const after = tokens[tokens.indexOf(wordsOnly[at]) + 1];
+  if (!(called || name.joined || !after || /^[,.!?;:]$/.test(after.text))) return null;
+  return said.slice(wordsOnly[at].end).replace(/^[\s,.!?;:]+/, '').trim();
 }
 
 const problems: Record<string, string> = {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Notification, Tray, nativeImage, nativeTheme, screen, session, shell, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
+import { app, BrowserWindow, Menu, Notification, Tray, nativeImage, nativeTheme, screen, session, shell, systemPreferences, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
 import { createServer } from 'node:net';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -371,6 +371,23 @@ async function start() {
   void listen();
   swarms.sync();
   hands.start();
+  win?.webContents.once('did-finish-load', () => setTimeout(() => void askPermissions(), 1500));
+}
+
+// Every Mac permission Taurus uses, asked for right away (owner, November 23, 2026: "right as u open it make it hit u
+// with all the stuff like allow microphone, allow video, allow control and accessbility"): the microphone for Talk and
+// "Hey Taurus", the camera for Look, then Screen Recording and Accessibility for helpers in other apps. macOS shows
+// each prompt once; ones already allowed or already answered are skipped, and the Accessibility and Screen Recording
+// prompts come back at most once a day while they stay off.
+async function askPermissions() {
+  if (!mac || process.env.TAURUS_HOME || process.env.TAURUS_DESKTOP_HIDDEN) return;
+  for (const media of ['microphone', 'camera'] as const) {
+    if (systemPreferences.getMediaAccessStatus(media) === 'not-determined') await systemPreferences.askForMediaAccess(media).catch(() => false);
+  }
+  const saved = readJson<{ askedControlAt?: number }>(desktopFile, {});
+  if (Date.now() - (saved.askedControlAt ?? 0) < 86_400_000) return;
+  writeJson(desktopFile, { ...saved, askedControlAt: Date.now() });
+  await hands?.askMissing();
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();

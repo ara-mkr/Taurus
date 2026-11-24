@@ -251,6 +251,14 @@ export function handsService(o: { here: string; local: string; home: string; tok
       setInterval(() => void refreshApps(), 60_000).unref();
     },
     menu,
+    // At start (owner, November 23, 2026: "right as u open it make it hit u with all the stuff"): macOS's own prompts
+    // for whichever of Screen Recording and Accessibility are still off. The owner still flips the switch in Settings.
+    async askMissing() {
+      if (!mac || !existsSync(helper)) return;
+      const now = await call<{ screen?: boolean; accessibility?: boolean }>('status').catch(() => undefined);
+      if (!now || (now.screen && now.accessibility)) return;
+      await call('ask', { screen: !now.screen, accessibility: !now.accessibility }).catch(() => undefined);
+    },
     quit() { release(); cursor.close(); proc?.kill(); },
   };
 }

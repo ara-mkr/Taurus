@@ -1,6 +1,6 @@
 {
   "name": "taurus-server",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "description": "Taurus local server: connectors, dashboard, ask, and phone ringing. Runs on your machine only.",

@@ -20,7 +20,7 @@ Everything runs on your own computer. Your keys and sign-ins stay in `~/.taurus`
 
 ## Download
 
-1. Open the [latest release](https://github.com/ara-mkr/OXBOT/releases/latest) and download **Taurus-0.3.2-AppleSilicon.dmg**. Taurus is built for Apple silicon Macs (M1 and later).
+1. Open the [latest release](https://github.com/ara-mkr/OXBOT/releases/latest) and download **Taurus-0.3.3-AppleSilicon.dmg**. Taurus is built for Apple silicon Macs (M1 and later).
 2. Open the DMG and drag **Taurus** into **Applications**.
 3. The first time you open it, macOS says it can't check the app, because it isn't signed with a paid Apple Developer ID. Go to **System Settings → Privacy & Security**, scroll to the message about Taurus and choose **Open Anyway**. You only do this once.
 4. Taurus shows up in the menu bar as the horns mark. Closing the window keeps him there so he can still ring you and work in the background. **Quit Taurus** in that menu stops him.

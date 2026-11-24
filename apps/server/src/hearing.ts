@@ -12,7 +12,9 @@ import { HttpError, store } from './store.ts';
 // 0.6 s with the Mac at load 33 (measured November 7, 2026). The model (about 110 MB) downloads once from Hugging Face into ~/.taurus/models; after that nothing leaves the Mac.
 // Audio is held in memory for the one request and never stored or logged.
 
-const MODEL = 'onnx-community/moonshine-tiny-ONNX';
+// Base, not tiny (November 23, 2026): tiny heard a short "Yo Taurus" as nothing and "play some music" as "place a music";
+// base gets both, in under a quarter of a second a phrase on an M3.
+const MODEL = 'onnx-community/moonshine-base-ONNX';
 export const RATE = 16_000;
 export const MAX_SECONDS = 15;
 
