@@ -23,3 +23,21 @@ qa-local/
 apps/desktop/release/
 .claude/settings.local.json
 .claude/worktrees/
+
+# Planning notes and agent instructions stay on the owner's Mac only.
+/Taurus_Master_Plan.*
+/MANIFEST.json
+/AGENTS.md
+/CLAUDE.md
+/PROJECT_STATE.json
+/LICENSE-DECISION.md
+/.agents/
+/.claude/
+/docs/*
+!/docs/readme/
+/design/*
+!/design/logo/
+/scripts/build_master.py
+/scripts/sync_skills.py
+/scripts/test_ui_study.py
+/scripts/validate_pack.py

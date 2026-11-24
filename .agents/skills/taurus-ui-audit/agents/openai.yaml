@@ -1,5 +1,0 @@
-interface:
-  display_name: "Taurus UI Audit"
-  short_description: "Independently review rendered UI and truthful states."
-  brand_color: "#4C54C9"
-  default_prompt: "Use the taurus-ui-audit skill for this Taurus task. Read the project phase and constraints first."

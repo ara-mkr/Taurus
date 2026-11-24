@@ -99,8 +99,6 @@ pnpm dev        # for working on it: server on :8787, web app with live reload o
 pnpm check      # typecheck, tests, lint and build for every app
 ```
 
-Developer notes: [`README.md`](README.md). Design and decisions: [`docs`](docs).
-
 ## Privacy
 
 - Taurus runs on your computer. There is no Taurus cloud, account, telemetry or auto-update.
@@ -117,8 +115,7 @@ Developer notes: [`README.md`](README.md). Design and decisions: [`docs`](docs).
 | `apps/desktop` | Electron app: menu bar, notch, Taurus over any app, packaging |
 | `apps/broker` | The one-click sign-in service for Google, Microsoft and others |
 | `apps/site` | The product website |
-| `docs` | Plans, design rules and the decision log |
 
 ## License
 
-No license has been chosen yet ([`LICENSE-DECISION.md`](LICENSE-DECISION.md)), so this is not yet open source. The notch is adapted from GPL-3.0 code, so a public release will be GPL-3.0.
+No license has been chosen yet, so this is not yet open source. The notch is adapted from GPL-3.0 code, so a public release will be GPL-3.0.
