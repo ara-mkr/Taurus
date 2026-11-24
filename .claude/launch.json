@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--dir",
-        "OXBOT",
+        ".",
         "dev"
       ],
       "port": 5173
@@ -16,7 +16,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -37,7 +37,7 @@
         "--bind",
         "127.0.0.1",
         "--directory",
-        "OXBOT/apps/site"
+        "apps/site"
       ],
       "port": 5180
     },
@@ -50,7 +50,7 @@
         "OXBOT_BROKER_URL=",
         "pnpm",
         "--dir",
-        "OXBOT",
+        ".",
         "dev"
       ],
       "port": 5173
@@ -66,7 +66,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5181",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8799
@@ -78,7 +78,7 @@
         "OXBOT_PORT=8799",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -100,7 +100,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5183",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8803
@@ -112,7 +112,7 @@
         "OXBOT_PORT=8803",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -134,7 +134,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5185",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8805
@@ -146,7 +146,7 @@
         "OXBOT_PORT=8805",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -168,7 +168,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5191",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8811
@@ -180,7 +180,7 @@
         "OXBOT_PORT=8811",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -202,7 +202,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5201",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "dev"
       ],
       "port": 8821
@@ -214,7 +214,7 @@
         "OXBOT_PORT=8821",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -236,7 +236,7 @@
         "OXBOT_APP_URL=http://127.0.0.1:5211",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "dev"
       ],
       "port": 8831
@@ -248,7 +248,7 @@
         "OXBOT_PORT=8831",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -271,7 +271,7 @@
         "TAURUS_APP_URL=http://127.0.0.1:5221",
         "pnpm",
         "--dir",
-        "OXBOT/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8841
@@ -283,7 +283,7 @@
         "TAURUS_PORT=8841",
         "pnpm",
         "--dir",
-        "OXBOT/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",
@@ -306,7 +306,7 @@
         "TAURUS_APP_URL=http://127.0.0.1:5231",
         "pnpm",
         "--dir",
-        "Taurus/apps/server",
+        "apps/server",
         "start"
       ],
       "port": 8851
@@ -318,7 +318,7 @@
         "TAURUS_PORT=8851",
         "pnpm",
         "--dir",
-        "Taurus/apps/web",
+        "apps/web",
         "exec",
         "vite",
         "--host",

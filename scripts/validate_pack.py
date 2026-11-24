@@ -22,7 +22,7 @@ def contrast(a: str, b: str) -> float:
 def main() -> int:
     errors=[]
     required=['README.md','AGENTS.md','CLAUDE.md','PROJECT_STATE.json','LICENSE-DECISION.md',
-              'design/tokens.css','design/ui-direction.html','prompts/01-first-build.md',
+              'design/tokens.css','design/ui-direction.html','docs/prompts/01-first-build.md',
               'docs/00-start-here.md','docs/03-ui-specification.md','docs/04-architecture.md',
               'docs/08-references.md','docs/source-catalog.json','docs/09-initial-backlog.md']
     for name in required:

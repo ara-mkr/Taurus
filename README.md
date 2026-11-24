@@ -1,124 +1,76 @@
 # Taurus
 
-**A Jarvis-style assistant that lives on your Mac.** Taurus sits in the middle of one clean screen with the bots working for you around him, your day on the right, and a type bar at the bottom. Talk or type, and he reads your real mail, calendar, messages, health and numbers to answer, sends helpers out to the web in parallel, moves your windows, plays your music, and rings every screen (then calls your phone) when something truly can't wait.
+Your local Jarvis-style assistant. The Taurus dashboard keeps its particle-orb HUD; closing it leaves the horns logo in the menu bar. Helpers emerge as coloured cursors while they work, with browser helpers working in parallel and Mac input taking turns. One page with what needs you, your schedule, your body and your company numbers, pulled live from the tools you already use. When something can't wait, it takes over your screen and rings like an alarm, then pushes to your phone, then calls it.
 
-Everything runs on your own computer. Your keys and sign-ins stay in `~/.taurus`, the AI you pick only sees what a question needs, and Taurus never sends, posts or buys anything until you approve that exact action.
+The app and server run on your Mac; configured AI providers receive your questions and relevant context. Connections read by default; sending, posting and purchases require approval of the exact action. Keys live in `~/.taurus`, readable only by you.
 
-![Taurus on Home: Taurus in his window over a pixel sky, five bots in boxes around him, the agents window and your calendar on the right](Taurus/docs/readme/home.jpg)
+## Run it
 
-<p align="center">
-  <a href="https://github.com/ara-mkr/OXBOT/releases/latest"><b>Download for Mac</b></a>
-  &nbsp;·&nbsp;
-  <a href="#whats-new-in-030">What's new</a>
-  &nbsp;·&nbsp;
-  <a href="#run-it-from-source">Run from source</a>
-  &nbsp;·&nbsp;
-  <a href="#make-it-call-your-phone">Make it call your phone</a>
-</p>
+Node 22.18 or newer and pnpm.
 
----
-
-## Download
-
-1. Open the [latest release](https://github.com/ara-mkr/OXBOT/releases/latest) and download **Taurus-0.3.0-arm64.dmg** (Apple silicon) or **Taurus-0.3.0.dmg** (Intel).
-2. Open the DMG and drag **Taurus** into **Applications**.
-3. The first time you open it, macOS says it can't check the app, because it isn't signed with a paid Apple Developer ID. Go to **System Settings → Privacy & Security**, scroll to the message about Taurus and choose **Open Anyway**. You only do this once.
-4. Taurus shows up in the menu bar as the horns mark. Closing the window keeps him there so he can still ring you and work in the background. **Quit Taurus** in that menu stops him.
-
-The first launch walks you through it out loud: your name, which apps to connect, and a quick tour. Until you connect something, every section shows clearly labelled **Sample** data.
-
-## What's new in 0.3.0
-
-- **A new Home.** Taurus in his own window over a dithered pixel sky, with what he's doing right now as the headline and a live status log under him. Your pick of calendar, inbox, what needs you, health, news or stocks on the right, and the chat bar at the bottom. Light or dark.
-- **Bots around Taurus.** Every bot working for you, his browser and each helper of a swarm, gets a small box bubbled around his window (up to 15, smaller as more join), each with its own little Taurus (different horns and eyes) and a light that pulses while it works. Click one and the **Agents** window shows its screen and its thoughts; **Expand** opens it in the new **Bots** tab, a full chat with each bot: every step it took, what it found, and a box to ask Taurus about it.
-- **Legal.** Your resume, contracts, company papers, taxes and IDs in one place, kept as notes in your Brain on this Mac so Taurus can read them when you ask. (ProFinder is gone.)
-- **Colours.** Slate, Black, White, Pink and blue, or Crimson, in light and dark, with hard square windows throughout. Settings now lists its pages down the side.
-- **Faster and smarter memory.** Core memory goes with every question; recall picks the few facts that fit it, from your memories, Brain notes and the words inside your files (a PDF is read once, then remembered). Other AI apps on your Mac can use Taurus's memory through an optional MCP server.
-- **More from your apps.** Apple Calendar and Notion Calendar, several Gmail accounts at once, Spotify and Apple Music controls with nothing connected, and DeepSeek for everyday questions with Claude for big jobs.
-- **Real voices.** The natural Kokoro voices now ship inside the app, so every voice in Personalize sounds like itself. Talk is a little level meter that dances while Taurus listens.
-- **On your Mac.** Close the window and Taurus keeps working from the menu bar: a cursor comes out of the menu bar for Mac work ("move Notes to the right side of my screen"), and helpers fly in their own colours.
-- **Cooler.** Home idles at about 3% CPU instead of about 30%.
-
-## What it does
-
-<table>
-<tr>
-<td width="50%"><img src="Taurus/docs/readme/bots.jpg" alt="The Bots tab: every bot on the left, one bot's whole chat on the right"><br><b>Bots.</b> Send a swarm of helpers to compare prices or research something, and watch each one in its own chat: every page it read, what it found, and how long it worked.</td>
-<td width="50%"><img src="Taurus/docs/readme/home-dark.jpg" alt="Home in dark, fifteen bots around Taurus"><br><b>Up to fifteen at once.</b> The boxes shrink as more bots join, and each one's light tells you whether it's still working, done, or stopped.</td>
-</tr>
-<tr>
-<td><img src="Taurus/docs/readme/legal.jpg" alt="Legal: resume, contracts, company papers, taxes, IDs"><br><b>Legal.</b> Drop in your resume, offer letters, leases, incorporation papers and tax forms. They stay on your Mac, and Taurus can answer "when does my lease end?" from them.</td>
-<td><img src="Taurus/docs/readme/settings.jpg" alt="Personalize with the five colour choices"><br><b>Make it yours.</b> Five colour sets, light or dark, how Taurus talks to you (witty, brief, warm or direct), and his voice.</td>
-</tr>
-<tr>
-<td><img src="Taurus/docs/readme/connections.jpg" alt="Connections"><br><b>194 connections.</b> Gmail, Outlook, Google and Apple Calendar, Slack, GitHub, Linear, Notion, Stripe, HubSpot, WHOOP, Oura, Strava, Spotify and many more. Reading is the default; acting needs its own switch.</td>
-<td><img src="Taurus/docs/readme/brain.jpg" alt="Brain map"><br><b>Brain.</b> What Taurus knows about you, as plain notes on your Mac you can read, edit or delete, with a memory panel that shows exactly what each question sent.</td>
-</tr>
-<tr>
-<td><img src="Taurus/docs/readme/phone.jpg" alt="Phone settings"><br><b>It rings when it matters.</b> A meeting about to start or mail from a VIP takes over every open screen like an alarm. Don't answer, and it pushes to your phone, then <i>calls</i> it.</td>
-<td align="center"><img src="Taurus/docs/readme/mobile.jpg" alt="Taurus on a phone" width="46%"><br><b>On your phone too.</b> Open it on your phone over Wi-Fi and add it to the home screen; it rings there as well.</td>
-</tr>
-</table>
-
-Also inside: "Hey Taurus" and double-clap to start talking, Taurus in the notch and over any app, House controls for lights and scenes, scheduled tasks, scans that read new mail and messages for you, skills, and MCP servers.
-
-## Make it call your phone
-
-Taurus places real phone calls through [Twilio](https://www.twilio.com/try-twilio). The free trial is enough to call **you**:
-
-1. Sign up for Twilio and choose the **Limited trial** (no card needed). Verify your own mobile number when it asks.
-2. Twilio gives your trial account a phone number. Find it, with your **Account SID** and **Auth token**, on the Twilio console's home page.
-3. In Taurus, open **Settings → Connections → Phone call (Twilio)** and paste the Account SID, the auth token, the Twilio number and your mobile.
-4. **Settings → Phone → Call me now.** Your phone rings within a few seconds.
-
-On the trial, each call starts with a short Twilio message before Taurus speaks, and it can only call numbers you've verified. A paid Twilio account has its own pricing and calling rules. To let Taurus call or text other people, turn on **Settings → Actions → Calls and texts**; every call still waits for your approval.
-
-## AI
-
-Pick whichever you have in **Settings → AI**:
-
-- **Taurus free:** a free [OpenRouter](https://openrouter.ai) account, signed in with one click. Available models and limits depend on your OpenRouter account.
-- **A plan you already pay for:** Claude, ChatGPT or Gemini, through their official apps on your Mac (Claude Code, Codex, Gemini CLI). Sign in to the app once in Terminal, then press **Test it**.
-- **An API key:** Anthropic, OpenAI, or any OpenAI-compatible service, including local models.
-
-## Run it from source
-
-You need Node 22.18 or newer and pnpm. The source folder is `Taurus`; an `OXBOT` compatibility link keeps older local launch paths working.
-
-```bash
-cd Taurus
-pnpm setup      # installs the server, web app and desktop app
-pnpm desktop    # opens Taurus as a desktop app
+```sh
+pnpm setup      # install both apps
+pnpm dev        # server on :8787, web app on http://127.0.0.1:5173
 ```
 
-Other ways to run it:
+Or as one process (builds the web app, then serves it from the server): `pnpm start`, then open http://localhost:8787.
 
-```bash
-pnpm start      # one process: builds the web app, then serves it on http://localhost:8787
-pnpm dev        # for working on it: server on :8787, web app with live reload on :5173
-pnpm check      # typecheck, tests, lint and build for every app
-```
+Or as a desktop app that lives in the menu bar or tray and rings even with its window closed: `pnpm desktop` to run it, `pnpm desktop:build` to package it for macOS, Windows and Linux. Install steps, including the first-open warnings for unsigned apps: `docs/13-desktop-and-install.md`.
 
-Developer notes: [`Taurus/README.md`](Taurus/README.md). Design and decisions: [`Taurus/docs`](Taurus/docs).
+With nothing connected, every section shows labelled sample data. Open **Connections** and add accounts one by one; each section switches to live data as soon as it has a source.
 
-## Privacy
-
-- Taurus runs on your computer. There is no Taurus cloud, account, telemetry or auto-update.
-- Keys and sign-ins live in `~/.taurus`, readable only by your user, and go only to the service they belong to.
-- Connections read by default. Sending email, replying in Slack, calling, texting, buying or changing anything is a separate switch, and even then nothing happens until you approve that exact action: who, what, the exact words, the item and total.
-- The voice runs on your Mac. Speech recognition uses your browser's built-in service, or Moonshine on your Mac in the desktop app.
-
-## Project layout
+## What's here
 
 | Path | What |
 |---|---|
-| `Taurus/apps/server` | Node server: connectors, dashboard, Ask, actions, ringing, voice |
-| `Taurus/apps/web` | React app: Home (the Deck), Bots, Brain, Legal, House, Settings |
-| `Taurus/apps/desktop` | Electron app: menu bar, notch, Taurus over any app, packaging |
-| `Taurus/apps/broker` | The one-click sign-in service for Google, Microsoft and others |
-| `Taurus/apps/site` | The product website |
-| `Taurus/docs` | Plans, design rules and the decision log |
+| `apps/server` | Node server, no framework. Connectors, dashboard, Ask, ringing. Run with `node src/index.ts`. |
+| `apps/broker` | The sign-in service that makes Google, Microsoft, WHOOP, Strava and Oura one click for anyone. Stores nothing. Deploy once; see its README. |
+| `apps/web` | React app: Today, Ask, Connections, Phone, and the full-screen ring/standby screen at `#ring`. Installable on a phone's home screen. |
+| `apps/desktop` | Electron app: starts the server as a child process, opens one window on `http://localhost:8787`, menu bar or tray, rings while hidden. |
+| `docs/10-phone-app.md` | The phone app plan: alarm-style rings (AlarmKit), "Taurus is calling" (CallKit), screens, timings, test matrix. |
+| `docs/11-design-rules.md` | The no-slop design rules and the research behind them. |
+| `docs/12-connections.md` | Every connector: what it reads, its scopes, how to set it up, and which were tested only against mocks. |
+| `docs/13-desktop-and-install.md` | The desktop app and the home-screen phone app: build, install on macOS, Windows and Linux, remove. |
+| `.env.example` | Every setting and key, if you prefer a file to the Connections page. |
 
-## License
+## Desktop helper cursors
 
-No license has been chosen yet ([`Taurus/LICENSE-DECISION.md`](Taurus/LICENSE-DECISION.md)), so this is not yet open source. The notch is adapted from GPL-3.0 code, so a public release will be GPL-3.0.
+Use `pnpm desktop`. Closing the dashboard keeps Taurus in the menu bar. **Helpers on every screen** controls the browser-helper overlays; helpers show their own browser pages, never a recording of your desktop. For Mac actions, enable **Helpers in other apps** yourself and add each permitted app. Try “move Notes to the right side of my monitor,” “put Notes on the left,” or “maximize Notes.” Window placement uses macOS window controls with a cursor alongside the move and verifies the resulting position. Esc cancels subsequent steps; an operation already handed to macOS may finish.
+
+Nus source review, reused code and verification: [docs/24-nus-review.md](docs/24-nus-review.md).
+
+## Connections
+
+Fifty-three, all read-only. Mail: Gmail, Outlook, Fastmail. Calendar: Google, Outlook, Apple/any ICS feed, Calendly, Zoom. Chat: Slack, Discord, Telegram, Teams. Tasks: Linear, Notion, Todoist, Asana, Trello, Jira, monday.com, Google Tasks, Microsoft To Do. Code: GitHub, GitLab, Sentry, PagerDuty. Files: Google Drive, Dropbox, Box, OneDrive, Obsidian. Sales and money: HubSpot, Intercom, Stripe, Shopify, Xero, Mercury. Numbers: Google Sheets, Airtable, Google Analytics. Health: WHOOP, Oura, Strava, Google Health, Withings, Apple Health export. Music, feeds and weather: Spotify, RSS, Hacker News, Open-Meteo. AI: Claude, ChatGPT. Ringing: ntfy push, Twilio call. The thirty-three added October 31 were built from each provider's documentation and tested only against mocks; `docs/12-connections.md` says which.
+
+Register one redirect URL with every OAuth provider: `http://localhost:8787/api/oauth/callback`.
+
+## Use it on your phone today
+
+Turn on **Let my phone connect** in the desktop app's menu (or start with `TAURUS_HOST=0.0.0.0 pnpm start`), open the **Phone** page on the Mac, open the pairing link on your phone, add it to the home screen, tap once to allow sound, leave it on the charger. Details and the native-app plan: `docs/10-phone-app.md`.
+
+## Checks
+
+```sh
+pnpm check                 # typecheck server, web and desktop, mocked connector tests, lint, build
+pnpm --dir apps/web test   # browser tests with a mocked API: both themes, 1440 and 390, axe, ring screen, home-screen app
+pnpm --dir apps/desktop test   # the Electron app on port 8790 with a throwaway TAURUS_HOME
+```
+
+Screenshots from the tests go to `qa-local/taurus/`.
+
+## Security
+
+- The server answers only to `localhost`, `127.0.0.1`, this Mac's LAN addresses and `TAURUS_PUBLIC_URL` (DNS-rebinding guard).
+- Requests from other devices need the pairing key (set once as an HttpOnly cookie).
+- Every write needs an `x-taurus: 1` header, which other websites can't send.
+- OAuth uses `state` and, where the provider supports it, PKCE.
+- Sending, posting, sharing, deleting and purchases require the owner’s approval of the exact action. Local playback, timers and allowed Mac controls follow their separate opt-in rules.
+
+## History
+
+This started as the Mule Bot blueprint. The original phase documents (`docs/00`–`09`), the master plan and `design/` remain as history; where they conflict with `docs/10`–`12`, the newer documents win. See `docs/decision-log.md`.
+
+## License and naming
+
+See `LICENSE-DECISION.md`. "Taurus" has not been trademark-cleared.

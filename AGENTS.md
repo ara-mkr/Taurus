@@ -9,7 +9,7 @@ Read PROJECT_STATE.json before planning any change. The owner, Akhil, controls s
 - UI work: docs/03-ui-specification.md and design/tokens.css.
 - Architecture discussion only: docs/04-architecture.md.
 - Coding workflow: docs/06-repo-and-coding-workflow.md.
-- First bounded implementation: prompts/01-first-build.md.
+- First bounded implementation: docs/prompts/01-first-build.md.
 - Actions and approvals (since November 1, 2026): docs/14-actions.md.
 
 ## Current hard boundaries

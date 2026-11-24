@@ -42,7 +42,7 @@ Review the synthetic fixtures, screen map and scope lock. Record the product/des
 
 ## 4. Give the first coding prompt to Claude Code or Codex
 
-Use `prompts/01-first-build.md`, which asks for the shell, Today screen and one evidence drawer. It also asks for real screenshots, accessibility checks and clear limits. It does not ask for authentication, a model provider, all five pages, a database, or a marketing site.
+Use `docs/prompts/01-first-build.md`, which asks for the shell, Today screen and one evidence drawer. It also asks for real screenshots, accessibility checks and clear limits. It does not ask for authentication, a model provider, all five pages, a database, or a marketing site.
 
 ## 5. Audit before expanding
 

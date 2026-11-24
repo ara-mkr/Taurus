@@ -270,12 +270,12 @@
       "sha256": "b40f15055dadc3b93f82c7faab7348830376d0fe0f8ff21a098aa8bd99cf7a46"
     },
     {
-      "path": "prompts/01-first-build.md",
+      "path": "docs/prompts/01-first-build.md",
       "bytes": 2634,
       "sha256": "f9da5e869f9f4f35a3ea93edf32c3bf6e2fc75b7a44e61392179c0c0e63dc254"
     },
     {
-      "path": "prompts/02-independent-audit.md",
+      "path": "docs/prompts/02-independent-audit.md",
       "bytes": 943,
       "sha256": "7d07af7219c5cccc107b60d0888f425a46e485743013a112174a513cb5ad53c1"
     },
@@ -300,22 +300,22 @@
       "sha256": "0b27a7fdddf6c9c987a71485941b991ce24ec48a2f0f9f6f36a383d5132d4656"
     },
     {
-      "path": "skill-packages/taurus-action-safety/skill.zip",
+      "path": "docs/skill-packages/taurus-action-safety/skill.zip",
       "bytes": 2248,
       "sha256": "2b91dab2fe56d2163ae28db7ad35cfda6789ae1c557882af4f14bf06904d2c89"
     },
     {
-      "path": "skill-packages/taurus-phase-gate/skill.zip",
+      "path": "docs/skill-packages/taurus-phase-gate/skill.zip",
       "bytes": 2074,
       "sha256": "3f770aad28dd57fc47e6dde30db81ae6472a14d28a1c622f0aabb9cedddd95fa"
     },
     {
-      "path": "skill-packages/taurus-ui/skill.zip",
+      "path": "docs/skill-packages/taurus-ui/skill.zip",
       "bytes": 2763,
       "sha256": "f520bd6b25a49494148e0600970bcc78e81fb0f61b0ac54da28c29f2c831743d"
     },
     {
-      "path": "skill-packages/taurus-ui-audit/skill.zip",
+      "path": "docs/skill-packages/taurus-ui-audit/skill.zip",
       "bytes": 2259,
       "sha256": "0e35e93512312aad84ef9440220ef27c8fdc2bdad49273ef34376533daffc764"
     }
