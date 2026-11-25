@@ -4,29 +4,6 @@ import { dashboard, food, hud, mock, prefs, shots } from './fixtures';
 
 test.use({ reducedMotion: 'reduce' });
 
-test('Personalize defaults to UI V2 and switches versions with the keyboard across reloads', async ({ page }) => {
-  await mock(page);
-  await page.goto('/#look');
-  const root = page.locator('html');
-  const classic = page.getByRole('radio', { name: 'UI V1 Classic Deck' });
-  const soft = page.getByRole('radio', { name: 'UI V2 Soft dashboard' });
-  await expect(soft).toBeChecked();
-  await expect(root).toHaveAttribute('data-ui', 'v2');
-  await soft.focus();
-  await page.keyboard.press('ArrowLeft');
-  await expect(classic).toBeChecked();
-  await expect(root).toHaveAttribute('data-ui', 'v1');
-  await page.reload();
-  await expect(classic).toBeChecked();
-  await page.goto('/#hud');
-  await expect(page.locator('.deck-sky')).toBeAttached();
-  await expect(page.locator('.rail .pixel-icon').first()).toBeVisible();
-  await page.goto('/#look');
-  await soft.check();
-  await page.reload();
-  await expect(soft).toBeChecked();
-});
-
 for (const [width, height] of [[1440, 900], [390, 844]]) {
   for (const theme of ['light', 'dark'] as const) {
     test(`UI V2 renders at ${width}px in ${theme} mode`, async ({ page }) => {
@@ -76,7 +53,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.screenshot({ path: `${shots}/interface-v2-home-${theme}-${width}.png`, fullPage: true });
 
       await page.goto('/#look');
-      await expect(page.getByRole('radio', { name: /UI V2/ })).toBeChecked();
+      await expect(page.getByRole('heading', { name: 'Personalize' })).toBeVisible();
+      await expect(page.getByRole('group', { name: 'Interface' })).toHaveCount(0);
       const settingsAxe = await new AxeBuilder({ page }).include('.settings-layout').analyze();
       expect(settingsAxe.violations.map(v => v.id)).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
@@ -130,7 +108,7 @@ test('UI V2 starts with a large icon rail that can expand and remembers the choi
   await expect(rail).toHaveCSS('width', '82px');
 });
 
-test('UI V2 replaces sample calendar, inbox and health data with a connection state', async ({ page }) => {
+test('Deck replaces sample calendar data with a connection state and keeps local to-dos', async ({ page }) => {
   await mock(page);
   const sections = Object.fromEntries(Object.keys(dashboard.sections).map(section =>
     [section, { live: false, sources: [], errors: [] }]));
@@ -143,13 +121,12 @@ test('UI V2 replaces sample calendar, inbox and health data with a connection st
   await calendar.getByRole('link', { name: 'Connect', exact: true }).click();
   await expect(page).toHaveURL(/#connections$/);
 
-  await page.goto('/#b/home');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Not connected yet.');
-  const health = page.getByRole('article', { name: 'Health', exact: true });
-  await expect(health.getByText('Not connected yet.')).toBeVisible();
-  await expect(health.getByRole('link', { name: 'Connect', exact: true })).toBeVisible();
+  await page.goto('/#hud');
+  const side = page.locator('.deck-side');
+  await side.getByRole('button', { name: /^What this window shows/ }).click();
+  await side.getByRole('option', { name: 'To do' }).click();
+  await expect(side.getByText('Send board deck')).toBeVisible();
   await expect(page.getByText('Dana Whitfield')).toHaveCount(0);
-  await expect(page.getByRole('article', { name: 'To do', exact: true }).getByText('Send board deck')).toBeVisible();
   await expect(page.getByText('Sample', { exact: true })).toHaveCount(0);
 });
 

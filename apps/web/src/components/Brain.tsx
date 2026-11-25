@@ -7,15 +7,46 @@ import '../styles/brain.css';
 
 // The Brain (owner, November 16, 2026: "a mindmap like obsidian of everything it remembers about u ... under certain
 // dots like job, there will be files like resume and shit u can just pull from"). The notes in ~/.taurus/brain drawn
-// as a force graph (force-graph by vasturiano, MIT; docs/23-brain-and-profinder.md says why), in one ink on glass.
+// as a force graph (force-graph by vasturiano, MIT; docs/23-brain-and-profinder.md says why).
 // Click a dot to read its note and its files; search, zoom, add and edit notes, drop files on a note.
 
-type GNode = BrainNode & { x?: number; y?: number };
+const hubPalette = {
+  Me: ['#3D526F', '#A3B9D9'],
+  Personality: ['#7350A0', '#BE9CEC'],
+  Career: ['#305F9A', '#7AA9F1'],
+  School: ['#08717D', '#6CD4D9'],
+  Friends: ['#9B426C', '#E99ABA'],
+  Family: ['#AE5C34', '#F1AD85'],
+  Hobbies: ['#8C660F', '#E1C472'],
+  Projects: ['#437342', '#9ECE87'],
+} as const;
+type Hub = keyof typeof hubPalette;
+type GNode = BrainNode & { x?: number; y?: number; hub?: Hub };
 type GLink = { source: string | GNode; target: string | GNode };
 const idOf = (end: string | GNode) => typeof end === 'string' ? end : end.id;
+const namedHub = (title: string): title is Hub => Object.hasOwn(hubPalette, title);
+
+function graphHubs(nodes: BrainNode[]) {
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  return new Map(nodes.map(node => {
+    let current: BrainNode | undefined = node;
+    const visited = new Set<string>();
+    while (current && !visited.has(current.id)) {
+      if (current.kind === 'hub' && namedHub(current.title)) return [node.id, current.title] as const;
+      visited.add(current.id);
+      current = current.up ? byId.get(current.up) : undefined;
+    }
+    return [node.id, undefined] as const;
+  }));
+}
 
 function useInk() {
-  const read = () => { const css = getComputedStyle(document.documentElement); return { ink: css.getPropertyValue('--ink').trim() || '#ECEBE6', font: getComputedStyle(document.body).fontFamily }; };
+  const read = () => {
+    const root = document.documentElement;
+    const css = getComputedStyle(root);
+    const dark = root.dataset.theme === 'dark' || (root.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    return { ink: css.getPropertyValue('--ink').trim() || '#ECEBE6', font: getComputedStyle(document.body).fontFamily, dark };
+  };
   const [ink, setInk] = useState(read);
   useEffect(() => {
     const update = () => setInk(read());
@@ -38,8 +69,9 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
   const box = useRef<HTMLDivElement>(null);
   const fg = useRef<ForceGraph<GNode, GLink> | null>(null);
   const hover = useRef<string | null>(null);
-  const { ink, font } = useInk();
-  const state = useRef({ selected, query: '', ink, font });
+  const { ink, font, dark } = useInk();
+  const state = useRef({ selected, query: '', ink, font, dark });
+  const groups = useMemo(() => graphHubs(graph.nodes), [graph.nodes]);
   const pick = useRef(onPick);
   const neighbours = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -47,7 +79,7 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     return m;
   }, [graph]);
   const near = useRef(neighbours);
-  useEffect(() => { state.current = { selected, query: query.trim().toLowerCase(), ink, font }; pick.current = onPick; near.current = neighbours; fg.current?.resumeAnimation(); });
+  useEffect(() => { state.current = { selected, query: query.trim().toLowerCase(), ink, font, dark }; pick.current = onPick; near.current = neighbours; fg.current?.resumeAnimation(); });
 
   useEffect(() => {
     const el = box.current;
@@ -56,8 +88,12 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     const focusOf = () => hover.current ?? state.current.selected;
     const lit = (n: string) => { const h = focusOf(); return !h || n === h || Boolean(near.current.get(h)?.has(n)); };
     const onLink = (l: GLink) => { const h = focusOf(); return Boolean(h) && (idOf(l.source) === h || idOf(l.target) === h); };
-    // The dot's drawn radius: small and even, like Obsidian, a touch bigger for busier notes.
-    const radius = (n: GNode) => 1.5 + Math.sqrt(Math.max(1, n.size)) * 1.7;
+    // Draw small dots at a nearly constant screen size. Use the hub color for its notes and attachments.
+    const degree = (n: GNode) => near.current.get(n.id)?.size ?? 0;
+    const screenR = (n: GNode) => n.kind === 'hub' ? Math.min(4.3, 3.2 + Math.sqrt(degree(n)) * 0.24)
+      : Math.min(2.8, 1.65 + Math.sqrt(degree(n)) * 0.24);
+    const radius = (n: GNode, scale: number) => screenR(n) * Math.min(1.15, Math.max(0.85, scale)) / scale;
+    const colorOf = (hub?: Hub) => hub ? hubPalette[hub][state.current.dark ? 1 : 0] : state.current.ink;
 
     // Where the cursor is over the canvas, so the dots can bend away from it (owner, November 17, 2026: "make it
     // interact with ur cursor like bend around it"). Kept in canvas pixels; turned into graph coordinates each tick.
@@ -69,50 +105,60 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     const g = new ForceGraph<GNode, GLink>(el)
       .backgroundColor('rgba(0,0,0,0)')
       .nodeId('id')
-      .nodeVal(n => n.size)
+      .nodeVal(1)
       .nodeRelSize(2)
       // Never cool down, so the web keeps breathing and reacts to the cursor; velocity damping keeps it calm, not drifting.
       .cooldownTicks(reduce ? 0 : Infinity)
-      .warmupTicks(reduce ? 220 : 40)
+      .warmupTicks(reduce ? 220 : 60)
       .d3AlphaDecay(reduce ? 0.0228 : 0)
-      .d3VelocityDecay(0.5)
-      .linkCurvature(0.12)
-      .linkWidth(l => onLink(l) ? 1.8 : 0.7)
-      .linkColor(l => { const h = focusOf(); return alpha(state.current.ink, h ? (onLink(l) ? 0.55 : 0.07) : 0.18); })
-      // The note in focus sends a few sparks down its own threads, so the web looks alive.
-      .linkDirectionalParticles(l => !reduce && onLink(l) ? 2 : 0)
-      .linkDirectionalParticleWidth(1.8)
-      .linkDirectionalParticleSpeed(0.006)
-      .linkDirectionalParticleColor(() => alpha(state.current.ink, 0.75))
+      .d3VelocityDecay(0.55)
+      .linkCurvature(0)
+      .linkWidth(0)
+      .linkCanvasObjectMode(() => 'replace')
+      .linkCanvasObject((l, ctx, scale) => {
+        const a = l.source as GNode, b = l.target as GNode;
+        if (a.x === undefined || b.x === undefined) return;
+        const h = focusOf();
+        ctx.beginPath(); ctx.moveTo(a.x, a.y!); ctx.lineTo(b.x, b.y!);
+        ctx.lineWidth = (onLink(l) ? 1.2 : 0.7) / scale;
+        const color = a.hub && a.hub === b.hub ? colorOf(a.hub) : state.current.ink;
+        ctx.strokeStyle = alpha(color, onLink(l) ? 0.65 : h || state.current.query ? 0.07 : 0.23);
+        ctx.stroke();
+      })
       .nodeCanvasObject((n, ctx, scale) => {
         const s = state.current;
         const match = Boolean(s.query) && n.title.toLowerCase().includes(s.query);
         const on = s.query ? match : lit(n.id);
-        const strength = s.query ? (match ? 1 : 0.13) : on ? (n.kind === 'missing' ? 0.3 : n.kind === 'note' ? 0.9 : 1) : 0.16;
-        const focused = focusOf() === n.id;
-        const r = radius(n);
-        // A soft halo on the live dots: the glow is the Obsidian look.
-        if (on && !reduce) { ctx.shadowColor = alpha(s.ink, Math.min(1, strength)); ctx.shadowBlur = (focused ? 2.4 : match ? 2.2 : 1.3) * r; }
+        const focused = focusOf() === n.id || n.id === s.selected;
+        const strength = focused || match ? 1 : on ? (n.kind === 'missing' ? 0.35 : 0.95) : 0.17;
+        const r = radius(n, scale);
+        if (focused) {
+          ctx.beginPath(); ctx.arc(n.x!, n.y!, r + 3 / scale, 0, 2 * Math.PI);
+          ctx.strokeStyle = alpha(s.ink, 0.8); ctx.lineWidth = 1 / scale; ctx.stroke();
+        }
         ctx.beginPath();
         ctx.arc(n.x!, n.y!, r, 0, 2 * Math.PI);
-        // Files are rings hanging off their note; links to notes not written yet are faint rings.
-        if (n.kind === 'file' || n.kind === 'missing') { ctx.lineWidth = 1.1 / Math.max(scale, 0.6); ctx.strokeStyle = alpha(s.ink, strength); ctx.stroke(); }
-        else { ctx.fillStyle = alpha(s.ink, strength); ctx.fill(); }
-        ctx.shadowBlur = 0;
-        if (focused || n.id === s.selected) { ctx.beginPath(); ctx.arc(n.x!, n.y!, r + 4 / scale, 0, 2 * Math.PI); ctx.lineWidth = 1.4 / scale; ctx.strokeStyle = alpha(s.ink, 0.85); ctx.stroke(); }
-        // Labels stay 13 px on screen at any zoom; small dots get theirs when zoomed in, near the one in focus, or found.
+        // Files are small rings hanging off their note; links to notes not written yet are faint rings.
+        if (n.kind === 'file' || n.kind === 'missing') { ctx.lineWidth = 1 / scale; ctx.strokeStyle = alpha(colorOf(n.hub), strength); ctx.stroke(); }
+        else { ctx.fillStyle = alpha(colorOf(n.hub), strength); ctx.fill(); }
+        // Label hubs at the overview scale. Other labels appear on selection, search, and closer zoom.
         const h = focusOf();
-        if (!(n.kind === 'hub' || scale > 1.6 || match || (h && lit(n.id)))) return;
-        const size = (n.kind === 'hub' ? 14 : 13) / scale;
-        ctx.font = `${n.kind === 'hub' ? 600 : 450} ${size}px ${s.font}`;
+        const fade = Math.max(0, Math.min(1, (scale - 2.15) / 0.8));
+        const wide = el.clientWidth >= 560;
+        const show = focused || n.kind === 'hub' || (wide && (match || (h && lit(n.id)) || fade > 0));
+        if (!show) return;
+        const textA = focused || match || (h && lit(n.id)) ? 0.98 : n.kind === 'hub' ? (on ? 0.82 : 0.3) : fade * (on ? 0.76 : 0.15);
+        if (textA <= 0.02) return;
+        ctx.font = `${focused || n.kind === 'hub' ? 600 : 400} ${13 / scale}px ${s.font}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillStyle = alpha(s.ink, Math.max(strength, 0.55));
-        ctx.fillText(n.title, n.x!, n.y! + r + 3 / scale);
+        ctx.fillStyle = alpha(s.ink, textA);
+        ctx.fillText(n.title, n.x!, n.y! + r + (focused ? 6 : 4) / scale);
       })
-      .nodePointerAreaPaint((n, color, ctx) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x!, n.y!, radius(n) + 4, 0, 2 * Math.PI); ctx.fill(); })
+      .nodePointerAreaPaint((n, color, ctx, scale) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x!, n.y!, Math.max(radius(n, scale) + 4 / scale, 9 / scale), 0, 2 * Math.PI); ctx.fill(); })
       .onNodeHover(n => { hover.current = n?.id ?? null; el.style.cursor = n ? 'pointer' : ''; })
       .onNodeClick(n => pick.current(n));
-    (g.d3Force('charge') as unknown as { strength?: (v: number) => void } | undefined)?.strength?.(-150);
+    (g.d3Force('link') as unknown as { distance?: (v: number) => void } | undefined)?.distance?.(34);
+    (g.d3Force('charge') as unknown as { strength?: (v: number) => void } | undefined)?.strength?.(-70);
 
     // The cursor force: dots inside a small radius are pushed straight away from the pointer; the other forces ease them
     // back the moment it moves on, so the web bends around the cursor. Added to velocity directly, so it works even
@@ -147,27 +193,36 @@ function Graph({ graph, selected, query, onPick }: { graph: BrainGraph; selected
     const g = fg.current;
     if (!g) return;
     const old = new Map(g.graphData().nodes.map(n => [n.id, n]));
-    const nodes = graph.nodes.map(n => { const was = old.get(n.id); return was ? Object.assign(was, n) : { ...n }; });
+    const nodes = graph.nodes.map(n => Object.assign(old.get(n.id) ?? {}, n, { hub: groups.get(n.id) }));
     const first = old.size === 0;
     g.graphData({ nodes, links: graph.links.map(l => ({ ...l })) });
     // The web keeps simulating, so there is no "engine stop" to wait for: give it a beat to spread, then frame it.
-    if (first) { const t = setTimeout(() => g.zoomToFit(500, 60), matchMedia('(prefers-reduced-motion: reduce)').matches ? 60 : 900); return () => clearTimeout(t); }
-  }, [graph]);
+    if (first) { const t = setTimeout(() => { g.zoomToFit(500, 60); setTimeout(() => { if (g.zoom() > 2.2) g.zoom(2.2, 300); }, 520); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 60 : 900); return () => clearTimeout(t); }
+  }, [graph, groups]);
 
   // Picking a dot brings it to the middle.
   useEffect(() => {
     const g = fg.current;
     const n = g?.graphData().nodes.find(x => x.id === selected);
-    if (g && n?.x !== undefined) { g.centerAt(n.x, n.y, 500); if (g.zoom() < 1.4) g.zoom(1.8, 500); }
+    if (g && n?.x !== undefined) { g.centerAt(n.x, n.y, 500); if (g.zoom() < 1.4) g.zoom(1.6, 500); }
   }, [selected]);
 
   const zoom = (by: number) => { const g = fg.current; if (g) g.zoom(g.zoom() * by, 250); };
   return <div className="brain-graph-wrap">
-    <div ref={box} className="brain-graph" role="img" aria-label={`Brain graph: ${graph.nodes.filter(n => n.kind === 'hub' || n.kind === 'note').length} notes and ${graph.nodes.filter(n => n.kind === 'file').length} files. Every note is also listed beside it.`} />
-    <div className="brain-zoom">
-      <button type="button" className="glass-button" onClick={() => zoom(1.4)} aria-label="Zoom in">+</button>
-      <button type="button" className="glass-button" onClick={() => zoom(1 / 1.4)} aria-label="Zoom out">−</button>
-      <button type="button" className="glass-button" onClick={() => fg.current?.zoomToFit(400, 60)}>Fit</button>
+    <ul className="brain-legend" aria-label="Note groups">
+      {graph.nodes.filter(n => n.kind === 'hub' && namedHub(n.title)).map(n => <li key={n.id}>
+        <button type="button" className="text-button" aria-current={selected === n.id ? 'true' : undefined} onClick={() => onPick(n)}>
+          <span aria-hidden="true" style={{ background: hubPalette[n.title as Hub][dark ? 1 : 0] }} />{n.title}
+        </button>
+      </li>)}
+    </ul>
+    <div className="brain-viewport">
+      <div ref={box} className="brain-graph" role="img" aria-label={`Brain graph: ${graph.nodes.filter(n => n.kind === 'hub' || n.kind === 'note').length} notes and ${graph.nodes.filter(n => n.kind === 'file').length} files. Every note is also listed beside it.`} />
+      <div className="brain-zoom">
+        <button type="button" className="glass-button" onClick={() => zoom(1.4)} aria-label="Zoom in">+</button>
+        <button type="button" className="glass-button" onClick={() => zoom(1 / 1.4)} aria-label="Zoom out">−</button>
+        <button type="button" className="glass-button" onClick={() => { const g = fg.current; if (!g) return; g.zoomToFit(400, 60); setTimeout(() => { if (g.zoom() > 2.2) g.zoom(2.2, 250); }, 420); }}>Fit</button>
+      </div>
     </div>
   </div>;
 }
@@ -280,6 +335,7 @@ export function BrainPage({ onAsk }: { onAsk: (question: string, frame?: string,
     </section>}
     <div className="brain-layout">
       <section className="brain-map glass" aria-label="Graph">
+        <h2 className="brain-map-title">Map</h2>
         {graph ? <Graph graph={graph} selected={selected} query={query} onPick={pick} /> : <p className="board-note">Loading.</p>}
         <p className="brain-foot muted">{graph && `${notes.length} notes, ${fileCount} file${fileCount === 1 ? '' : 's'}`}{folder && <> in {folder}. Open that folder in Obsidian to see the same graph.</>}</p>
       </section>

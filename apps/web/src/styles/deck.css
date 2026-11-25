@@ -179,8 +179,6 @@
 /* ---------- Legal (November 22, 2026): the same windows, one per folder of papers ---------- */
 .legal { position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 1240px; margin: 0 auto; padding: 28px 20px calc(var(--bar-bottom) + 110px); }
 .legal-head { display: grid; gap: 10px; margin-bottom: 26px; }
-.legal-kicker { display: inline-flex; align-items: center; gap: 8px; justify-self: start; margin: 0; padding: 3px 8px; border: 1px solid var(--ink); background: var(--surface); font-family: var(--mono); font-size: 13px; }
-.legal-head h1 { margin: 0; font-size: clamp(32px, 4.4vw, 56px); font-weight: 600; line-height: 1.02; letter-spacing: -.035em; }
 .legal-sub { margin: 0; max-width: 64ch; color: var(--ink-2); font-size: 15px; }
 .legal-grid { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
 .legal-grid > * { flex: 1 1 300px; min-width: min(300px, 100%); }

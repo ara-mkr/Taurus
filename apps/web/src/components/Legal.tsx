@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from 'react';
 import { api, type BrainNote } from '../api';
-import { PixelIcon } from './PixelIcon';
 
 // Legal (owner, November 22, 2026: "completely remove profinder ... just make a tab called Legal u put resume and all
 // stuff legal ... corporate"). Your resume, contracts, company papers, taxes and IDs, each section a note under "Legal"
@@ -110,9 +109,8 @@ export function LegalPage() {
   const total = Object.values(notes).reduce((sum, n) => sum + (n?.files.length ?? 0), 0);
 
   return <main id="main" tabIndex={-1} className="legal deck-look">
-    <header className="legal-head">
-      <p className="legal-kicker"><PixelIcon name="book" /> Legal</p>
-      <h1>Your papers, in one place.</h1>
+    <header className="page-head legal-head">
+      <h1>Legal</h1>
       <p className="legal-sub">Resume, contracts, company papers, taxes and IDs. They stay on this Mac in your Brain, under Legal{loaded ? ` · ${total} ${total === 1 ? 'file' : 'files'}` : ''}.</p>
     </header>
     {problem && <p className="legal-problem" role="alert">{problem} <button type="button" className="deck-chip" onClick={() => void load()}>Try again</button></p>}

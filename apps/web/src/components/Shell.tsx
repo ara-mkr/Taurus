@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { clock, type Activity, type Background, type Board, type BrowserState, type Dashboard, type TaurusWindow, type Prefs, type Profile, type Tint } from '../api';
+import { clock, type Activity, type Background, type BrowserState, type Dashboard, type TaurusWindow, type Prefs, type Profile, type Tint } from '../api';
 import { Logo } from './Logo';
-import { boardIcon, PixelIcon } from './PixelIcon';
 import { SoftIcon } from './SoftIcon';
-import type { UiVersion } from './Settings';
 import { Taurus } from './Taurus';
 import type { DockTab } from './Live';
 
@@ -41,10 +39,8 @@ export function Avatar({ name, photo, size = 34 }: { name: string; photo?: strin
 }
 
 interface RailProps {
-  uiVersion: UiVersion; expanded: boolean; onToggleExpand: () => void; boards: Board[]; current?: string; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
-  // Home is the view picked in Settings, Personalize: Hud (the dashboard) or the first board's tiles (owner,
-  // November 19, 2026: "make it just in settings either tile view or dashboard view and then home becomes that").
-  home: string; homeIsHud: boolean; doing: Doing[];
+  expanded: boolean; onToggleExpand: () => void; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
+  doing: Doing[];
 }
 
 // Quick access to what Taurus is doing right now (owner, November 5, 2026: "on the left side tab u can also see current
@@ -62,40 +58,52 @@ export function nowDoing({ entries, browser, wins, now, setDock, music }: { entr
   return out;
 }
 
-export function Rail({ uiVersion, expanded, onToggleExpand, boards, current, page, dock, setDock, open, onClose, home, homeIsHud, doing }: RailProps) {
+export function Rail({ expanded, onToggleExpand, page, dock, setDock, open, onClose, doing }: RailProps) {
   const expansionLabel = expanded ? 'Collapse sidebar' : 'Expand sidebar';
-  const NavIcon = uiVersion === 'v1' ? PixelIcon : SoftIcon;
+  const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
+  const hideTooltip = () => setTooltip(null);
+  const showTooltip = (target: EventTarget, rail: HTMLElement) => {
+    const control = target instanceof Element ? target.closest<HTMLElement>('[data-rail-title]') : null;
+    const label = control?.dataset.railTitle;
+    if (expanded || !control || !label) { hideTooltip(); return; }
+    const bounds = control.getBoundingClientRect();
+    setTooltip({ label, top: bounds.top + bounds.height / 2 - rail.getBoundingClientRect().top });
+  };
   const toggle = (t: DockTab) => { setDock(dock === t ? null : t); onClose(); };
   return <>
     {open && <div className="scrim" onClick={onClose} aria-hidden="true" />}
-    <nav className={`rail ${open ? 'open' : ''}`} aria-label="Main" id="rail">
+    <nav className={`rail ${open ? 'open' : ''}`} aria-label="Main" id="rail"
+      onPointerOver={e => { if (e.pointerType === 'mouse') showTooltip(e.target, e.currentTarget); }}
+      onPointerLeave={hideTooltip} onFocus={e => showTooltip(e.target, e.currentTarget)}
+      onBlur={hideTooltip} onScrollCapture={hideTooltip} onClick={hideTooltip}
+      onKeyDown={e => { if (e.key === 'Escape') hideTooltip(); }}>
       <div className="rail-panel">
         {/* No logo up here any more (owner, November 23, 2026: "remove the taurus logo from the top left corner"). */}
-        {uiVersion === 'v2' && <button className="rail-expand" type="button" aria-expanded={expanded} aria-controls="rail" aria-label={expansionLabel} title={expansionLabel}
-          onClick={onToggleExpand}><SoftIcon name="sidebar" /><span className="rail-label">{expanded ? 'Collapse' : 'Expand'}</span></button>}
+        <button className="rail-expand" type="button" aria-expanded={expanded} aria-controls="rail" aria-label={expansionLabel} data-rail-title={expansionLabel}
+          onClick={onToggleExpand}><SoftIcon name="sidebar" /><span className="rail-label">{expanded ? 'Collapse' : 'Expand'}</span></button>
         <ul className="rail-list" aria-label="Tabs">
-          <li><a href={home} title="Home" aria-current={(homeIsHud ? page === 'hud' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}><NavIcon name="home" /><span className="rail-label">Home</span></a></li>
-          {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} title={b.name} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}><NavIcon name={boardIcon(b.name)} /><span className="rail-label">{b.name}</span></a></li>)}
+          <li><a href="#hud" data-rail-title="Home" aria-current={page === 'hud' ? 'page' : undefined} onClick={onClose}><SoftIcon name="home" /><span className="rail-label">Home</span></a></li>
         </ul>
         <ul className="rail-list rail-taurus" aria-label="Taurus">
           {/* November 22, 2026 (owner): Ask Taurus and ProFinder are gone; the chat bar asks, and Legal holds the resume and papers. */}
-          <li><a href="#bots" title="Bots" aria-current={page === 'bots' ? 'page' : undefined} onClick={onClose}><NavIcon name="bot" /><span className="rail-label">Bots</span></a></li>
-          <li><a href="#house" title="House" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}><NavIcon name="house" /><span className="rail-label">House</span></a></li>
-          <li><a href="#brain" title="Brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}><NavIcon name="brain" /><span className="rail-label">Brain</span></a></li>
-          <li><a href="#legal" title="Legal" aria-current={page === 'legal' ? 'page' : undefined} onClick={onClose}><NavIcon name="book" /><span className="rail-label">Legal</span></a></li>
-          <li><button type="button" title="Browser" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}><NavIcon name="globe" /><span className="rail-label">Browser</span></button></li>
-          <li><button type="button" title="Activity" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}><NavIcon name="bolt" /><span className="rail-label">Activity</span></button></li>
+          <li><a href="#bots" data-rail-title="Bots" aria-current={page === 'bots' ? 'page' : undefined} onClick={onClose}><SoftIcon name="bot" /><span className="rail-label">Bots</span></a></li>
+          <li><a href="#house" data-rail-title="House" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}><SoftIcon name="house" /><span className="rail-label">House</span></a></li>
+          <li><a href="#brain" data-rail-title="Brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}><SoftIcon name="brain" /><span className="rail-label">Brain</span></a></li>
+          <li><a href="#legal" data-rail-title="Legal" aria-current={page === 'legal' ? 'page' : undefined} onClick={onClose}><SoftIcon name="book" /><span className="rail-label">Legal</span></a></li>
+          <li><button type="button" data-rail-title="Browser" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}><SoftIcon name="globe" /><span className="rail-label">Browser</span></button></li>
+          <li><button type="button" data-rail-title="Activity" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}><SoftIcon name="bolt" /><span className="rail-label">Activity</span></button></li>
         </ul>
         {doing.length > 0 && <ul className="rail-list rail-now" aria-label="What Taurus is doing now">
           {doing.map(d => <li key={d.id} className="rail-doing">
-            <button type="button" onClick={() => { d.go(); onClose(); }} title={d.text}>{uiVersion === 'v2' && <SoftIcon name="bolt" />}<span className="rail-doing-text rail-label">{d.text}</span></button>
+            <button type="button" onClick={() => { d.go(); onClose(); }} data-rail-title={d.text}><SoftIcon name="bolt" /><span className="rail-doing-text rail-label">{d.text}</span></button>
             {d.extra && <button type="button" className="rail-doing-extra" onClick={d.extra.run}>{d.extra.label}</button>}
           </li>)}
         </ul>}
         <ul className="rail-list rail-foot" aria-label="Settings">
-          <li><a href="#settings" title="Settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}><NavIcon name="gear" /><span className="rail-label">Settings</span></a></li>
+          <li><a href="#settings" data-rail-title="Settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}><SoftIcon name="gear" /><span className="rail-label">Settings</span></a></li>
         </ul>
       </div>
+      {tooltip && !expanded && <span className="rail-tooltip" style={{ top: tooltip.top }} aria-hidden="true">{tooltip.label}</span>}
     </nav>
   </>;
 }

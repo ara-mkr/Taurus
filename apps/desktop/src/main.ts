@@ -351,7 +351,7 @@ async function start() {
   guard();
   appMenu();
   // Run from source the app is Electron's own bundle, with Electron's icon; show Taurus's in the Dock instead.
-  if (mac && !app.isPackaged) app.dock?.setIcon(join(here, '../assets/icon-512.png'));
+  if (mac && !app.isPackaged) app.dock?.setIcon(join(here, '../assets/icon-dock.png'));
   // One Taurus, whichever way it was opened: reuse a server already on the port.
   if ((await health())?.app !== 'taurus') {
     if (!(await portFree()) || !(await startServer(lanOn()))) { busyWindow(); return; }

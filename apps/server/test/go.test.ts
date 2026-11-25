@@ -23,6 +23,7 @@ test('pages open by voice, with or without the wake word', () => {
   assert.equal(hash('show me my routines'), '#schedule');
   assert.equal(hash('go to connections'), '#connections');
   assert.equal(hash('yo taurus take me home'), '#hud');
+  assert.deepEqual(pageFor(tidy('open the board view')), { hash: '#hud', name: 'Home' });
   assert.equal(hash('go back'), 'back');
 });
 

@@ -131,24 +131,22 @@ test('phone home-screen app: the chat bar stays put while the page scrolls, and 
 
 // November 23, 2026 (owner: "only add simple color options like black or white ... the pink and blue ... red crimson"):
 // five colour sets replace the nine moving backgrounds, and the choice stays on this device.
-test('UI V1 has five colours to choose from, and picking one changes the whole app', async ({ page }) => {
+test('Personalize keeps its five accent colours', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('taurus-ui-version', 'v1');
     localStorage.setItem('taurus-appearance', 'light');
   });
   await mock(page);
   await page.goto('/#look');
-  const colours = page.getByRole('group', { name: 'Colours' });
+  const colours = page.getByRole('group', { name: 'Accent colours' });
   await expect(colours.getByRole('radio')).toHaveCount(5);
   await expect(colours.locator('.palette strong')).toHaveText(['Slate', 'Black', 'White', 'Pink and blue', 'Crimson']);
   await expect(colours.getByRole('radio', { name: /^Slate/ })).toBeChecked();
   await colours.getByRole('radio', { name: /^Crimson/ }).check();
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'crimson');
-  await expect(page.locator('.rail-panel')).toHaveCSS('background-color', 'rgb(122, 22, 38)');
   expect(await page.evaluate(() => localStorage.getItem('taurus-palette'))).toBe('crimson');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'crimson');
-  await page.getByRole('group', { name: 'Colours' }).screenshot({ path: `${shots}/look/colours.png` });
+  await page.getByRole('group', { name: 'Accent colours' }).screenshot({ path: `${shots}/look/colours.png` });
   await colours.getByRole('radio', { name: /^Slate/ }).check();
   await expect(page.locator('html')).not.toHaveAttribute('data-palette', /./);
 });

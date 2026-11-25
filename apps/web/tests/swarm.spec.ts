@@ -36,8 +36,8 @@ function stream(page: Page) {
 async function start(page: Page) {
   await mock(page);
   const send = stream(page);
-  // On a board: on Home (the Deck) the bots sit in boxes around Taurus and the Swarm panel steps aside (deck.spec.ts).
-  await page.goto('/#b/home');
+  // Away from Deck, where the bots have their own layout around Taurus.
+  await page.goto('/#profile');
   await expect(page.locator('[data-taurus-center], .chatbar .composer-bar').first()).toBeVisible();
   await page.waitForTimeout(700);
   return send;

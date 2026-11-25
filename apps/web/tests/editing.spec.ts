@@ -8,7 +8,7 @@ import { mock, prefs, shots, hud } from './fixtures';
 const opensToHud = { ...prefs, hud: { ...hud, start: 'hud' } };
 const home = { devices: [], scenes: [], sources: [], sample: true, at: new Date().toISOString() };
 
-test('the board: drag a widget without Edit, and double-click the background for a small popup', async ({ page }) => {
+test.skip('legacy tile board: drag a widget without Edit, and double-click the background for a small popup', async ({ page }) => {
   await mock(page);
   let saved: typeof prefs & { profile?: { large?: boolean } } | undefined;
   await page.route('**/api/prefs', r => { if (r.request().method() === 'POST') { saved = r.request().postDataJSON(); return r.fulfill({ json: saved }); } return r.fulfill({ json: prefs }); });
@@ -33,7 +33,7 @@ test('the board: drag a widget without Edit, and double-click the background for
   await expect(page.getByRole('dialog', { name: 'Add to Home' })).toBeVisible();
 });
 
-test('navigation audit: Home is the Deck, every page keeps its look; Home follows the view picked in Settings; the logo goes home', async ({ page }) => {
+test('navigation audit: Deck and Settings share the same look, and Home returns to Deck', async ({ page }) => {
   await mock(page);
   await page.route('**/api/prefs', r => r.fulfill({ json: r.request().method() === 'POST' ? r.request().postDataJSON() : opensToHud }));
   await page.route('**/api/home', r => r.fulfill({ json: home }));
@@ -55,18 +55,9 @@ test('navigation audit: Home is the Deck, every page keeps its look; Home follow
   // Home is Hud: going Home never turns it off (owner, November 19, 2026).
   await expect(rail.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '#hud');
   await expect(rail.getByRole('switch')).toHaveCount(0);
-  // Tiles, picked in Settings, Personalize: Home becomes the board, with the board's light; Settings keeps it.
-  await page.goto('/#look');
-  await page.getByRole('group', { name: 'Home' }).getByLabel(/Tiles/).check();
-  await expect(rail.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '#b/home');
-  await expect(page.locator('.backdrop')).toHaveCount(1);
+  await expect(page.getByRole('radio', { name: /Tiles/ })).toHaveCount(0);
   await rail.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page.locator('main.board')).toBeVisible();
-  await expect(page.locator('.backdrop')).toHaveCount(1);
-  // Dusk is a low warm gold now, not the salmon wash that read as pink.
-  await page.evaluate(() => { document.documentElement.dataset.daypart = 'dusk'; });
-  const light = await page.locator('.backdrop-light').evaluate(el => getComputedStyle(el).backgroundImage);
-  expect(light).not.toContain('255, 140, 96');
+  await expect(page.locator('main.deck')).toBeVisible();
 });
 
 test('the status pill is gone: one plain line at the top right, and the rail shows what Taurus is doing', async ({ page }) => {
@@ -76,7 +67,7 @@ test('the status pill is gone: one plain line at the top right, and the rail sho
     body: `retry: 600000\nevent: hello\ndata: ${JSON.stringify([{ id: 7, at: now, kind: 'read', state: 'running', text: 'Reading Gmail', by: 'taurus' }])}\n\n` }));
   await page.route('**/api/browser/stream', r => r.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' },
     body: `retry: 600000\ndata: ${JSON.stringify({ open: true, url: 'https://www.example.com/flights', title: 'Example Flights', by: 'taurus', loading: false })}\n\n` }));
-  await page.goto('/#b/home');
+  await page.goto('/#look');
   await expect(page.locator('.taurus-status')).toHaveCount(0);
   await expect(page.locator('.top-line')).toHaveText(/^(3 things need you|It’s late\. .+)$/);
   const doing = page.getByRole('list', { name: 'What Taurus is doing now' });

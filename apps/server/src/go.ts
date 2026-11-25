@@ -17,7 +17,7 @@ const pages: [RegExp, Page][] = [
   [/^(?:chat|ask|conversation|our chat|chat history)$/, { hash: '#ask', name: 'Chat' }],
   [/^(?:house|smart home|home controls|lights and devices|devices)$/, { hash: '#house', name: 'House' }],
   [/^(?:profile|me|about me)$/, { hash: '#profile', name: 'Profile' }],
-  [/^(?:boards?|board view|widgets)$/, { hash: '#b/home', name: 'Board' }],
+  [/^(?:boards?|board view|widgets)$/, { hash: '#hud', name: 'Home' }],
   [/^(?:standby|ring ?screen|alarm screen)$/, { hash: '#ring', name: 'Standby' }],
   [/^(?:settings|preferences|taurus settings|tabs and widgets)$/, { hash: '#settings', name: 'Settings' }],
   [/^(?:personali[sz]e|look|appearance|theme|wallpaper)$/, { hash: '#look', name: 'Personalize' }],

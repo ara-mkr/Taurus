@@ -1,74 +1,41 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { dashboard, mock, prefs, ring, shots } from './fixtures';
+import { mock, ring, shots } from './fixtures';
 
 // Cards fade in on load; measure contrast at rest.
 test.use({ reducedMotion: 'reduce' });
 
 for (const scheme of ['light', 'dark'] as const) {
   for (const width of [1440, 390]) {
-    test(`board ${scheme} ${width}`, async ({ page }) => {
+    test(`Deck ${scheme} ${width} replaces saved tile and classic preferences`, async ({ page }) => {
       await page.addInitScript(() => {
         localStorage.setItem('taurus-ui-version', 'v1');
+        localStorage.setItem('taurus-start', 'board');
         localStorage.setItem('taurus-appearance', 'auto');
       });
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width, height: width > 500 ? 1000 : 844 });
       await mock(page);
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(dashboard.brief);
-      await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
-      await expect(page.getByText('1 of 5 sections show sample data.')).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Join' }).first()).toBeVisible();
-      await expect(page.getByText('Example A Inc.')).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Example Corp opens a second office' })).toBeVisible();
-      await expect(page.getByRole('img', { name: /^Recovery, 30 days/ })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'People' })).toBeVisible();
+      await expect(page.locator('main.deck')).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-ui', 'v2');
+      await page.goto('/#b/markets');
+      await expect(page.locator('main.deck')).toBeVisible();
+      await expect(page.locator('main.board')).toHaveCount(0);
+      await expect(page.locator('.rail a[href^="#b/"]')).toHaveCount(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-      const smallest = await page.evaluate(() => Math.min(...[...document.querySelectorAll('body *')].filter(el => el.childNodes[0]?.nodeType === 3 && (el as HTMLElement).offsetParent).map(el => parseFloat(getComputedStyle(el).fontSize))));
-      expect(smallest).toBeGreaterThanOrEqual(13);
-      const axe = await new AxeBuilder({ page }).analyze();
-      expect(axe.violations.map(v => v.id)).toEqual([]);
-      await page.screenshot({ path: `${shots}/board-${scheme}-${width}.png`, fullPage: true });
+      expect((await new AxeBuilder({ page }).include('main').analyze()).violations.map(v => v.id)).toEqual([]);
     });
   }
 }
 
-test('boards can be edited, extended and managed in settings', async ({ page }) => {
+test('Settings opens Personalize and hides the retired dashboard and interface choices', async ({ page }) => {
   await mock(page);
-  const saved: unknown[] = [];
-  page.on('request', r => { if (r.url().endsWith('/api/prefs') && r.method() === 'POST') saved.push(r.postDataJSON()); });
-  await page.goto('/');
-  await page.getByLabel('Add a to-do').fill('Call Dana');
-  await page.getByLabel('Add a to-do').press('Enter');
-  await expect(page.getByRole('article', { name: 'To do' }).getByText('Call Dana')).toBeVisible();
-  await page.getByRole('button', { name: 'Edit' }).click();
-  await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
-  await page.getByRole('combobox').first().selectOption('full');
-  await page.getByRole('button', { name: 'Add widget' }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet.getByRole('heading', { name: 'Add to Home' })).toBeVisible();
-  expect((await new AxeBuilder({ page }).include('dialog').analyze()).violations.map(v => v.id)).toEqual([]);
-  await page.screenshot({ path: `${shots}/add-widget-1440.png` });
-  await sheet.getByRole('button', { name: /^Note/ }).click();
-  await expect(page.getByRole('heading', { name: 'Note' })).toBeVisible();
-  await page.getByRole('button', { name: 'Done' }).click();
-  await expect.poll(() => (saved.at(-1) as typeof prefs | undefined)?.boards[0].widgets.at(-1)?.type).toBe('note');
-  const last = saved.at(-1) as typeof prefs;
-  expect(last.boards[0].widgets[0].size).toBe('full');
-  expect(last.boards[0].widgets.at(-1)!.type).toBe('note');
-  expect(last.todos[0].text).toBe('Call Dana');
-
-  await page.getByRole('link', { name: 'Markets' }).click();
-  await expect(page.getByRole('img', { name: /^EXA, 1M/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Profile and settings' }).click();
-  // November 6, 2026: the profile menu is short now; Settings opens Tabs and widgets.
-  await page.locator('#profile-menu').getByRole('link', { name: 'Settings' }).click();
-  await expect(page.getByRole('heading', { name: 'Tabs and widgets' })).toBeVisible();
-  expect((await new AxeBuilder({ page }).analyze()).violations.map(v => v.id)).toEqual([]);
-  await page.getByRole('link', { name: 'Personalize' }).click();
-  await page.getByRole('radio', { name: /^Crimson/ }).check();
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'crimson');
+  await page.goto('/#settings');
+  await expect(page.getByRole('heading', { name: 'Personalize' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tabs and widgets' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Interface' })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: /Tiles/ })).toHaveCount(0);
   await page.screenshot({ path: `${shots}/look-1440.png`, fullPage: true });
 });
 

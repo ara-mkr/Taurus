@@ -74,12 +74,18 @@ async function mockMemory(page: Page, posted: { url: string; body: unknown }[]) 
 }
 
 test('the Brain draws every note as a dot, opens a note with its files, finds, adds and takes a file', async ({ page }) => {
+  test.setTimeout(60_000);
   await mock(page);
   const posted = await mockBrain(page);
   await page.goto('/#brain');
   await expect(page.getByRole('heading', { name: 'Brain', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Map', exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Brain graph: 21 notes and 3 files. Every note is also listed beside it.' })).toBeVisible();
   await expect(page.locator('.brain-graph canvas').first()).toBeVisible();
+  const legend = page.getByRole('list', { name: 'Note groups' });
+  await expect(legend.getByRole('button')).toHaveCount(8);
+  const colors = await legend.locator('button > span').evaluateAll(marks => marks.map(mark => getComputedStyle(mark).backgroundColor));
+  expect(new Set(colors).size).toBe(8);
   await expect(page.getByText('21 notes, 3 files in ~/.taurus/brain.', { exact: false })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Taurus learned one thing. Add it to your Brain?' })).toBeVisible();
 
@@ -88,6 +94,8 @@ test('the Brain draws every note as a dot, opens a note with its files, finds, a
   await page.screenshot({ path: `${shots}/brain-graph-1440-dark.png` });
 
   const outline = page.getByRole('navigation', { name: 'All notes' });
+  await legend.getByRole('button', { name: 'Career', exact: true }).press('Enter');
+  await expect(legend.getByRole('button', { name: 'Career', exact: true })).toHaveAttribute('aria-current', 'true');
   await outline.getByRole('button', { name: 'Resume', exact: true }).click();
   const side = page.getByRole('complementary', { name: 'Note' });
   await expect(side.getByRole('heading', { name: 'Resume', level: 2 })).toBeVisible();

@@ -4,19 +4,18 @@ import { Actions } from './components/Actions';
 import { ApprovalTray } from './components/Approval';
 import { Ask, type ChatTurn } from './components/Ask';
 import { Scans } from './components/Scans';
-import { BoardView } from './components/Board';
 import { AI } from './components/AI';
 import { ChatBar, type Extras } from './components/ChatBar';
 import { Connections } from './components/Connections';
 import { Dock, useActivity, useBrowser, type DockTab } from './components/Live';
-import { Onboarding, wasOnboarded } from './components/Onboarding';
+import { ONBOARDED_KEY, Onboarding, wasOnboarded } from './components/Onboarding';
 import { TaurusWindows, useOxWindows } from './components/TaurusWindows';
 import { Swarm } from './components/Swarm';
 import { Phone } from './components/Phone';
 import { ProfilePage } from './components/Profile';
 import { Schedule, Skills } from './components/Skills';
-import { House } from './components/House';
 import { BrainPage } from './components/Brain';
+import { House } from './components/House';
 import { LegalPage } from './components/Legal';
 import { BotsPage } from './components/Bots';
 import { useBotRecorder } from './bots';
@@ -24,33 +23,27 @@ import { hudDefaults } from './components/CloudDashboard';
 import { Deck } from './components/Deck';
 import { pickCenter, useTick, type Asked } from './components/TaurusWidget';
 import { armAlarm, RingScreen, Standby, Unreachable, useRing } from './components/Ringing';
-import { Look, readPalette, readUiVersion, settingsPages, SettingsNav, Tabs, type Appearance, type Palette, type UiVersion } from './components/Settings';
+import { Look, readPalette, settingsPages, SettingsNav, type Appearance, type Palette, type UiVersion } from './components/Settings';
 import { NotchPage } from './components/NotchSettings';
-import { Backdrop, daypart, dayLine, nowDoing, PeopleStrip, Rail, TopBar } from './components/Shell';
+import { Backdrop, daypart, dayLine, nowDoing, Rail, TopBar } from './components/Shell';
 import { readVoice, saveVoice, useVoice, VoiceStrip, type VoiceSettings } from './components/Voice';
 import { unlockAudio } from './speech';
 
-// Routes: #b/<board id>, #ask, the settings pages, and #ring for a phone on standby.
-type Page = { kind: 'board'; id?: string } | { kind: 'ask' | 'ring' | 'house' | 'profile' | 'brain' | 'legal' | 'bots' } | { kind: 'hud'; implicit?: boolean } | { kind: 'settings'; page: keyof typeof settingsPages };
+type Page = { kind: 'ask' | 'ring' | 'house' | 'profile' | 'brain' | 'legal' | 'bots' } | { kind: 'hud' } | { kind: 'settings'; page: keyof typeof settingsPages };
 function readPage(): Page {
   const hash = location.hash.slice(1);
-  if (hash.startsWith('b/')) return { kind: 'board', id: decodeURIComponent(hash.slice(2)) };
   if (hash === 'ask' || hash === 'ring' || hash === 'house' || hash === 'profile' || hash === 'legal') return { kind: hash };
   // Bots (November 23, 2026): #bots, or #bots/<id> to open one bot's chat.
   if (hash === 'bots' || hash.startsWith('bots/')) return { kind: 'bots' };
   // The Brain (November 16, 2026): #brain, or #brain/<note> to open one note.
   if (hash === 'brain' || hash.startsWith('brain/')) return { kind: 'brain' };
-  // Hud (November 5, 2026) is where Taurus opens, unless you picked the board instead.
-  if (hash === 'hud' || hash === 'sky') return { kind: 'hud' };
-  // The last choice is remembered on this device too, so the right page shows before preferences arrive.
-  if (hash === '') return readStart() === 'board' ? { kind: 'board' } : { kind: 'hud', implicit: true };
   // #connections/<id> opens one app's sheet; a QR code from the Mac lands the phone there.
   if (hash.startsWith('connections/')) return { kind: 'settings', page: 'connections' };
-  if (hash in settingsPages) return { kind: 'settings', page: hash as keyof typeof settingsPages };
-  return { kind: 'board' };
+  if (hash === 'settings') return { kind: 'settings', page: 'look' };
+  if (Object.hasOwn(settingsPages, hash)) return { kind: 'settings', page: hash as keyof typeof settingsPages };
+  return { kind: 'hud' };
 }
 
-function readStart(): 'hud' | 'board' | undefined { try { const v = localStorage.getItem('taurus-start'); return v === 'board' || v === 'hud' ? v : undefined; } catch { return undefined; } }
 
 const readAppearance = (): Appearance => { try { const v = localStorage.getItem('taurus-appearance'); return v === 'light' || v === 'auto' ? v : 'dark'; } catch { return 'dark'; } };
 
@@ -78,11 +71,18 @@ function withoutSamples(data: Dashboard): Dashboard {
 }
 
 export default function App() {
-  const [opened, setPage] = useState<Page>(readPage);
-  // First launch (owner, November 17, 2026): Taurus's calm, voice-guided welcome, shown until it's finished once.
-  const [showOnboarding, setShowOnboarding] = useState(() => !wasOnboarded());
+  const [started, setStarted] = useState(wasOnboarded);
+  if (!started) return <Onboarding onDone={() => {
+    try { localStorage.setItem(ONBOARDED_KEY, '1'); } catch { /* the workspace still opens for this visit */ }
+    setStarted(true);
+  }} />;
+  return <Workspace />;
+}
+
+function Workspace() {
+  const [page, setPage] = useState<Page>(readPage);
   const [appearance, setAppearance] = useState<Appearance>(readAppearance);
-  const [uiVersion, setUiVersion] = useState<UiVersion>(readUiVersion);
+  const uiVersion: UiVersion = 'v2';
   const [railExpanded, setRailExpanded] = useState(() => {
     try { return localStorage.getItem('taurus-rail-expanded') === 'true'; }
     catch { return false; }
@@ -90,17 +90,9 @@ export default function App() {
   const [palette, setPalette] = useState<Palette>(readPalette);
   const [data, setData] = useState<Dashboard | null>(null);
   const [history, setHistory] = useState<History | null>(null);
-  const liveOnly = uiVersion === 'v2';
-  const visibleData = useMemo(() => data && liveOnly ? withoutSamples(data) : data, [data, liveOnly]);
+  const visibleData = useMemo(() => data ? withoutSamples(data) : null, [data]);
   const [prefs, setPrefsState] = useState<Prefs | null>(null);
   const [saveError, setSaveError] = useState('');
-  // Opened with no page named: Hud, unless the owner picked the board as where Taurus starts.
-  const startOn = prefs?.hud?.start;
-  useEffect(() => { if (startOn) try { localStorage.setItem('taurus-start', startOn); } catch { /* storage blocked: the server's choice still applies */ } }, [startOn]);
-  const page = useMemo<Page>(() => opened.kind === 'hud' && opened.implicit && startOn === 'board' ? { kind: 'board' } : opened, [opened, startOn]);
-  // Home: Hud (the dashboard) or the board's tiles, chosen in Settings, Personalize (owner, November 19, 2026). Going
-  // to another page never changes it. Settings, Ask and House keep home's background (November 5, 2026 audit).
-  const homeView: 'hud' | 'board' = (startOn ?? readStart()) === 'board' ? 'board' : 'hud';
   const [error, setError] = useState('');
   // True when the server didn't answer at all, as opposed to answering with an error.
   const [unreachable, setUnreachable] = useState(false);
@@ -128,7 +120,6 @@ export default function App() {
   // What you last asked, typed or out loud, so Taurus's window on Home can turn into the weather, a countdown or your recovery.
   const [asked, setAsked] = useState<Asked | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
-  // The resolved page: an empty address opens the board when Home is set to tiles, and then Taurus has no window to fill.
   const onHome = page.kind === 'hud';
   const tick = useTick(5000, onHome);
   const center = onHome ? pickCenter(windows.wins, asked, visibleData, tick, dismissed) : null;
@@ -149,7 +140,6 @@ export default function App() {
   }, []);
   useLayoutEffect(() => {
     document.documentElement.dataset.ui = uiVersion;
-    try { localStorage.setItem('taurus-ui-version', uiVersion); } catch { /* the selection still applies for this visit */ }
   }, [uiVersion]);
   useLayoutEffect(() => {
     document.documentElement.dataset.rail = railExpanded ? 'expanded' : 'compact';
@@ -233,12 +223,10 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [prefs]);
 
-  const boards = prefs?.boards ?? [];
-  const board = page.kind === 'board' ? boards.find(b => b.id === page.id) ?? boards[0] : undefined;
   useEffect(() => {
-    const title = page.kind === 'board' ? board?.name ?? 'Home' : page.kind === 'ask' ? 'Ask' : page.kind === 'house' ? 'House' : page.kind === 'profile' ? 'Profile' : page.kind === 'brain' ? 'Brain' : page.kind === 'legal' ? 'Legal' : page.kind === 'bots' ? 'Bots' : page.kind === 'hud' ? 'Home' : page.kind === 'settings' ? settingsPages[page.page] : '';
+    const title = page.kind === 'ask' ? 'Ask' : page.kind === 'house' ? 'House' : page.kind === 'profile' ? 'Profile' : page.kind === 'brain' ? 'Brain' : page.kind === 'legal' ? 'Legal' : page.kind === 'bots' ? 'Bots' : page.kind === 'hud' ? 'Home' : page.kind === 'settings' ? settingsPages[page.page] : '';
     document.title = title ? `${title} · Taurus` : 'Taurus';
-  }, [page, board?.name]);
+  }, [page]);
 
   // A camera frame goes with this one question only; the conversation keeps just a note that it was there.
   // Asked from the chat bar, a person or a card, the answer opens above the chat bar and you stay where you are.
@@ -282,15 +270,9 @@ export default function App() {
   // Every bot's history (Taurus, his browser, each swarm helper), kept while Taurus is open, for the Deck and the Bots page.
   useBotRecorder(activity, browser, turns, now);
 
-  async function reset() {
-    if (!prefs) return;
-    try { const fresh = await api.savePrefs({ ...prefs, boards: undefined } as unknown as Prefs); setPrefsState(filled(fresh)); location.hash = `b/${fresh.boards[0].id}`; }
-    catch (e) { setSaveError((e as Error).message); }
-  }
-
   const setLanguage = (code: string) => setPrefs(p => ({ ...p, profile: { ...p.profile, language: code === 'en' ? undefined : code } }));
   useEffect(() => { document.documentElement.lang = prefs?.profile?.language ?? 'en'; }, [prefs?.profile?.language]);
-  const ctx = { data: visibleData, history: liveOnly && history?.sample ? null : history, liveOnly, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
+  const ctx = { data: visibleData, history: history?.sample ? null : history, liveOnly: true, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
   // No little Taurus walking around inside the app, on any page (owner, November 23, 2026: "the mini taurus should never
   // show up inside the app dashboard, NEVER"). Voice shows as a plain strip above the chat bar instead (VoiceStrip);
   // on Home the Deck shows it in Taurus's own window.
@@ -304,8 +286,7 @@ export default function App() {
   </>;
   // Cards already shown in the Ask conversation don't repeat in the tray.
   const inline = page.kind === 'ask' || chatOpen ? turns.flatMap(t => t.proposals ?? []) : [];
-  const shownPrefs = prefs ?? offline;
-  const profile = shownPrefs.profile ?? offline.profile;
+  const profile = (prefs ?? offline).profile ?? offline.profile;
   if (page.kind === 'ring') return <>
     <Standby data={visibleData} listening={listening} now={now} waiting={waiting} onUpdate={update} />
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
@@ -314,29 +295,24 @@ export default function App() {
     {page.kind !== 'hud' && <Backdrop background={background} tint={tint} />}
     <a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to content</a>
     <div className={`shell ${dock ? 'with-dock' : ''} ${tabsOpen ? 'tabs-open' : ''}`}>
-      <Rail uiVersion={uiVersion} expanded={railExpanded} onToggleExpand={() => setRailExpanded(expanded => !expanded)} boards={boards} current={page.kind === 'board' ? board?.id : undefined} page={page.kind === 'settings' ? 'settings' : page.kind} dock={dock} setDock={setDock} open={tabsOpen} onClose={() => setTabsOpen(false)}
-        home={homeView === 'hud' ? '#hud' : boards[0] ? `#b/${boards[0].id}` : '#b/home'}
-        homeIsHud={homeView === 'hud'}
+      <Rail expanded={railExpanded} onToggleExpand={() => setRailExpanded(expanded => !expanded)} page={page.kind} dock={dock} setDock={setDock} open={tabsOpen} onClose={() => setTabsOpen(false)}
         doing={nowDoing({ entries: activity, browser, wins: windows.wins, now, setDock, music })} />
       <div className="stage">
-        <TopBar profile={profile} now={now} line={dayLine(visibleData, now, liveOnly)} onTabs={() => setTabsOpen(o => !o)} tabsOpen={tabsOpen} onLanguage={setLanguage} />
+        <TopBar profile={profile} now={now} line={dayLine(visibleData, now, true)} onTabs={() => setTabsOpen(o => !o)} tabsOpen={tabsOpen} onLanguage={setLanguage} />
         {(error || saveError) && <p className="banner-problem" role="status">{[error, saveError].filter(Boolean).join(' ')}</p>}
-        {page.kind === 'board' && board && board.id === boards[0]?.id && <PeopleStrip data={visibleData} liveOnly={liveOnly} prefs={shownPrefs} now={now} onAsk={ask} />}
-        {page.kind === 'board' && (board ? <BoardView key={board.id} board={board} ctx={ctx} /> : <main id="main" tabIndex={-1} className="board"><p className="board-note">Loading.</p></main>)}
         {page.kind === 'house' && <House onProposal={update} />}
         {page.kind === 'brain' && <BrainPage onAsk={ask} />}
         {page.kind === 'legal' && <LegalPage />}
         {page.kind === 'bots' && <BotsPage onAsk={q => void ask(q)} pending={pending} />}
         {page.kind === 'profile' && prefs && <ProfilePage prefs={prefs} setPrefs={setPrefs} />}
-        {/* Home (November 22, 2026): the Deck replaced the Jarvis HUD; its route stays #hud so saved start pages still work. */}
+        {/* Home (November 22, 2026): the Deck's route stays #hud for saved links. */}
         {page.kind === 'hud' && <Deck uiVersion={uiVersion} ctx={ctx} voice={voice} profile={profile} log={activity} appearance={appearance} setAppearance={setAppearance} onLanguage={setLanguage}
           center={center} closeWin={closeWin} onBack={key => setDismissed(d => new Set(d).add(key))} />}
         {page.kind === 'ask' && <Ask turns={turns} pending={pending} error={askError} provider={provider} proposals={proposals} onUpdate={update} onAsk={ask} onClear={() => { setTurns([]); setAskError(''); }} />}
         {page.kind === 'settings' && <div className="settings-layout">
           <SettingsNav page={page.page} />
           <div className="settings-body">
-          {page.page === 'settings' && prefs && <Tabs prefs={prefs} setPrefs={setPrefs} onReset={reset} />}
-          {page.page === 'look' && prefs && <Look uiVersion={uiVersion} setUiVersion={setUiVersion} prefs={prefs} setPrefs={setPrefs} appearance={appearance} setAppearance={setAppearance} palette={palette} setPalette={setPalette} voice={voiceSettings} setVoice={setVoiceSettings} />}
+          {page.page === 'look' && prefs && <Look uiVersion={uiVersion} prefs={prefs} setPrefs={setPrefs} appearance={appearance} setAppearance={setAppearance} palette={palette} setPalette={setPalette} voice={voiceSettings} setVoice={setVoiceSettings} />}
           {page.page === 'connections' && <Connections />}
           {page.page === 'ai' && <AI />}
           {page.page === 'skills' && <Skills />}
@@ -353,10 +329,9 @@ export default function App() {
     <ChatBar uiVersion={uiVersion} turns={turns} pending={pending} error={askError} proposals={proposals} onUpdate={update} onAsk={ask} onClear={() => { setTurns([]); setAskError(''); }}
       voice={voice} open={chatOpen} setOpen={setChatOpen} onAskPage={page.kind === 'ask'} />
     {!ring && <ApprovalTray waiting={waiting} hide={inline} onChange={update} />}
-    {!ring && <TaurusWindows {...windows} liveOnly={liveOnly} hide={center && 'win' in center ? center.win : undefined} />}
+    {!ring && <TaurusWindows {...windows} liveOnly hide={center && 'win' in center ? center.win : undefined} />}
     {!ring && <Swarm />}
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
-    {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = homeView === 'hud' ? 'hud' : `b/${boards[0]?.id ?? 'home'}`; }} />}
     {!ring && showVoice && <VoiceStrip voice={voice.view} />}
   </>;
 }

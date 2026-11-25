@@ -1,4 +1,4 @@
-// Generates every icon from design/logo/taurus-mark.svg: the app icons (.icns, .ico, PNGs 16 to 1024),
+// Generates app icons from design/logo/taurus-app-icon.svg and small variants from the Taurus mark:
 // the menu bar template image and tray image, and the phone home-screen PNGs in apps/web/public/icons.
 // Renders with Playwright's Chromium (already a dev dependency) and macOS iconutil. The mark is not
 // trademark-cleared; fine for personal builds.
@@ -16,15 +16,17 @@ mkdirSync(assets, { recursive: true });
 mkdirSync(webIcons, { recursive: true });
 
 const mark = readFileSync(join(repo, 'design/logo/taurus-mark.svg'), 'utf8').trim();
+// The light-grey app tile. The macOS menu bar continues to use the monochrome template.
+const appIcon = readFileSync(join(repo, 'design/logo/taurus-app-icon.svg'), 'utf8').trim();
 // The Taurus sign's strokes on their own, from the same file, for the monochrome and maskable versions.
 const glyph = mark.match(/<g[\s\S]*<\/g>/)[0];
 const svg = {
   // The tile as drawn.
-  tile: mark,
+  tile: appIcon,
   // macOS draws app icons on an 824/1024 body with room for the shadow.
-  mac: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><g transform="translate(117 117) scale(.805)">${mark.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g></svg>`,
+  mac: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><g transform="translate(117 117) scale(.805)">${appIcon.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g></svg>`,
   // Full-bleed square with the glyph inside the 80% safe circle, for Android's maskable icon.
-  maskable: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="#141413"/><g transform="translate(180 180) scale(.7)">${glyph}</g></svg>`,
+  maskable: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="#E2E2E0"/><g transform="translate(180 180) scale(.7)">${glyph.replaceAll('#F7F6F3', '#272827')}</g></svg>`,
   // Black on transparent: macOS tints template images for light and dark menu bars.
   template: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="190 280 820 640">${glyph.replace('stroke="#F7F6F3"', 'stroke="#000"')}</svg>`,
 };
@@ -43,6 +45,7 @@ const sizes = [16, 24, 32, 48, 64, 128, 256, 512, 1024];
 const tiles = {};
 for (const size of sizes) { tiles[size] = await png(svg.tile, size); writeFileSync(join(assets, `icon-${size}.png`), tiles[size]); }
 writeFileSync(join(assets, 'icon.png'), tiles[1024]);
+writeFileSync(join(assets, 'icon-dock.png'), await png(svg.mac, 512));
 
 // macOS .icns through an .iconset.
 const iconset = join(assets, 'icon.iconset');

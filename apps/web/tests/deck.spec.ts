@@ -20,7 +20,6 @@ async function home(page: Page, { browser = false, swarm = false } = {}) {
 }
 
 test('Home is the Deck: rail on the left, Taurus in the centre, agents above your panel on the right, one screen, chat bar under the centre', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('taurus-ui-version', 'v1'));
   await home(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
@@ -41,13 +40,12 @@ test('Home is the Deck: rail on the left, Taurus in the centre, agents above you
   // The chat bar sits under the centre and never under the right column.
   expect(bar.x).toBeGreaterThanOrEqual(centre.x - 40);
   expect(bar.x + bar.width).toBeLessThanOrEqual(right.x);
-  // The pixel sky is drawn, and stops above the headline.
-  const sky = await box(page, '.deck-sky'), headline = await box(page, '#taurus-says');
-  expect(sky.y + sky.height).toBeLessThanOrEqual(headline.y);
+  await expect(page.locator('.deck-sky')).toHaveCount(0);
   // Gone with the HUD: the ticked ring, Customize and the old sky.
   await expect(page.locator('.hud-ring')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Customize' })).toHaveCount(0);
   await expect(page.locator('.sky')).toHaveCount(0);
+  await page.getByRole('radio', { name: 'Light', exact: true }).click();
   await page.screenshot({ path: `${shots}/deck-1440-light.png` });
   const axe = await new AxeBuilder({ page }).include('main').analyze();
   expect(axe.violations.map(v => v.id)).toEqual([]);
@@ -114,25 +112,34 @@ test('on a phone Taurus comes first, then status, agents and your panel, and not
   await page.screenshot({ path: `${shots}/deck-390-light.png`, fullPage: true });
 });
 
-test('the rail: pixel icons, Legal where ProFinder was, no Ask Taurus', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('taurus-ui-version', 'v1'));
+test('the compact rail labels its icons on hover and keyboard focus', async ({ page }) => {
   await home(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const rail = page.getByRole('navigation', { name: 'Main' });
-  for (const name of ['Home', 'Bots', 'House', 'Brain', 'Legal', 'Settings']) await expect(rail.getByRole('link', { name, exact: true })).toBeVisible();
-  for (const name of ['Browser', 'Activity']) await expect(rail.getByRole('button', { name, exact: true })).toBeVisible();
-  await expect(rail.getByText('ProFinder')).toHaveCount(0);
-  await expect(rail.getByText('Ask Taurus')).toHaveCount(0);
-  // Each tab carries its icon, drawn at one pixel per pixel.
-  expect(await rail.locator('.pixel-icon').count()).toBeGreaterThanOrEqual(8);
-  expect(await rail.locator('.pixel-icon').first().getAttribute('shape-rendering')).toBe('crispEdges');
-  // ProFinder's old address no longer has a page.
-  await page.goto('/#profinder');
-  await expect(page.getByRole('heading', { name: 'ProFinder' })).toHaveCount(0);
+  const tooltip = rail.locator('.rail-tooltip');
+  for (const name of ['Home', 'Bots', 'Brain', 'Legal', 'Settings']) {
+    await rail.getByRole('link', { name, exact: true }).hover();
+    await expect(tooltip).toHaveText(name);
+    await expect(tooltip).toBeVisible();
+  }
+  const settings = rail.getByRole('link', { name: 'Settings' });
+  expect(await settings.locator('svg path').getAttribute('d')).toContain('a2.3 2.3');
+  await page.mouse.move(500, 50);
+  await expect(tooltip).toHaveCount(0);
+  await settings.focus();
+  await expect(tooltip).toHaveText('Settings');
+  expect((await tooltip.boundingBox())!.x).toBeGreaterThan((await rail.boundingBox())!.width);
+  await expect(page.locator('.composer-bar .fn-talk')).toHaveCSS('background-color', 'rgb(173, 216, 245)');
+  await page.screenshot({ path: `${shots}/deck-settings-tooltip.png` });
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toHaveCount(0);
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Personalize' })).toBeVisible();
 });
 
 test('Legal keeps your papers as Brain notes: add a file, open it, remove it after a second tap', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   await home(page);
   const notes: Record<string, { title: string; up?: string; body: string; files: string[] }> = {};
   const note = (title: string) => ({ title, path: `${title}.md`, hub: false, tags: [], updated: now(), links: [], up: notes[title]?.up, body: notes[title]?.body ?? '', files: notes[title]?.files ?? [] });
@@ -151,7 +158,7 @@ test('Legal keeps your papers as Brain notes: add a file, open it, remove it aft
   });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/#legal');
-  await expect(page.getByRole('heading', { name: 'Your papers, in one place.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Legal', level: 1 })).toBeVisible();
   for (const name of ['Resume', 'Contracts', 'Company papers', 'Taxes', 'IDs and licenses']) await expect(page.getByRole('region', { name })).toBeVisible();
   const resume = page.getByRole('region', { name: 'Resume' });
   await resume.locator('input[type=file]').setInputFiles({ name: 'alex-example-resume.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 fictional') });
@@ -236,6 +243,7 @@ test('at most fifteen boxes, smaller as more bots work', async ({ page }) => {
 });
 
 test('Bots lists every bot and shows one bot\'s whole chat; the message box asks Taurus about it', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
   await swarmOf(page, 4);
   const asked: string[] = [];
   await page.route('**/api/ask', r => { asked.push(r.request().postDataJSON().turns.at(-1).text); return r.fulfill({ json: { provider: '', text: 'Helper 2 found Lamp B for $49.', proposals: [] } }); });
@@ -247,11 +255,14 @@ test('Bots lists every bot and shows one bot\'s whole chat; the message box asks
   await expect(page.locator('.bots-role')).toHaveText('Helper · Compare desk lamps');
   const log = page.getByRole('log', { name: 'Everything Helper 2 did' });
   await expect(log).toContainText('Lamp B is $49 on example2.com');
+  await expect(log.locator('.bots-say').first()).toHaveCSS('border-top-left-radius', '20px');
+  await expect(page.locator('.bots-composer')).toHaveCSS('border-top-left-radius', '27px');
   await page.screenshot({ path: `${shots}/bots-1440-light.png` });
   const axe = await new AxeBuilder({ page }).include('main').analyze();
   expect(axe.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)).toEqual([]);
-  await page.getByLabel('Ask Taurus about Helper 2').fill('which lamp is cheapest?');
-  await page.getByRole('button', { name: 'Send' }).click();
+  const draft = page.getByLabel('Ask Taurus about Helper 2');
+  await draft.fill('which lamp is cheapest?');
+  await draft.press('Enter');
   await expect.poll(() => asked).toEqual(['About Helper 2 (Helper · Compare desk lamps, on example2.com): which lamp is cheapest?']);
   // Taurus's own chat holds the conversation.
   await list.getByRole('link', { name: /^Taurus/ }).click();
@@ -260,6 +271,16 @@ test('Bots lists every bot and shows one bot\'s whole chat; the message box asks
   await expect(page.locator('.chatbar')).toBeHidden();
   // So does the floating Swarm panel: this page already shows every bot.
   await expect(page.locator('.swarm-panel')).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('heading', { name: 'Taurus', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send' })).toBeInViewport();
+  await expect(list).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `${shots}/bots-390-light.png`, fullPage: true });
+  await page.getByRole('link', { name: 'All bots' }).click();
+  await expect(list).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send' })).toHaveCount(0);
 });
 
 test('Light mode redraws Taurus in dark ink so he never disappears', async ({ page }) => {

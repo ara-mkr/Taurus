@@ -40,8 +40,8 @@ async function open(page: Page, init?: string) {
   await mock(page);
   const asked: string[] = [];
   await page.route('**/api/ask', r => { const turns = r.request().postDataJSON().turns as { text: string }[]; asked.push(turns.at(-1)!.text); return r.fulfill({ json: { provider: 'Claude', text: answer } }); });
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
+  await page.goto('/#profile');
+  await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
   return asked;
 }
 
@@ -109,9 +109,7 @@ test('the wake word is off by default and turns on in Settings', async ({ page }
   const chat = page.getByRole('textbox', { name: 'Message Taurus' });
   await expect(chat).not.toHaveAttribute('placeholder', /Hey Taurus/);
   await page.getByRole('button', { name: 'Profile and settings' }).click();
-  // November 6, 2026: the profile menu is short now; Settings opens Tabs and widgets.
   await page.locator('#profile-menu').getByRole('link', { name: 'Settings' }).click();
-  await page.getByRole('link', { name: 'Personalize' }).click();
   await page.getByLabel('Listen for “Hey Taurus” while Taurus is open').check();
   await expect(chat).toHaveAttribute('placeholder', 'Say “Hey Taurus”');
   expect(await page.evaluate(() => localStorage.getItem('taurus-voice'))).toBe('{"wake":true,"speak":false,"clap":false}');
@@ -169,7 +167,7 @@ test('no browser support and a blocked microphone are said plainly', async ({ pa
 
   await fakeSpeech(page, true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: /Needs you/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Talk', exact: true }).click();
   await expect(page.locator('.voice-strip')).toContainText('the microphone is blocked for this page');
 });

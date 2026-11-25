@@ -19,11 +19,11 @@ const uiVersions = [
 ] as const;
 
 export type Appearance = 'auto' | 'light' | 'dark';
-export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone', notch: 'Notch' } as const;
+export const settingsPages = { look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone', notch: 'Notch' } as const;
 
 // Settings' categories run down the side, grouped (owner, November 23, 2026: "having the categories ontop doesnt look good").
 const settingsGroups: [string, (keyof typeof settingsPages)[]][] = [
-  ['You', ['look', 'settings']], ['Apps and AI', ['connections', 'ai', 'skills']], ['Automation', ['schedule', 'scans', 'actions']], ['Devices', ['phone', 'notch']],
+  ['You', ['look']], ['Apps and AI', ['connections', 'ai', 'skills']], ['Automation', ['schedule', 'scans', 'actions']], ['Devices', ['phone', 'notch']],
 ];
 export function SettingsNav({ page }: { page: string }) {
   return <nav className="deck-win settings-nav" aria-label="Settings">
@@ -39,7 +39,7 @@ export function SettingsNav({ page }: { page: string }) {
 // red crimson ... deep red with some pink and baby blue"). Kept on this device, like Light and Dark; styles/deck.css has each.
 export type Palette = 'slate' | 'black' | 'white' | 'pinkblue' | 'crimson';
 export const palettes: { id: Palette; name: string; about: string; swatches: [string, string, string] }[] = [
-  { id: 'slate', name: 'Slate', about: 'Slate, baby blue, orange specks', swatches: ['#334155', '#A9D6F5', '#FF8A3D'] },
+  { id: 'slate', name: 'Slate', about: 'Slate with baby blue', swatches: ['#334155', '#ADD8F5', '#16354A'] },
   { id: 'black', name: 'Black', about: 'Black and white, nothing else', swatches: ['#0B0B0C', '#E4E4E6', '#FFFFFF'] },
   { id: 'white', name: 'White', about: 'White and soft greys', swatches: ['#FFFFFF', '#EEF1F5', '#15181D'] },
   { id: 'pinkblue', name: 'Pink and blue', about: 'Baby blue with bubblegum pink', swatches: ['#A9D6F5', '#F57EB6', '#FFC1DC'] },
@@ -63,32 +63,34 @@ export async function shrink(file: File, size = 192): Promise<string> {
 
 const tones: Record<Tone, [string, string]> = { witty: ['Witty', 'Sharp and quick, with dry jokes and the odd curse. Jarvis with attitude.'], brief: ['Brief', 'The fewest words that carry the answer.'], warm: ['Warm', 'Still short, with a little more care.'], direct: ['Direct', 'Blunt. The hard thing first.'] };
 
-export function Look({ uiVersion, setUiVersion, prefs, setPrefs, appearance, setAppearance, palette, setPalette, voice, setVoice }: { uiVersion: UiVersion; setUiVersion: (version: UiVersion) => void; prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void; appearance: Appearance; setAppearance: (a: Appearance) => void; palette: Palette; setPalette: (p: Palette) => void; voice: VoiceSettings; setVoice: (v: VoiceSettings) => void }) {
+export function Look({ uiVersion, setUiVersion, prefs, setPrefs, appearance, setAppearance, palette, setPalette, voice, setVoice }: { uiVersion: UiVersion; setUiVersion?: (version: UiVersion) => void; prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void; appearance: Appearance; setAppearance: (a: Appearance) => void; palette: Palette; setPalette: (p: Palette) => void; voice: VoiceSettings; setVoice: (v: VoiceSettings) => void }) {
   const hears = canListen();
   const profile = prefs.profile;
   const setProfile = (next: Partial<Profile>) => setPrefs(p => ({ ...p, profile: { ...p.profile, ...next } }));
   return <main id="main" tabIndex={-1} className="settings-page">
     <div className="page-head"><h1>Personalize</h1></div>
 
-    <fieldset className="choice ui-version">
-      <legend>Interface</legend>
-      <div className="ui-version-options">
-        {uiVersions.map(({ id, label, detail }) => <label className="ui-version-choice" key={id}>
-          <input type="radio" name="ui-version" value={id} checked={uiVersion === id} onChange={() => setUiVersion(id)} />
-          <span className="ui-version-preview" data-preview={id} aria-hidden="true">
-            <span /><span /><span />
-          </span>
-          <span className="ui-version-label"><strong>{label}</strong><span>{detail}</span></span>
-        </label>)}
-      </div>
-    </fieldset>
+    {setUiVersion && <>
+      <fieldset className="choice ui-version">
+        <legend>Interface</legend>
+        <div className="ui-version-options">
+          {uiVersions.map(({ id, label, detail }) => <label className="ui-version-choice" key={id}>
+            <input type="radio" name="ui-version" value={id} checked={uiVersion === id} onChange={() => setUiVersion(id)} />
+            <span className="ui-version-preview" data-preview={id} aria-hidden="true">
+              <span /><span /><span />
+            </span>
+            <span className="ui-version-label"><strong>{label}</strong><span>{detail}</span></span>
+          </label>)}
+        </div>
+      </fieldset>
 
-    <fieldset className="choice">
-      <legend>Home</legend>
-      {([['hud', 'Dashboard', 'Taurus, your activity, and your day'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
-        <input type="radio" name="home-view" checked={(prefs.hud?.start ?? 'hud') === k} onChange={() => { setPrefs(p => ({ ...p, hud: { ...(p.hud ?? hudDefaults()), start: k } })); try { localStorage.setItem('taurus-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
-        <span><strong>{name}</strong> <span className="muted">{what}</span></span></label>)}
-    </fieldset>
+      <fieldset className="choice">
+        <legend>Home</legend>
+        {([['hud', 'Dashboard', 'Taurus, your activity, and your day'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
+          <input type="radio" name="home-view" checked={(prefs.hud?.start ?? 'hud') === k} onChange={() => { setPrefs(p => ({ ...p, hud: { ...(p.hud ?? hudDefaults()), start: k } })); try { localStorage.setItem('taurus-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
+          <span><strong>{name}</strong> <span className="muted">{what}</span></span></label>)}
+      </fieldset>
+    </>}
 
     <fieldset className="choice">
       <legend>How Taurus talks to you</legend>

@@ -60,8 +60,10 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
   }, []);
   const bot = bots.find(b => b.id === chosen) ?? bots[0];
   const [draft, setDraft] = useState('');
-  const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [bot.id, bot.lines.length]);
+  const timeline = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (timeline.current) timeline.current.scrollTop = timeline.current.scrollHeight;
+  }, [bot.id, bot.lines.length]);
   const groups = grouped(bot.lines);
   const mine = isMadeBot(bot.id);
   const busy = mine ? bot.state === 'working' : pending;
@@ -86,7 +88,7 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
   };
   const enter = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
-  return <main id="main" tabIndex={-1} className="bots deck-look">
+  return <main id="main" tabIndex={-1} className="bots deck-look" data-thread={location.hash.startsWith('#bots/') || undefined}>
     <nav className="deck-win bots-list" aria-label="Bots">
       <header className="deck-bar"><h2>Bots</h2><span className="deck-count">{bots.filter(b => b.live && b.state === 'working').length} working</span></header>
       <div className="bots-new">
@@ -110,11 +112,12 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
     </nav>
 
     <section className="deck-win bots-chat" aria-labelledby="bots-name">
+      <a className="button bots-back" href="#bots">All bots</a>
       <header className="bots-head">
         <Avatar bot={bot} size={40} />
-        <div><h1 id="bots-name">{bot.name}</h1><p><span className="bots-role">{bot.role}</span> {stateNames[bot.state]}{bot.where ? ` · ${bot.where}` : ''}</p></div>
+        <div><h1 id="bots-name">{bot.name}</h1><p><span className="bots-role">{bot.role}</span> · {stateNames[bot.state]}{bot.where ? ` · ${bot.where}` : ''}</p></div>
       </header>
-      <div className="bots-timeline" role="log" aria-label={`Everything ${bot.name} did`} tabIndex={0}>
+      <div className="bots-timeline" ref={timeline} role="log" aria-label={`Everything ${bot.name} did`} tabIndex={0}>
         {bot.frame && <figure className="bots-screen"><img src={bot.frame} alt={bot.where ? `What ${bot.name} sees on ${bot.where}` : `What ${bot.name} sees`} draggable={false} />
           <figcaption>Live{bot.where ? ` · ${bot.where}` : ''}</figcaption></figure>}
         {groups.length ? groups.map((g, i) => g.kind === 'work' ? <Work key={`w${i}`} lines={g.lines} last={i === groups.length - 1 || i === groups.length - 2} />
@@ -122,7 +125,6 @@ export function BotsPage({ onAsk, pending }: { onAsk: (question: string) => void
             <p>{g.line.text}</p><time dateTime={g.line.at}>{g.line.kind === 'you' ? 'You' : g.line.kind === 'result' ? 'Found' : bot.name} · {timeOf(g.line.at)}</time>
           </article>)
           : <p className="bots-empty">Nothing yet. Every step {bot.name} takes shows here as it happens.</p>}
-        <div ref={end} />
       </div>
       <form className="bots-composer" onSubmit={send}>
         <label className="sr-only" htmlFor="bots-message">{bot.id === 'taurus' ? 'Message Taurus' : mine ? `Message ${bot.name}` : `Ask Taurus about ${bot.name}`}</label>
