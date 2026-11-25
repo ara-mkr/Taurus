@@ -20,6 +20,7 @@ async function home(page: Page, { browser = false, swarm = false } = {}) {
 }
 
 test('Home is the Deck: rail on the left, Taurus in the centre, agents above your panel on the right, one screen, chat bar under the centre', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('taurus-ui-version', 'v1'));
   await home(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
@@ -114,6 +115,7 @@ test('on a phone Taurus comes first, then status, agents and your panel, and not
 });
 
 test('the rail: pixel icons, Legal where ProFinder was, no Ask Taurus', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('taurus-ui-version', 'v1'));
   await home(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');

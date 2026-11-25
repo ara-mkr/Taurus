@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, ApiError, type Dashboard, type History, type Prefs } from './api';
 import { Actions } from './components/Actions';
 import { ApprovalTray } from './components/Approval';
@@ -24,7 +24,7 @@ import { hudDefaults } from './components/CloudDashboard';
 import { Deck } from './components/Deck';
 import { pickCenter, useTick, type Asked } from './components/TaurusWidget';
 import { armAlarm, RingScreen, Standby, Unreachable, useRing } from './components/Ringing';
-import { Look, readPalette, settingsPages, SettingsNav, Tabs, type Appearance, type Palette } from './components/Settings';
+import { Look, readPalette, readUiVersion, settingsPages, SettingsNav, Tabs, type Appearance, type Palette, type UiVersion } from './components/Settings';
 import { NotchPage } from './components/NotchSettings';
 import { Backdrop, daypart, dayLine, nowDoing, PeopleStrip, Rail, TopBar } from './components/Shell';
 import { readVoice, saveVoice, useVoice, VoiceStrip, type VoiceSettings } from './components/Voice';
@@ -64,14 +64,34 @@ const offline: Prefs = { tint: 'graphite', ambient: true, taurus: true, todos: [
   { id: 'schedule', type: 'schedule', size: 'tall' }, { id: 'health', type: 'health', size: 'medium' }, { id: 'inbox', type: 'inbox', size: 'small' }, { id: 'numbers', type: 'numbers', size: 'wide' },
 ] }] };
 
+// Use the server's source flags so placeholders never appear as real activity.
+function withoutSamples(data: Dashboard): Dashboard {
+  const { sections } = data;
+  return {
+    ...data,
+    needs: sections.needs.live ? data.needs : [],
+    schedule: sections.schedule.live ? data.schedule : [],
+    inbox: sections.inbox.live ? data.inbox : [],
+    body: sections.body.live ? data.body : { sources: [] },
+    numbers: sections.numbers.live ? data.numbers : [],
+  };
+}
+
 export default function App() {
   const [opened, setPage] = useState<Page>(readPage);
   // First launch (owner, November 17, 2026): Taurus's calm, voice-guided welcome, shown until it's finished once.
   const [showOnboarding, setShowOnboarding] = useState(() => !wasOnboarded());
   const [appearance, setAppearance] = useState<Appearance>(readAppearance);
+  const [uiVersion, setUiVersion] = useState<UiVersion>(readUiVersion);
+  const [railExpanded, setRailExpanded] = useState(() => {
+    try { return localStorage.getItem('taurus-rail-expanded') === 'true'; }
+    catch { return false; }
+  });
   const [palette, setPalette] = useState<Palette>(readPalette);
   const [data, setData] = useState<Dashboard | null>(null);
   const [history, setHistory] = useState<History | null>(null);
+  const liveOnly = uiVersion === 'v2';
+  const visibleData = useMemo(() => data && liveOnly ? withoutSamples(data) : data, [data, liveOnly]);
   const [prefs, setPrefsState] = useState<Prefs | null>(null);
   const [saveError, setSaveError] = useState('');
   // Opened with no page named: Hud, unless the owner picked the board as where Taurus starts.
@@ -111,7 +131,7 @@ export default function App() {
   // The resolved page: an empty address opens the board when Home is set to tiles, and then Taurus has no window to fill.
   const onHome = page.kind === 'hud';
   const tick = useTick(5000, onHome);
-  const center = onHome ? pickCenter(windows.wins, asked, data, tick, dismissed) : null;
+  const center = onHome ? pickCenter(windows.wins, asked, visibleData, tick, dismissed) : null;
   const { drop } = windows;
   const closeWin = useCallback((id: string) => { drop(id); api.closeWindow(id).catch(() => undefined); }, [drop]);
   const music = useCallback((what: string) => { api.musicControl(what).catch(() => undefined); }, []);
@@ -127,6 +147,14 @@ export default function App() {
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.ui = uiVersion;
+    try { localStorage.setItem('taurus-ui-version', uiVersion); } catch { /* the selection still applies for this visit */ }
+  }, [uiVersion]);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.rail = railExpanded ? 'expanded' : 'compact';
+    try { localStorage.setItem('taurus-rail-expanded', String(railExpanded)); } catch { /* the choice still applies for this visit */ }
+  }, [railExpanded]);
   // The colours (Settings, Personalize, Colours), kept on this device like Light and Dark.
   useEffect(() => {
     if (palette === 'slate') delete document.documentElement.dataset.palette; else document.documentElement.dataset.palette = palette;
@@ -262,7 +290,7 @@ export default function App() {
 
   const setLanguage = (code: string) => setPrefs(p => ({ ...p, profile: { ...p.profile, language: code === 'en' ? undefined : code } }));
   useEffect(() => { document.documentElement.lang = prefs?.profile?.language ?? 'en'; }, [prefs?.profile?.language]);
-  const ctx = { data, history, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
+  const ctx = { data: visibleData, history: liveOnly && history?.sample ? null : history, liveOnly, prefs: prefs ?? offline, setPrefs, now, onAsk: ask };
   // No little Taurus walking around inside the app, on any page (owner, November 23, 2026: "the mini taurus should never
   // show up inside the app dashboard, NEVER"). Voice shows as a plain strip above the chat bar instead (VoiceStrip);
   // on Home the Deck shows it in Taurus's own window.
@@ -279,21 +307,21 @@ export default function App() {
   const shownPrefs = prefs ?? offline;
   const profile = shownPrefs.profile ?? offline.profile;
   if (page.kind === 'ring') return <>
-    <Standby data={data} listening={listening} now={now} waiting={waiting} onUpdate={update} />
+    <Standby data={visibleData} listening={listening} now={now} waiting={waiting} onUpdate={update} />
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
   </>;
   return <>
     {page.kind !== 'hud' && <Backdrop background={background} tint={tint} />}
     <a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to content</a>
     <div className={`shell ${dock ? 'with-dock' : ''} ${tabsOpen ? 'tabs-open' : ''}`}>
-      <Rail boards={boards} current={page.kind === 'board' ? board?.id : undefined} page={page.kind === 'settings' ? 'settings' : page.kind} dock={dock} setDock={setDock} open={tabsOpen} onClose={() => setTabsOpen(false)}
+      <Rail uiVersion={uiVersion} expanded={railExpanded} onToggleExpand={() => setRailExpanded(expanded => !expanded)} boards={boards} current={page.kind === 'board' ? board?.id : undefined} page={page.kind === 'settings' ? 'settings' : page.kind} dock={dock} setDock={setDock} open={tabsOpen} onClose={() => setTabsOpen(false)}
         home={homeView === 'hud' ? '#hud' : boards[0] ? `#b/${boards[0].id}` : '#b/home'}
         homeIsHud={homeView === 'hud'}
         doing={nowDoing({ entries: activity, browser, wins: windows.wins, now, setDock, music })} />
       <div className="stage">
-        <TopBar profile={profile} now={now} line={dayLine(data, now)} onTabs={() => setTabsOpen(o => !o)} tabsOpen={tabsOpen} onLanguage={setLanguage} />
+        <TopBar profile={profile} now={now} line={dayLine(visibleData, now, liveOnly)} onTabs={() => setTabsOpen(o => !o)} tabsOpen={tabsOpen} onLanguage={setLanguage} />
         {(error || saveError) && <p className="banner-problem" role="status">{[error, saveError].filter(Boolean).join(' ')}</p>}
-        {page.kind === 'board' && board && board.id === boards[0]?.id && <PeopleStrip data={data} prefs={shownPrefs} now={now} onAsk={ask} />}
+        {page.kind === 'board' && board && board.id === boards[0]?.id && <PeopleStrip data={visibleData} liveOnly={liveOnly} prefs={shownPrefs} now={now} onAsk={ask} />}
         {page.kind === 'board' && (board ? <BoardView key={board.id} board={board} ctx={ctx} /> : <main id="main" tabIndex={-1} className="board"><p className="board-note">Loading.</p></main>)}
         {page.kind === 'house' && <House onProposal={update} />}
         {page.kind === 'brain' && <BrainPage onAsk={ask} />}
@@ -301,14 +329,14 @@ export default function App() {
         {page.kind === 'bots' && <BotsPage onAsk={q => void ask(q)} pending={pending} />}
         {page.kind === 'profile' && prefs && <ProfilePage prefs={prefs} setPrefs={setPrefs} />}
         {/* Home (November 22, 2026): the Deck replaced the Jarvis HUD; its route stays #hud so saved start pages still work. */}
-        {page.kind === 'hud' && <Deck ctx={ctx} voice={voice} profile={profile} log={activity} appearance={appearance} setAppearance={setAppearance} onLanguage={setLanguage}
+        {page.kind === 'hud' && <Deck uiVersion={uiVersion} ctx={ctx} voice={voice} profile={profile} log={activity} appearance={appearance} setAppearance={setAppearance} onLanguage={setLanguage}
           center={center} closeWin={closeWin} onBack={key => setDismissed(d => new Set(d).add(key))} />}
         {page.kind === 'ask' && <Ask turns={turns} pending={pending} error={askError} provider={provider} proposals={proposals} onUpdate={update} onAsk={ask} onClear={() => { setTurns([]); setAskError(''); }} />}
         {page.kind === 'settings' && <div className="settings-layout">
           <SettingsNav page={page.page} />
           <div className="settings-body">
           {page.page === 'settings' && prefs && <Tabs prefs={prefs} setPrefs={setPrefs} onReset={reset} />}
-          {page.page === 'look' && prefs && <Look prefs={prefs} setPrefs={setPrefs} appearance={appearance} setAppearance={setAppearance} palette={palette} setPalette={setPalette} voice={voiceSettings} setVoice={setVoiceSettings} />}
+          {page.page === 'look' && prefs && <Look uiVersion={uiVersion} setUiVersion={setUiVersion} prefs={prefs} setPrefs={setPrefs} appearance={appearance} setAppearance={setAppearance} palette={palette} setPalette={setPalette} voice={voiceSettings} setVoice={setVoiceSettings} />}
           {page.page === 'connections' && <Connections />}
           {page.page === 'ai' && <AI />}
           {page.page === 'skills' && <Skills />}
@@ -322,10 +350,10 @@ export default function App() {
       </div>
       {dock && <Dock tab={dock} setTab={setDock} onClose={() => setDock(null)} entries={activity} browser={browser} />}
     </div>
-    <ChatBar turns={turns} pending={pending} error={askError} proposals={proposals} onUpdate={update} onAsk={ask} onClear={() => { setTurns([]); setAskError(''); }}
+    <ChatBar uiVersion={uiVersion} turns={turns} pending={pending} error={askError} proposals={proposals} onUpdate={update} onAsk={ask} onClear={() => { setTurns([]); setAskError(''); }}
       voice={voice} open={chatOpen} setOpen={setChatOpen} onAskPage={page.kind === 'ask'} />
     {!ring && <ApprovalTray waiting={waiting} hide={inline} onChange={update} />}
-    {!ring && <TaurusWindows {...windows} hide={center && 'win' in center ? center.win : undefined} />}
+    {!ring && <TaurusWindows {...windows} liveOnly={liveOnly} hide={center && 'win' in center ? center.win : undefined} />}
     {!ring && <Swarm />}
     {ring && <RingScreen ring={ring} onDone={clear} waiting={waiting} onUpdate={update} />}
     {showOnboarding && prefs && <Onboarding prefs={prefs} setPrefs={setPrefs} onDone={() => { setShowOnboarding(false); location.hash = homeView === 'hud' ? 'hud' : `b/${boards[0]?.id ?? 'home'}`; }} />}

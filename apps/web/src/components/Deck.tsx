@@ -3,7 +3,7 @@ import { clock, type Activity, type Profile, type Widget, type WidgetType } from
 import { stateNames, timeOf, useBots, type Bot } from '../bots';
 import { useSpeaking } from '../speech';
 import { hashOf, inkOn, Mascot } from './Mascot';
-import type { Appearance } from './Settings';
+import type { Appearance, UiVersion } from './Settings';
 import { ParticleOrb, type OrbState } from './ParticleOrb';
 import { ProfileMenu } from './Shell';
 import { CenterFace, CenterLine, centerLabel, useLiveMusic, useTick, type Center } from './TaurusWidget';
@@ -110,7 +110,7 @@ function Agents({ bots, picked, onPick, open, setOpen }: { bots: Bot[]; picked: 
     <div className="deck-agent-row">
       <button type="button" className="deck-arrow" onClick={() => go(-1)} disabled={n < 2} aria-label="Previous agent">←</button>
       <div className="deck-agent" role="group" aria-roledescription="slide" aria-label={`${a.name}, ${at + 1} of ${n}`} data-state={a.state}>
-        <div className="deck-screen">
+        <div className="deck-screen" data-empty={!a.frame || undefined}>
           {a.frame ? <img src={a.frame} alt={a.where ? `What ${a.name} sees on ${a.where}` : `What ${a.name} sees`} draggable={false} />
             : <p className="deck-screen-empty">{a.state === 'working' ? 'Working without a screen' : 'Nothing on screen'}</p>}
         </div>
@@ -256,14 +256,14 @@ const kinds: Record<Activity['kind'], string> = { read: 'read', ai: 'think', too
 const at = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 interface Props {
-  ctx: Ctx; voice: Voice; profile: Profile; log: Activity[];
+  uiVersion: UiVersion; ctx: Ctx; voice: Voice; profile: Profile; log: Activity[];
   appearance: Appearance; setAppearance: (a: Appearance) => void; onLanguage?: (code: string) => void;
   // Taurus's window as a widget (a countdown, the weather, your recovery, what's playing): what to show, putting him back,
   // and closing the window it came from. Chosen in App by pickCenter, as on the old HUD.
   center: Center | null; onBack: (key: string) => void; closeWin: (id: string) => void;
 }
 
-export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLanguage, center, onBack, closeWin }: Props) {
+export function Deck({ uiVersion, ctx, voice, profile, log, appearance, setAppearance, onLanguage, center, onBack, closeWin }: Props) {
   const { data, now } = ctx;
   const speaking = useSpeaking();
   const all = useBots();
@@ -301,7 +301,7 @@ export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLa
 
   return <main id="main" tabIndex={-1} className="deck deck-look" data-phase={phase}>
     <section className="deck-center" aria-label="Taurus">
-      <PixelSky />
+      {uiVersion === 'v1' && <PixelSky />}
       <div className="deck-top">
         <div className="deck-tools">
           <span className="deck-date">{today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {clock(today.toISOString())}</span>
@@ -316,7 +316,7 @@ export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLa
       <div className="deck-hero">
         <BotRing bots={boxes} picked={picked} onPick={pickBox}>
         <div className="deck-win deck-logo-win">
-          <header className="deck-bar"><h2>Taurus</h2><span className="deck-count" aria-live="polite">{mode}</span></header>
+          <header className="deck-bar deck-identity"><h2>Taurus</h2><span className="deck-count" aria-live="polite">{mode}</span></header>
           <button type="button" className="deck-logo" data-taurus-center aria-pressed={phase === 'listening'} data-widget={widget?.kind}
             aria-label={phase === 'listening' ? 'Taurus is listening. Tap to stop' : 'Talk to Taurus'} aria-describedby={widget ? 'deck-widget-name' : undefined} {...voice.talkButton}>
             <ParticleOrb state={orb} level={speaking.level} />
@@ -329,7 +329,7 @@ export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLa
         <h1 className="deck-headline" id="taurus-says" aria-live="polite" data-kind={phase === 'idle' && running ? 'doing' : undefined}>{headline}</h1>
         {(phase === 'answer' || phase === 'error') && <button type="button" className="deck-chip" onClick={voice.view.dismiss}>Done</button>}
         {widget ? <CenterLine center={widget} data={data} live={live} back={() => onBack(widget.key)} closeWin={closeWin} />
-          : phase === 'idle' && !running && facts.length > 0 && <p className="deck-facts">{facts.join('  ·  ')}</p>}
+          : uiVersion === 'v1' && phase === 'idle' && !running && facts.length > 0 && <p className="deck-facts">{facts.join('  ·  ')}</p>}
       </div>
 
       <section className="deck-win deck-status" aria-labelledby="deck-status-name">
@@ -337,7 +337,7 @@ export function Deck({ ctx, voice, profile, log, appearance, setAppearance, onLa
         <ol className="deck-log" aria-label="What Taurus did last">
           {lines.length ? lines.map(e => <li key={e.id} data-state={e.state}>
             <time dateTime={e.at}>{at(e.at)}</time><span className="deck-kind">{kinds[e.kind]}</span><span className="deck-text">{e.text}</span>
-          </li>) : <li className="deck-quiet">Nothing yet. Every time Taurus reads, thinks, browses or acts, a line appears here.</li>}
+          </li>) : <li className="deck-quiet">{uiVersion === 'v2' ? 'Nothing yet.' : 'Nothing yet. Every time Taurus reads, thinks, browses or acts, a line appears here.'}</li>}
         </ol>
       </section>
     </section>

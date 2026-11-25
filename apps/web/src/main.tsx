@@ -8,6 +8,7 @@ import './styles/shell.css';
 import './styles/cloud.css';
 import './styles/hud.css';
 import './styles/deck.css';
+import './styles/interface.css';
 // Renamed from OXBOT (November 19, 2026): carry this browser's saved choices (onboarding done, appearance, and the
 // like) from the old oxbot-* names to taurus-*, once, before anything reads them. The old dashboard page was also
 // called Taurus, so its saved start page "taurus" is now "hud".

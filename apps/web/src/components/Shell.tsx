@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { clock, type Activity, type Background, type Board, type BrowserState, type Dashboard, type TaurusWindow, type Prefs, type Profile, type Tint } from '../api';
 import { Logo } from './Logo';
 import { boardIcon, PixelIcon } from './PixelIcon';
+import { SoftIcon } from './SoftIcon';
+import type { UiVersion } from './Settings';
 import { Taurus } from './Taurus';
 import type { DockTab } from './Live';
 
@@ -39,7 +41,7 @@ export function Avatar({ name, photo, size = 34 }: { name: string; photo?: strin
 }
 
 interface RailProps {
-  boards: Board[]; current?: string; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
+  uiVersion: UiVersion; expanded: boolean; onToggleExpand: () => void; boards: Board[]; current?: string; page: string; dock: DockTab | null; setDock: (t: DockTab | null) => void; open: boolean; onClose: () => void;
   // Home is the view picked in Settings, Personalize: Hud (the dashboard) or the first board's tiles (owner,
   // November 19, 2026: "make it just in settings either tile view or dashboard view and then home becomes that").
   home: string; homeIsHud: boolean; doing: Doing[];
@@ -60,34 +62,38 @@ export function nowDoing({ entries, browser, wins, now, setDock, music }: { entr
   return out;
 }
 
-export function Rail({ boards, current, page, dock, setDock, open, onClose, home, homeIsHud, doing }: RailProps) {
+export function Rail({ uiVersion, expanded, onToggleExpand, boards, current, page, dock, setDock, open, onClose, home, homeIsHud, doing }: RailProps) {
+  const expansionLabel = expanded ? 'Collapse sidebar' : 'Expand sidebar';
+  const NavIcon = uiVersion === 'v1' ? PixelIcon : SoftIcon;
   const toggle = (t: DockTab) => { setDock(dock === t ? null : t); onClose(); };
   return <>
     {open && <div className="scrim" onClick={onClose} aria-hidden="true" />}
     <nav className={`rail ${open ? 'open' : ''}`} aria-label="Main" id="rail">
       <div className="rail-panel">
         {/* No logo up here any more (owner, November 23, 2026: "remove the taurus logo from the top left corner"). */}
+        {uiVersion === 'v2' && <button className="rail-expand" type="button" aria-expanded={expanded} aria-controls="rail" aria-label={expansionLabel} title={expansionLabel}
+          onClick={onToggleExpand}><SoftIcon name="sidebar" /><span className="rail-label">{expanded ? 'Collapse' : 'Expand'}</span></button>}
         <ul className="rail-list" aria-label="Tabs">
-          <li><a href={home} aria-current={(homeIsHud ? page === 'hud' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}><PixelIcon name="home" />Home</a></li>
-          {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}><PixelIcon name={boardIcon(b.name)} />{b.name}</a></li>)}
+          <li><a href={home} title="Home" aria-current={(homeIsHud ? page === 'hud' : current === boards[0]?.id) ? 'page' : undefined} onClick={onClose}><NavIcon name="home" /><span className="rail-label">Home</span></a></li>
+          {boards.slice(1).map(b => <li key={b.id}><a href={`#b/${b.id}`} title={b.name} aria-current={current === b.id ? 'page' : undefined} onClick={onClose}><NavIcon name={boardIcon(b.name)} /><span className="rail-label">{b.name}</span></a></li>)}
         </ul>
         <ul className="rail-list rail-taurus" aria-label="Taurus">
           {/* November 22, 2026 (owner): Ask Taurus and ProFinder are gone; the chat bar asks, and Legal holds the resume and papers. */}
-          <li><a href="#bots" aria-current={page === 'bots' ? 'page' : undefined} onClick={onClose}><PixelIcon name="bot" />Bots</a></li>
-          <li><a href="#house" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}><PixelIcon name="house" />House</a></li>
-          <li><a href="#brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}><PixelIcon name="brain" />Brain</a></li>
-          <li><a href="#legal" aria-current={page === 'legal' ? 'page' : undefined} onClick={onClose}><PixelIcon name="book" />Legal</a></li>
-          <li><button type="button" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}><PixelIcon name="globe" />Browser</button></li>
-          <li><button type="button" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}><PixelIcon name="bolt" />Activity</button></li>
+          <li><a href="#bots" title="Bots" aria-current={page === 'bots' ? 'page' : undefined} onClick={onClose}><NavIcon name="bot" /><span className="rail-label">Bots</span></a></li>
+          <li><a href="#house" title="House" aria-current={page === 'house' ? 'page' : undefined} onClick={onClose}><NavIcon name="house" /><span className="rail-label">House</span></a></li>
+          <li><a href="#brain" title="Brain" aria-current={page === 'brain' ? 'page' : undefined} onClick={onClose}><NavIcon name="brain" /><span className="rail-label">Brain</span></a></li>
+          <li><a href="#legal" title="Legal" aria-current={page === 'legal' ? 'page' : undefined} onClick={onClose}><NavIcon name="book" /><span className="rail-label">Legal</span></a></li>
+          <li><button type="button" title="Browser" aria-pressed={dock === 'browser'} onClick={() => toggle('browser')}><NavIcon name="globe" /><span className="rail-label">Browser</span></button></li>
+          <li><button type="button" title="Activity" aria-pressed={dock === 'activity'} onClick={() => toggle('activity')}><NavIcon name="bolt" /><span className="rail-label">Activity</span></button></li>
         </ul>
         {doing.length > 0 && <ul className="rail-list rail-now" aria-label="What Taurus is doing now">
           {doing.map(d => <li key={d.id} className="rail-doing">
-            <button type="button" onClick={() => { d.go(); onClose(); }} title={d.text}><span className="rail-doing-text">{d.text}</span></button>
+            <button type="button" onClick={() => { d.go(); onClose(); }} title={d.text}>{uiVersion === 'v2' && <SoftIcon name="bolt" />}<span className="rail-doing-text rail-label">{d.text}</span></button>
             {d.extra && <button type="button" className="rail-doing-extra" onClick={d.extra.run}>{d.extra.label}</button>}
           </li>)}
         </ul>}
         <ul className="rail-list rail-foot" aria-label="Settings">
-          <li><a href="#settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}><PixelIcon name="gear" />Settings</a></li>
+          <li><a href="#settings" title="Settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={onClose}><NavIcon name="gear" /><span className="rail-label">Settings</span></a></li>
         </ul>
       </div>
     </nav>
@@ -137,14 +143,15 @@ export function ProfileMenu({ profile, onLanguage }: { profile: Profile; onLangu
 
 // The one plain line at the top right, where the status pill was (owner, November 5, 2026: "remove the 'checked two
 // apps just now' status bar thing, just make that like the nothing needs u part or the late night part").
-export function dayLine(data: Dashboard | null, now: number) {
+export function dayLine(data: Dashboard | null, now: number, liveOnly: boolean) {
   if (!data) return '';
   const h = new Date(now).getHours();
-  if (h >= 22 || h < 5) {
+  if ((h >= 22 || h < 5) && (!liveOnly || data.sections.schedule.live)) {
     const first = data.schedule.find(e => !e.allDay && Date.parse(e.start) > now);
     if (!first) return 'It’s late. Nothing early tomorrow.';
     return new Date(first.start).toDateString() === new Date(now).toDateString() ? `It’s late. ${first.title} at ${clock(first.start)}.` : `It’s late. Tomorrow starts with ${first.title}.`;
   }
+  if (liveOnly && !data.sections.needs.live) return '';
   return data.needs.length ? `${data.needs.length} ${data.needs.length === 1 ? 'thing needs' : 'things need'} you` : 'Nothing needs you';
 }
 
@@ -183,9 +190,9 @@ export function people(data: Dashboard | null, prefs: Prefs, now: number): Face[
   return faces.slice(0, 8);
 }
 
-export function PeopleStrip({ data, prefs, now, onAsk }: { data: Dashboard | null; prefs: Prefs; now: number; onAsk: (q: string) => void }) {
+export function PeopleStrip({ data, liveOnly, prefs, now, onAsk }: { data: Dashboard | null; liveOnly: boolean; prefs: Prefs; now: number; onAsk: (q: string) => void }) {
   const faces = people(data, prefs, now);
-  if (!data) return null;
+  if (!data || (liveOnly && faces.length === 0 && !data.sections.needs.live)) return null;
   return <section className="people-strip" aria-label="People">
     {faces.length === 0 ? <p className="muted">Nobody is waiting on you right now.</p> : <ul>
       {faces.map((f, i) => <li key={f.name} style={{ '--i': i } as CSSProperties}>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { MeterIcon } from './PixelIcon';
+import { SoftIcon } from './SoftIcon';
+import type { UiVersion } from './Settings';
 import { api, type Proposal } from '../api';
 import { Transcript, type ChatTurn } from './Ask';
 import { Camera } from './Camera';
@@ -71,11 +73,28 @@ function useScreenShare() {
 }
 
 interface Props {
+  uiVersion: UiVersion;
   turns: ChatTurn[]; pending: boolean; error: string; proposals: Record<string, Proposal>; onUpdate: (p: Proposal) => void;
   onAsk: (question: string, frame?: string, extras?: Extras) => void; onClear: () => void; voice: Voice; open: boolean; setOpen: (open: boolean) => void; onAskPage: boolean;
 }
 
-export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onClear, voice, open, setOpen, onAskPage }: Props) {
+export function ChatBar({ uiVersion, turns, pending, error, proposals, onUpdate, onAsk, onClear, voice, open, setOpen, onAskPage }: Props) {
+  const soft = uiVersion === 'v2';
+  const composer = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!soft || !composer.current) return;
+    const form = composer.current;
+    const root = document.documentElement;
+    const updateHeight = () => root.style.setProperty('--composer-height', `${form.getBoundingClientRect().height}px`);
+    const observer = new ResizeObserver(updateHeight);
+    updateHeight();
+    observer.observe(form);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--composer-height');
+    };
+  }, [soft]);
+
   const [draft, setDraft] = useState('');
   const [looking, setLooking] = useState(false);
   const [vision, setVision] = useState<{ name: string; sees: boolean } | null>(null);
@@ -93,8 +112,35 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
   const [over, setOver] = useState(false);
   const screen = useScreenShare();
   const picker = useRef<HTMLInputElement>(null);
+  const attachButton = useRef<HTMLButtonElement>(null);
+  const attachMenu = useRef<HTMLSpanElement>(null);
+  const menuItems = () => Array.from(attachMenu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+  const closeAttach = () => { setMenu(false); attachButton.current?.focus(); };
+  const attachKeys = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (!menu && event.key === 'ArrowDown') {
+      event.preventDefault();
+      setMenu(true);
+      return;
+    }
+    if (!menu) return;
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeAttach();
+    } else if (event.key === 'Tab') {
+      setMenu(false);
+      attachButton.current?.focus();
+    } else if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = menuItems();
+      const index = items.indexOf(document.activeElement as HTMLButtonElement);
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      const target = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + step + items.length) % items.length;
+      items[target]?.focus();
+    }
+  };
   useEffect(() => {
     if (!menu) return;
+    attachMenu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
     const close = (e: PointerEvent) => { if (!(e.target as HTMLElement).closest('.attach-menu, .attach-button')) setMenu(false); };
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
@@ -135,8 +181,24 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
   }
   const keys = (event: KeyboardEvent<HTMLTextAreaElement>) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } };
   const talking = voice.view.phase === 'listening';
+  const hint = soft
+    ? (voice.waking ? 'Say “Hey Taurus”' : 'Message Taurus')
+    : (voice.waking ? 'Ask Taurus, or say “Hey Taurus”' : 'Ask or tell Taurus anything');
   const showPanel = open && !onAskPage && (turns.length > 0 || pending || Boolean(error));
   const share = async () => { setMenu(false); setNote(''); try { await screen.start(); } catch (e) { if ((e as Error).name !== 'NotAllowedError') setNote((e as Error).message); } };
+
+  const talk = <button type="button" className={`fn-talk ${talking ? 'on' : ''}`} aria-pressed={talking} {...voice.talkButton}>
+    {soft ? <SoftIcon name="voice" /> : <MeterIcon />}<span className="sr-only">Talk</span>
+  </button>;
+  const attach = <span className="attach-wrap" onKeyDown={attachKeys}>
+      <button type="button" className="attach-button" ref={attachButton} aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu(m => !m)} disabled={pending}><span className="attach-plus" aria-hidden="true" /><span className="sr-only">Attach</span></button>
+      {menu && <span className="attach-menu" ref={attachMenu} role="menu" aria-label="Attach">
+        <button type="button" role="menuitem" onClick={() => { closeAttach(); picker.current?.click(); }}>Photos and files</button>
+        <button type="button" role="menuitem" onClick={() => void share()}>{screen.sharing ? 'Share something else' : 'Share a window or screen'}</button>
+        <button type="button" role="menuitem" onClick={() => { setMenu(false); setLooking(true); }}>Camera</button>
+      </span>}
+      <input ref={picker} type="file" multiple hidden accept="image/*,text/*,.md,.csv,.json,.yaml,.yml,.xml,.html,.js,.ts,.tsx,.py,.sql,.log,.svg" onChange={e => { if (e.target.files) void add(e.target.files); e.target.value = ''; }} />
+    </span>;
 
   return <aside className="chatbar" aria-label="Chat with Taurus">
     <div className="chatbar-inner">
@@ -159,22 +221,19 @@ export function ChatBar({ turns, pending, error, proposals, onUpdate, onAsk, onC
         </span>)}
         {note && <span className="attach-note">{note}</span>}
       </div>}
-      <form className={`composer-bar ${over ? 'drop-over' : ''}`} onSubmit={send} onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={drop}>
-        <button type="button" className={`fn-talk ${talking ? 'on' : ''}`} aria-pressed={talking} {...voice.talkButton}><MeterIcon /><span className="sr-only">Talk</span></button>
+      <form ref={composer} className={`composer-bar ${over ? 'drop-over' : ''}`} onSubmit={send} onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={drop}>
+        {soft ? attach : talk}
         <label className="sr-only" htmlFor="ask-input">Message Taurus</label>
         <textarea id="ask-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={keys} onPaste={paste} onFocus={() => { if (turns.length) setOpen(true); void api.warm().catch(() => undefined); }}
-          placeholder={talking ? 'Listening' : voice.waking ? 'Ask Taurus, or say “Hey Taurus”' : 'Ask or tell Taurus anything'} maxLength={4000} />
+          placeholder={talking ? 'Listening' : hint} maxLength={4000} />
         {!open && !onAskPage && turns.length > 0 && <button type="button" className="text-button chat-show" onClick={() => setOpen(true)}>Show chat</button>}
-        <span className="attach-wrap">
-          <button type="button" className="attach-button" aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu(m => !m)} disabled={pending}><span className="attach-plus" aria-hidden="true" /><span className="sr-only">Attach</span></button>
-          {menu && <span className="attach-menu" role="menu">
-            <button type="button" role="menuitem" onClick={() => { setMenu(false); picker.current?.click(); }}>Photos and files</button>
-            <button type="button" role="menuitem" onClick={() => void share()}>{screen.sharing ? 'Share something else' : 'Share a window or screen'}</button>
-            <button type="button" role="menuitem" onClick={() => { setMenu(false); setLooking(true); }}>Camera</button>
-          </span>}
-          <input ref={picker} type="file" multiple hidden accept="image/*,text/*,.md,.csv,.json,.yaml,.yml,.xml,.html,.js,.ts,.tsx,.py,.sql,.log,.svg" onChange={e => { if (e.target.files) void add(e.target.files); e.target.value = ''; }} />
-        </span>
-        <button type="submit" className="primary send" disabled={pending || (!draft.trim() && !attached.length)}>{pending ? 'Thinking' : 'Ask'}</button>
+        {!soft && attach}
+        <button type="submit" className="primary send" disabled={pending || (!draft.trim() && !attached.length)}>
+          {soft && !pending && <SoftIcon name="send" />}
+          <span className={soft ? 'sr-only' : undefined}>{pending ? 'Thinking' : 'Ask'}</span>
+          {soft && pending && <span className="send-progress" aria-hidden="true" />}
+        </button>
+        {soft && talk}
       </form>
     </div>
     {looking && <Camera question={draft} note={vision && !vision.sees ? `${vision.name} may not read pictures with the model you picked; Claude, ChatGPT and Gemini do.` : undefined}

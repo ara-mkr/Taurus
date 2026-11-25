@@ -204,14 +204,15 @@ main.board { max-width: 1440px; padding: 18px 20px 72px; }
 .todos .done span { color: var(--ink-2); text-decoration: line-through; }
 
 /* Day strip */
-.daystrip { margin: 4px 0 6px; }
+.daystrip { margin: 4px 0 6px; container-type: inline-size; }
 .daystrip-track { position: relative; height: 26px; border-radius: 8px; background: var(--wash); box-shadow: inset 0 0 0 1px var(--rule); }
 .daystrip-event { position: absolute; top: 4px; bottom: 4px; min-width: 4px; border-radius: 5px; background: var(--ink); opacity: .7; }
 .daystrip-event.past { opacity: .22; }
 .daystrip-now { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--signal); }
 .daystrip-marks { position: relative; height: 22px; }
-.daystrip-marks span { position: absolute; top: 3px; transform: translateX(-50%); color: var(--ink-2); font-size: 13px; }
+.daystrip-marks span { position: absolute; top: 3px; transform: translateX(-50%); color: var(--ink-2); font-size: 13px; white-space: nowrap; }
 .daystrip-marks span:first-child { transform: none; }
+@container (max-width: 260px) { .daystrip-marks span:nth-child(even) { display: none; } }
 
 /* Health */
 .health-top { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }

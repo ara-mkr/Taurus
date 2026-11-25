@@ -113,7 +113,7 @@ test('the wake word is off by default and turns on in Settings', async ({ page }
   await page.locator('#profile-menu').getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: 'Personalize' }).click();
   await page.getByLabel('Listen for “Hey Taurus” while Taurus is open').check();
-  await expect(chat).toHaveAttribute('placeholder', 'Ask Taurus, or say “Hey Taurus”');
+  await expect(chat).toHaveAttribute('placeholder', 'Say “Hey Taurus”');
   expect(await page.evaluate(() => localStorage.getItem('taurus-voice'))).toBe('{"wake":true,"speak":false,"clap":false}');
   await page.screenshot({ path: `${shots}/look-voice-1440.png`, fullPage: true });
 });
@@ -121,7 +121,7 @@ test('the wake word is off by default and turns on in Settings', async ({ page }
 test('“Hey Taurus” wakes him only at the start of a phrase and the rest goes to Ask', async ({ page }) => {
   await fakeSpeech(page);
   const asked = await open(page, '{"wake":true}');
-  await expect(page.getByRole('textbox', { name: 'Message Taurus' })).toHaveAttribute('placeholder', 'Ask Taurus, or say “Hey Taurus”');
+  await expect(page.getByRole('textbox', { name: 'Message Taurus' })).toHaveAttribute('placeholder', 'Say “Hey Taurus”');
   // One continuous recognizer (React's dev double-mount may start and abort an extra one), and it isn't restarting in a loop.
   const started = () => page.evaluate(() => (window as unknown as { speech: { started: { continuous: boolean }[] } }).speech.started);
   const first = await started();

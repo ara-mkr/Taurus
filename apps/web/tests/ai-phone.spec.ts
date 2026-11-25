@@ -131,8 +131,11 @@ test('phone home-screen app: the chat bar stays put while the page scrolls, and 
 
 // November 23, 2026 (owner: "only add simple color options like black or white ... the pink and blue ... red crimson"):
 // five colour sets replace the nine moving backgrounds, and the choice stays on this device.
-test('five colours to choose from, and picking one changes the whole app', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'light'));
+test('UI V1 has five colours to choose from, and picking one changes the whole app', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('taurus-ui-version', 'v1');
+    localStorage.setItem('taurus-appearance', 'light');
+  });
   await mock(page);
   await page.goto('/#look');
   const colours = page.getByRole('group', { name: 'Colours' });

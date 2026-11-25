@@ -204,7 +204,7 @@
    The older stylesheets round ~150 corners by hand; one rule squares them all, buttons and tabs included (owner,
    November 23, 2026: "the hard style of hard edges"). Round stays only where round means something: faces (avatars),
    radio buttons, the orb, the swarm's cursors and a bot's status light. Glass blur goes too. */
-:root:not([data-look="old"]) *:not(.avatar, .avatar *, input[type="radio"], .particle-orb, .swarm-layer *, .swarm-tile *, .bot-light) { border-radius: 0 !important; }
+:root:not([data-look="old"])[data-ui="v1"] *:not(.avatar, .avatar *, input[type="radio"], .particle-orb, .swarm-layer *, .swarm-tile *, .bot-light, .ui-version-preview[data-preview="v2"], .ui-version-preview[data-preview="v2"] *) { border-radius: 0 !important; }
 :root:not([data-look="old"]) * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 :root:not([data-look="old"]) :is(h1, .page-head h1) { letter-spacing: -.03em; }
 :root:not([data-look="old"]) .primary, :root:not([data-look="old"]) button.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }

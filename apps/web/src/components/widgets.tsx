@@ -5,6 +5,7 @@ import { Bars, LineChart, Ring, Sparkline } from './charts';
 export interface Ctx {
   data: Dashboard | null;
   history: History | null;
+  liveOnly: boolean;
   prefs: Prefs;
   setPrefs: (update: (p: Prefs) => Prefs) => void;
   now: number;
@@ -58,6 +59,14 @@ function Problems({ data, section }: { data: Dashboard | null; section: Section 
   return <>{data?.sections[section]?.errors.map(e => <p key={e} className="problem">{e} <a href="#connections">Reconnect</a></p>)}</>;
 }
 
+export function ConnectState({ unavailable = false, heading = false }: { unavailable?: boolean; heading?: boolean }) {
+  const message = unavailable ? 'Unavailable right now.' : 'Not connected yet.';
+  return <div className="widget-connect">
+    {heading ? <h1 className="brief">{message}</h1> : <p>{message}</p>}
+    <a className="button" href="#connections">{unavailable ? 'Reconnect' : 'Connect'}</a>
+  </div>;
+}
+
 // Fetch on mount and on an interval; keeps the last good value while refreshing.
 // The last live value of each remote feed, so Taurus can talk about the card it is sitting on.
 export const seen = new Map<string, unknown>();
@@ -78,20 +87,24 @@ function useRemote<T>(key: string, load: () => Promise<T>, everyMs: number) {
 // ---------- widgets ----------
 
 function BriefW({ ctx }: Props) {
-  const { data, now } = ctx;
+  const { data, now, liveOnly } = ctx;
   const date = new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const sampleCount = data ? Object.values(data.sections).filter(s => !s.live).length : 0;
   const sectionCount = data ? Object.keys(data.sections).length : 0;
+  const noSources = data && sampleCount === sectionCount;
+  const brief = data?.brief || (data ? 'Nothing yet.' : 'Loading.');
   return <div className="brief-card">
     <p className="date">{date}</p>
-    <h1 className="brief">{data?.brief ?? 'Loading.'}</h1>
-    {sampleCount > 0 && <p className="sample-note">{sampleCount === sectionCount ? 'Everything here is sample data.' : `${sampleCount} of ${sectionCount} sections show sample data.`} <a href="#connections">Connect your accounts</a></p>}
-    {data && <p className="footnote">Updated {clock(data.generatedAt)}{data.briefBy !== 'rules' && ` · Summary by ${data.briefBy}`}</p>}
+    {liveOnly && noSources
+      ? <ConnectState heading unavailable={Object.values(data.sections).some(s => s.errors.length > 0)} />
+      : <h1 className="brief">{brief}</h1>}
+    {!liveOnly && sampleCount > 0 && <p className="sample-note">{sampleCount === sectionCount ? 'Everything here is sample data.' : `${sampleCount} of ${sectionCount} sections show sample data.`} <a href="#connections">Connect your accounts</a></p>}
+    {data && !(liveOnly && noSources) && <p className="footnote">Updated {clock(data.generatedAt)}{data.briefBy !== 'rules' && ` · Summary by ${data.briefBy}`}</p>}
   </div>;
 }
 
 function FocusW({ widget, ctx }: Props) {
-  const { data, now, prefs } = ctx;
+  const { data, now, prefs, liveOnly } = ctx;
   const next = data?.schedule.find(e => !e.allDay && Date.parse(e.end) > now && Date.parse(e.start) - now < 14 * 3_600_000);
   const ongoing = next && Date.parse(next.start) <= now;
   const top = data?.needs[0];
@@ -103,7 +116,9 @@ function FocusW({ widget, ctx }: Props) {
         <p className={`focus-when ${ongoing ? 'live' : ''}`}>{ongoing ? `Now, ${span(Date.parse(next.end) - now)} left` : `In ${span(Date.parse(next.start) - now)}`}</p>
         <p className="focus-title">{next.title}</p>
         <p className="muted">{clock(next.start)} to {clock(next.end)}{next.location && ` · ${next.location}`} {(next.joinUrl || next.url) && <a href={next.joinUrl ?? next.url} target="_blank" rel="noreferrer">{next.joinUrl ? 'Join' : 'Open'}</a>}</p>
-      </div> : <p className="focus-when">No more meetings today</p>}
+      </div> : liveOnly && data && !data.sections.schedule.live
+        ? <ConnectState unavailable={data.sections.schedule.errors.length > 0} />
+        : <p className="focus-when">No more meetings today</p>}
       <dl className="focus-rows">
         {top && <div><dt>Top</dt><dd>{top.url ? <a href={top.url} target="_blank" rel="noreferrer">{top.title}</a> : top.title}<span className="muted">{top.who ? ` · ${top.who}` : ''}</span></dd></div>}
         <div><dt>To do</dt><dd>{todo ? todo.text : <span className="muted">Nothing on your list</span>}</dd></div>
@@ -189,7 +204,7 @@ function DayStrip({ events, now }: { events: CalendarEvent[]; now: number }) {
       {timed.map(e => <span key={e.id} className={`daystrip-event ${Date.parse(e.end) < now ? 'past' : ''}`} style={{ left: pos(hour(e.start)), width: `calc(${pos(hour(e.end))} - ${pos(hour(e.start))})` }} title={e.title} />)}
       {nowH >= from && nowH <= to && <span className="daystrip-now" style={{ left: pos(nowH) }} />}
     </div>
-    <div className="daystrip-marks">{marks.map(h => <span key={h} style={{ left: pos(h) }}>{h === 0 || h === 24 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`}</span>)}</div>
+    <div className="daystrip-marks">{marks.map(h => <span key={h} style={{ left: pos(h) }}>{h % 12 || 12} {h < 12 ? 'AM' : 'PM'}</span>)}</div>
   </div>;
 }
 
@@ -208,7 +223,7 @@ function ScheduleW({ widget, ctx }: Props) {
   };
   const nowIndex = today.findIndex(e => !e.allDay && Date.parse(e.start) > now);
   const rows = today.map(row);
-  if (today.length) rows.splice(nowIndex === -1 ? today.length : nowIndex, 0, <li key="now" className="now-line" aria-label={`Now, ${clock(new Date(now).toISOString())}`}><time>{clock(new Date(now).toISOString())}</time><span /></li>);
+  if (today.length) rows.splice(nowIndex === -1 ? today.length : nowIndex, 0, <li key="now" className="now-line" aria-label={`Now, ${clock(new Date(now).toISOString())}`}><time>{clock(new Date(now).toISOString())}</time><span aria-hidden="true" /></li>);
   return <>
     <Head title={widget.title ?? 'Today'} note={sourceNote(data, 'schedule')} />
     <div className="card-body">
@@ -223,7 +238,7 @@ function ScheduleW({ widget, ctx }: Props) {
 const meetingName = /(?:\bwith\b|\bw\/|\b1:1\b|\b1-1\b|<>)\s*([A-Z][\w'’-]+(?:\s+[A-Z][\w'’-]+)?)/;
 function PeopleW({ widget, ctx }: Props) {
   const [name, setName] = useState('');
-  const { data, prefs, setPrefs, now } = ctx;
+  const { data, prefs, setPrefs, now, liveOnly } = ctx;
   const waiting = new Map<string, { source: string; at: string; vip?: boolean }>();
   for (const n of data?.needs ?? []) if (n.who && !waiting.has(n.who)) waiting.set(n.who, { source: n.source, at: n.at, vip: n.vip });
   const meeting = new Map<string, string>();
@@ -234,8 +249,10 @@ function PeopleW({ widget, ctx }: Props) {
   const talked = (id: string) => setPrefs(p => ({ ...p, people: p.people.map(x => x.id === id ? { ...x, last: new Date().toISOString() } : x) }));
   const remove = (id: string) => setPrefs(p => ({ ...p, people: p.people.filter(x => x.id !== id) }));
   return <>
-    <Head title={widget.title ?? 'People'} note={data && !data.sections.needs.live ? <a href="#connections">Sample</a> : undefined} />
+    <Head title={widget.title ?? 'People'} note={!liveOnly && data && !data.sections.needs.live ? <a href="#connections">Sample</a> : undefined} />
     <div className="card-body people">
+      {liveOnly && data && !data.sections.needs.live && !data.sections.schedule.live &&
+        <ConnectState unavailable={data.sections.needs.errors.length > 0 || data.sections.schedule.errors.length > 0} />}
       {waiting.size > 0 && <><h3 className="subhead first">Waiting on you</h3><ul className="rows">{[...waiting].map(([who, w]) => <li key={who}><span className={w.vip ? 'strong' : undefined}>{who}</span><span className="muted">{w.source} · {ago(w.at)}</span></li>)}</ul></>}
       {meeting.size > 0 && <><h3 className="subhead">Seeing today</h3><ul className="rows">{[...meeting].map(([who, at]) => <li key={who}><span>{who}</span><span className="muted">{at}</span></li>)}</ul></>}
       <h3 className="subhead">Keep in touch</h3>
@@ -303,7 +320,7 @@ function TrendW({ widget, ctx }: Props) {
   return <>
     <Head title={widget.title ?? meta.name} note={!ctx.history ? '' : ctx.history.sample ? <a href="#connections">Sample</a> : `${days} days`} />
     <div className="card-body trend">
-      {points.length < 2 ? <p className="empty">{points.length ? 'One day so far.' : 'Fills in a day at a time.'}</p> : <>
+      {points.length < 2 ? <p className="empty">{points.length ? 'One day so far.' : ctx.liveOnly ? 'Nothing yet.' : 'Fills in a day at a time.'}</p> : <>
         <p className="big">{meta.format(last!)}<span className="unit">{avg !== undefined && ` ${days}-day average ${meta.format(avg)}`}</span></p>
         {widget.size === 'small' || widget.size === 'banner' ? <Sparkline values={points.map(p => p.v)} height={chartHeight[widget.size]} /> : <LineChart points={points} label={`${meta.name}, ${days} days`} format={meta.format} height={chartHeight[widget.size]} />}
       </>}
@@ -423,7 +440,7 @@ function UpdatesW({ widget, ctx }: Props) {
     <Head title={widget.title ?? catalog.updates.name} note={data?.sections.updates?.live ? data.sections.updates.sources.join(', ') : undefined} />
     <div className="card-body">
       <Problems data={data} section="updates" />
-      {!data ? <p className="empty">Loading.</p> : !items.length ? <p className="empty"><a href="#connections">Connect</a> weather, feeds or music.</p> : <ol className="news">
+      {!data ? <p className="empty">Loading.</p> : !items.length ? <p className="empty">{ctx.liveOnly ? 'Nothing yet.' : <><a href="#connections">Connect</a> weather, feeds or music.</>}</p> : <ol className="news">
         {items.map(i => <li key={i.id}>
           {i.url ? <a href={i.url} target="_blank" rel="noreferrer">{i.title}</a> : <span>{i.title}</span>}
           <p className="muted">{[i.source, i.detail, i.at && i.source !== 'Weather' && `${ago(i.at)}${ago(i.at).length < 4 ? ' ago' : ''}`].filter(Boolean).join(' · ')}</p>
@@ -484,7 +501,23 @@ const views: Record<WidgetType, (p: Props) => ReactNode> = {
   brief: BriefW, focus: FocusW, clock: ClockW, needs: NeedsW, todo: TodoW, schedule: ScheduleW, people: PeopleW, health: HealthW,
   trend: TrendW, inbox: InboxW, numbers: NumbersW, stocks: StocksW, chart: ChartW, news: NewsW, note: NoteW, ai: AiW, updates: UpdatesW,
 };
-export function WidgetView(props: Props) { const View = views[props.widget.type]; return <View {...props} />; }
+const widgetSections: Partial<Record<WidgetType, Section>> = {
+  needs: 'needs', schedule: 'schedule', health: 'body', trend: 'body', inbox: 'inbox', numbers: 'numbers', updates: 'updates',
+};
+
+export function WidgetView(props: Props) {
+  const { widget, ctx } = props;
+  const section = widgetSections[widget.type];
+  const status = ctx.data && section ? ctx.data.sections[section] : undefined;
+  if (ctx.liveOnly && status && !status.live) {
+    return <>
+      <Head title={widget.title ?? catalog[widget.type].name} />
+      <div className="card-body"><ConnectState unavailable={status.errors.length > 0} /></div>
+    </>;
+  }
+  const View = views[widget.type];
+  return <View {...props} />;
+}
 
 // ---------- per-widget settings ----------
 

@@ -8,7 +8,10 @@ test.use({ reducedMotion: 'reduce' });
 for (const scheme of ['light', 'dark'] as const) {
   for (const width of [1440, 390]) {
     test(`board ${scheme} ${width}`, async ({ page }) => {
-      await page.addInitScript(() => localStorage.setItem('taurus-appearance', 'auto'));
+      await page.addInitScript(() => {
+        localStorage.setItem('taurus-ui-version', 'v1');
+        localStorage.setItem('taurus-appearance', 'auto');
+      });
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width, height: width > 500 ? 1000 : 844 });
       await mock(page);

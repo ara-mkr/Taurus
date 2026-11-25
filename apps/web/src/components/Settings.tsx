@@ -6,6 +6,18 @@ import { TaurusVoice } from './TaurusVoice';
 import { catalog } from './widgets';
 import { hudDefaults } from './CloudDashboard';
 
+export type UiVersion = 'v1' | 'v2';
+
+export function readUiVersion(): UiVersion {
+  try { return localStorage.getItem('taurus-ui-version') === 'v1' ? 'v1' : 'v2'; }
+  catch { return 'v2'; }
+}
+
+const uiVersions = [
+  { id: 'v1', label: 'UI V1', detail: 'Classic Deck' },
+  { id: 'v2', label: 'UI V2', detail: 'Soft dashboard' },
+] as const;
+
 export type Appearance = 'auto' | 'light' | 'dark';
 export const settingsPages = { settings: 'Tabs and widgets', look: 'Personalize', connections: 'Connections', ai: 'AI', skills: 'Skills', schedule: 'Scheduled', scans: 'Scans', actions: 'Actions', phone: 'Phone', notch: 'Notch' } as const;
 
@@ -51,16 +63,29 @@ export async function shrink(file: File, size = 192): Promise<string> {
 
 const tones: Record<Tone, [string, string]> = { witty: ['Witty', 'Sharp and quick, with dry jokes and the odd curse. Jarvis with attitude.'], brief: ['Brief', 'The fewest words that carry the answer.'], warm: ['Warm', 'Still short, with a little more care.'], direct: ['Direct', 'Blunt. The hard thing first.'] };
 
-export function Look({ prefs, setPrefs, appearance, setAppearance, palette, setPalette, voice, setVoice }: { prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void; appearance: Appearance; setAppearance: (a: Appearance) => void; palette: Palette; setPalette: (p: Palette) => void; voice: VoiceSettings; setVoice: (v: VoiceSettings) => void }) {
+export function Look({ uiVersion, setUiVersion, prefs, setPrefs, appearance, setAppearance, palette, setPalette, voice, setVoice }: { uiVersion: UiVersion; setUiVersion: (version: UiVersion) => void; prefs: Prefs; setPrefs: (u: (p: Prefs) => Prefs) => void; appearance: Appearance; setAppearance: (a: Appearance) => void; palette: Palette; setPalette: (p: Palette) => void; voice: VoiceSettings; setVoice: (v: VoiceSettings) => void }) {
   const hears = canListen();
   const profile = prefs.profile;
   const setProfile = (next: Partial<Profile>) => setPrefs(p => ({ ...p, profile: { ...p.profile, ...next } }));
   return <main id="main" tabIndex={-1} className="settings-page">
     <div className="page-head"><h1>Personalize</h1></div>
 
+    <fieldset className="choice ui-version">
+      <legend>Interface</legend>
+      <div className="ui-version-options">
+        {uiVersions.map(({ id, label, detail }) => <label className="ui-version-choice" key={id}>
+          <input type="radio" name="ui-version" value={id} checked={uiVersion === id} onChange={() => setUiVersion(id)} />
+          <span className="ui-version-preview" data-preview={id} aria-hidden="true">
+            <span /><span /><span />
+          </span>
+          <span className="ui-version-label"><strong>{label}</strong><span>{detail}</span></span>
+        </label>)}
+      </div>
+    </fieldset>
+
     <fieldset className="choice">
       <legend>Home</legend>
-      {([['hud', 'Dashboard', 'Taurus in the middle, your bots around him, your day on the right'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
+      {([['hud', 'Dashboard', 'Taurus, your activity, and your day'], ['board', 'Tiles', 'A grid of cards']] as const).map(([k, name, what]) => <label key={k} className="check">
         <input type="radio" name="home-view" checked={(prefs.hud?.start ?? 'hud') === k} onChange={() => { setPrefs(p => ({ ...p, hud: { ...(p.hud ?? hudDefaults()), start: k } })); try { localStorage.setItem('taurus-start', k); } catch { /* storage blocked: the saved preference still applies */ } }} />
         <span><strong>{name}</strong> <span className="muted">{what}</span></span></label>)}
     </fieldset>
@@ -71,11 +96,11 @@ export function Look({ prefs, setPrefs, appearance, setAppearance, palette, setP
     </fieldset>
 
     <fieldset className="choice">
-      <legend>Colours</legend>
+      <legend>{uiVersion === 'v1' ? 'Colours' : 'Accent colours'}</legend>
       <div className="palettes">{palettes.map(p => <label key={p.id} className="palette">
         <input type="radio" name="palette" checked={palette === p.id} onChange={() => setPalette(p.id)} />
         <span className="palette-swatches" aria-hidden="true">{p.swatches.map(c => <span key={c} style={{ background: c }} />)}</span>
-        <strong>{p.name}</strong><span className="muted">{p.about}</span>
+        <strong>{p.name}</strong><span className="muted">{uiVersion === 'v2' && p.id === 'slate' ? 'Neutral controls' : p.about}</span>
       </label>)}</div>
     </fieldset>
 

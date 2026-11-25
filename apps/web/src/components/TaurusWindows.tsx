@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { api, clock, type Memory, type MusicState, type TaurusWindow, type Reminder } from '../api';
 import { chime } from './Ringing';
 import { DeviceList } from './House';
+import { ConnectState } from './widgets';
 
 // Taurus windows (owner, November 4, 2026): "when u say ... hey taurus play juice wrld on spotify it will pull up a simple
 // liquid glass window up on the main dashboard with spotify playing so it shows that it did it". Every instant
@@ -57,18 +58,18 @@ const brief = (w: TaurusWindow) => w.kind === 'open' || w.kind === 'note' || w.k
 const opened = new Set<string>();
 
 // On Hud the window Taurus is showing in his own place stays out of the corner (`hide`).
-export function TaurusWindows({ wins, drop, hide }: ReturnType<typeof useOxWindows> & { hide?: string }) {
+export function TaurusWindows({ wins, drop, hide, liveOnly }: ReturnType<typeof useOxWindows> & { hide?: string; liveOnly: boolean }) {
   const list = wins.filter(w => w.id !== hide);
   if (!list.length) return null;
   // Newest on top; at most four (two on a phone), the music window always kept.
   const max = innerWidth <= 700 ? 2 : 4;
   const shown = [...list].reverse().filter((w, i) => i < max || w.kind === 'music');
   return <section className="oxwins" aria-label="What Taurus just did" aria-live="polite">
-    {shown.map(w => <Win key={w.id} win={w} drop={drop} />)}
+    {shown.map(w => <Win key={w.id} win={w} drop={drop} liveOnly={liveOnly} />)}
   </section>;
 }
 
-function Win({ win, drop }: { win: TaurusWindow; drop: (id: string) => void }) {
+function Win({ win, drop, liveOnly }: { win: TaurusWindow; drop: (id: string) => void; liveOnly: boolean }) {
   const [leaving, setLeaving] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const hover = useRef(false);
@@ -113,7 +114,7 @@ function Win({ win, drop }: { win: TaurusWindow; drop: (id: string) => void }) {
       {win.kind === 'memory' && <MemoryWin key={win.at} memories={win.memories} added={win.added} removed={win.removed} />}
       {win.kind === 'open' && <Open id={win.id} name={win.name} url={win.url} />}
       {win.kind === 'note' && <><h3 className="oxwin-title">{win.title}</h3><p className="oxwin-text">{win.text}</p></>}
-      {win.kind === 'home' && <><h3 className="oxwin-title">{win.text}</h3><DeviceList key={win.at} devices={win.devices} sample={win.sample} /></>}
+      {win.kind === 'home' && (liveOnly && win.sample ? <ConnectState /> : <><h3 className="oxwin-title">{win.text}</h3><DeviceList key={win.at} devices={win.devices} sample={win.sample} /></>)}
       {win.kind === 'mac' && <><p className="oxwin-kicker">This Mac</p><h3 className="oxwin-title">{win.title}</h3><p className="oxwin-text">{win.text}</p></>}
     </div>
   </article>;
